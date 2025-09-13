@@ -1,5 +1,5 @@
 import PQueue from 'p-queue';
-import { RunFunction } from "p-queue/dist/queue";
+import { RunFunction } from "../../node_modules/p-queue/dist/queue";
 import { Request } from "./request";
 
 export class PriorityQueue extends PQueue {
