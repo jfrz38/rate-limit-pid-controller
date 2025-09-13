@@ -14,6 +14,7 @@ export class PriorityQueue extends PQueue {
         const run: RunFunction = async () => {
             await request.task();
             this.exitRequests++;
+            // TODO : Check if is removed correctly
             if (this.size === 0) {
                 this.lastTimeEmpty = Date.now();
             }

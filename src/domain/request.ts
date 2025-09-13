@@ -1,5 +1,6 @@
 import { randomUUID, UUID } from "crypto";
 import { Event } from "./events";
+import { Priority } from "./priority";
 
 export class Request {
     private eventLog: Map<Event, Date> = new Map();
@@ -8,18 +9,16 @@ export class Request {
     readonly task: Function;
     _status: Event
 
-    private readonly RANDOM_COHORT = Math.floor(Math.random() * 128)
 
-    constructor(task: Function, private readonly _priority: number, private readonly cohort: number = this.RANDOM_COHORT) {
+    constructor(task: Function, private readonly _priority: Priority) {
         this.id = randomUUID();
         this.task = task;
-        this.cohort = cohort;
         // TODO: Maybe this can be clearer
         this.status = this._status = Event.CREATED
     }
 
     get priority(): number {
-        return this._priority * 128 + this.cohort;
+        return this._priority.value;
     }
 
     set status(newStatus: Event) {

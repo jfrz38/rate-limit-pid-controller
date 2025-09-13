@@ -28,16 +28,20 @@ export class Rejector {
         request.status = Event.QUEUED;
     }
 
-    updateThreshold(newValue: number): void {
-        const isDecreased = newValue < this.threshold
-        this.threshold = newValue;
-        console.info(`Threshold updated to: ${newValue}`)
+    updateThreshold(newThreshold: number): void {
+        const oldThreshold = this.threshold;
+        this.threshold = newThreshold;
+        
+        console.info(`Threshold modified from ${oldThreshold} to: ${newThreshold}`)
+        
+        const isDecreased = oldThreshold < this.threshold
         if (isDecreased) {
             // TODO: Crear método de la cola para cuando baje el threshold eliminar los valores que ya no deberían ejecutarse
         }
     }
 
     startThresholdCheck(interval: number = 500): void {
+        // TODO: Comprobar que entra aquí
         setInterval(() => {
             if (this.isServiceOverloaded()) {
                 const newThreshold = this.getPriorityThreshold();
