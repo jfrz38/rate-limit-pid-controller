@@ -1,4 +1,4 @@
-# Cinnamon-inspired Rate Limiter
+# Rate Limiter PID Controller
 
 This project is an **opinionated implementation of a rate limiter**, inspired by Uber’s [Cinnamon blog post](https://www.uber.com/en-ES/blog/cinnamon-using-century-old-tech-to-build-a-mean-load-shedder/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  
 It is written as long as possible in **plain language** without heavy dependencies or frameworks, with the goal of being easily integrated as a dependency in the current framework such as **NestJS**.
