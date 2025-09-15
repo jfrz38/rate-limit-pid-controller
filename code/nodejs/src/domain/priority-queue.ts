@@ -1,7 +1,8 @@
 import PQueue from 'p-queue';
-import { RunFunction } from "../../node_modules/p-queue/dist/queue";
+import { RunFunction } from 'p-queue/dist/queue';
 import { Request } from "./request";
 
+// TODO: Esta clase no me convence, no funciona bien
 export class PriorityQueue extends PQueue {
     entryRequests: number = 0;
     exitRequests: number = 0;
@@ -12,6 +13,7 @@ export class PriorityQueue extends PQueue {
         this.entryRequests++;
 
         const run: RunFunction = async () => {
+            // TODO: comprobar que no se ejecuta aquí sino en el scheduler
             await request.task();
             this.exitRequests++;
             // TODO : Check if is removed correctly

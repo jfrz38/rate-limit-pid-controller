@@ -1,3 +1,6 @@
+import { AutoTuner } from "./application/auto-tuner/auto-tuner";
+import { ConcurrencyController } from "./application/auto-tuner/concurrency.controller";
+import { LatencyController } from "./application/auto-tuner/latency.controller";
 import { PidController } from "./application/pid-controller";
 import { Rejector } from "./application/rejector";
 import { Scheduler } from "./application/scheduler";
@@ -27,6 +30,11 @@ export class PidControllerRateLimit {
 
     private init(): void {
         this.scheduler.start();
+        const latencyController = new LatencyController(this.statistics);
+        new AutoTuner(
+            new ConcurrencyController(this.scheduler, this.statistics, latencyController),
+            latencyController 
+        );
     }
 
     run(task: Function, priority: number): void {

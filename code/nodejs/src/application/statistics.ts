@@ -2,8 +2,6 @@ import { Event } from "../domain/events";
 import { NotEnoughStatsException } from "../domain/exceptions/not-enough-stats.exception";
 import { Request } from "../domain/request";
 
-// TODO: ¿Esto es auto-tuner o qué es?
-// TODO: ¿El auto-tuner no se añadió?
 export class Statistics {
   private static readonly MINIMUM_REQUESTS_FOR_STATS = 5;
   private static readonly MINIMUM_REQUESTS_FOR_LATENCY_PERCENTILE = 5;
@@ -48,14 +46,13 @@ export class Statistics {
     return this.computePercentile(latencies, Statistics.LATENCY_PERCENTILE);
   }
 
-  private computePercentile(arr: number[], percentile: number): number {
-    // TODO: Renombrar arr, k, f, c, a y b
-    const sorted = arr.slice().sort((a, b) => a - b);
-    const k = (percentile / 100) * (sorted.length - 1);
-    const f = Math.floor(k);
-    const c = Math.ceil(k);
-    if (f === c) return sorted[f];
-    return sorted[f] + (k - f) * (sorted[c] - sorted[f]);
+  private computePercentile(values: number[], percentile: number): number {
+    const sorted = values.slice().sort((a, b) => a - b);
+    const index = (percentile / 100) * (sorted.length - 1);
+    const lowerIndex = Math.floor(index);
+    const upperIndex = Math.ceil(index);
+    if (lowerIndex === upperIndex) return sorted[lowerIndex];
+    return sorted[lowerIndex] + (index - lowerIndex) * (sorted[upperIndex] - sorted[lowerIndex]);
   }
 
   getThroughputForInterval(intervalEnd: Date): number {
@@ -92,9 +89,8 @@ export class Statistics {
   }
 
   calculateCumulativePriorityDistribution(threshold: number): number {
-    // TODO: Renombrar r, a y b
-    const priorities = this.requests.map((r) => r.priority).sort((a, b) => a - b);
-    const index = Math.floor(((100 - threshold) / 100) * priorities.length);
-    return priorities[Math.min(index, priorities.length - 1)] ?? 0;
+    const priorities = this.requests.map((request) => request.priority).sort((a, b) => a - b);
+    const thresholdIndex = Math.floor(((100 - threshold) / 100) * priorities.length);
+    return priorities[Math.min(thresholdIndex, priorities.length - 1)] ?? 0;
   }
 }

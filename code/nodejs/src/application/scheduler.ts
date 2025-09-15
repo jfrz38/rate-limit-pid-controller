@@ -1,7 +1,7 @@
 import PQueue from 'p-queue';
 import { Event } from "../domain/events";
-import { Request } from "../domain/request";
 import { PriorityQueue } from '../domain/priority-queue';
+import { Request } from "../domain/request";
 
 export class Scheduler {
 
@@ -21,10 +21,7 @@ export class Scheduler {
         const loop = async () => {
             while (true) {
                 try {
-                    if (
-                        this.processingRequests < this.maxConcurrentRequests &&
-                        this.queue.length > 0
-                    ) {
+                    if (this.canProcess()) {
                         const request = this.queue.shift()!;
                         this.processingRequests++;
                         request.status = Event.LAUNCHED;
@@ -33,9 +30,9 @@ export class Scheduler {
                             try {
                                 await request.task();
                                 request.status = Event.COMPLETED;
-                            } catch (e) {
+                            } catch (error) {
                                 request.status = Event.FAILED;
-                                console.error('Error processing request', e);
+                                console.error('Error processing request', error);
                             } finally {
                                 this.processingRequests--;
                             }
@@ -49,6 +46,11 @@ export class Scheduler {
             }
         };
         loop();
+    }
+
+    private canProcess() {
+        return this.queue.length > 0 &&
+            this.processingRequests < this.maxConcurrentRequests;
     }
 
     updateMaxConcurrentRequests(max: number) {
