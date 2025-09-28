@@ -4,7 +4,7 @@ import { LatencyController } from "./latency.controller";
 
 export class ConcurrencyController {
 
-    private intervalThroughputs: number[] = [];
+    private intervalThroughput: number[] = [];
     private maxInflights: number[] = [];
 
     private inflightLimit = 10;
@@ -32,7 +32,7 @@ export class ConcurrencyController {
         }
 
         const intervalThroughput = this.statistics.getThroughputForInterval(intervalEnd);
-        this.pushFixed(this.intervalThroughputs, intervalThroughput, 50);
+        this.pushFixed(this.intervalThroughput, intervalThroughput, 50);
         this.pushFixed(this.maxInflights, this.inflightLimit, 50);
 
         const newLimit = this.calculateNewLimit(aggregatedLatency);

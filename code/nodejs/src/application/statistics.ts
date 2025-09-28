@@ -7,14 +7,14 @@ export class Statistics {
   private static readonly MINIMUM_REQUESTS_FOR_LATENCY_PERCENTILE = 5;
   private static readonly LATENCY_PERCENTILE = 90;
   private static readonly INTERVAL_WIDTH_SECONDS = 5;
+  private readonly MAX_REQUESTS = 1000;
 
-  private readonly maxRequests = 1000;
   private requests: Request[] = [];
 
   constructor() { }
 
   add(request: Request): void {
-    if (this.requests.length >= this.maxRequests) {
+    if (this.requests.length >= this.MAX_REQUESTS) {
       this.requests.shift();
     }
     this.requests.push(request);
@@ -28,10 +28,10 @@ export class Statistics {
     }
 
     const average = validRequests.reduce((accumulator, request: Request) => {
-        const completed = request.getEventByType(Event.COMPLETED)!;
-        const created = request.getEventByType(Event.CREATED)!;
-        return accumulator + (completed.getTime() - created.getTime());
-      }, 0) / validRequests.length;
+      const completed = request.getEventByType(Event.COMPLETED)!;
+      const created = request.getEventByType(Event.CREATED)!;
+      return accumulator + (completed.getTime() - created.getTime());
+    }, 0) / validRequests.length;
 
     return average;
   }
@@ -76,7 +76,7 @@ export class Statistics {
     return this.filterSuccessfulRequestsInInterval(this.calculateIntervalStart(intervalEnd));
   }
 
-  private  calculateIntervalStart(intervalEnd: Date): Date {
+  private calculateIntervalStart(intervalEnd: Date): Date {
     return new Date(intervalEnd.getTime() - Statistics.INTERVAL_WIDTH_SECONDS * 1000);
   }
 
@@ -90,7 +90,10 @@ export class Statistics {
 
   calculateCumulativePriorityDistribution(threshold: number): number {
     const priorities = this.requests.map((request) => request.priority).sort((a, b) => a - b);
-    const thresholdIndex = Math.floor(((100 - threshold) / 100) * priorities.length);
-    return priorities[Math.min(thresholdIndex, priorities.length - 1)] ?? 0;
+    const index = ((100 - threshold) / 100) * (priorities.length - 1);
+    const lowerIndex = Math.floor(index);
+    const upperIndex = Math.ceil(index);
+    const percentile = priorities[lowerIndex] + (index - lowerIndex) * (priorities[upperIndex] - priorities[lowerIndex]);
+    return Math.floor(percentile);
   }
 }

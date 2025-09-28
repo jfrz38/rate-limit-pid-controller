@@ -3,7 +3,9 @@
  */
 export class Priority {
 
-    private readonly DEFAULT_PRIORITY = 5;
+    // TODO: 
+    private readonly LOWEST_PRIORITY = 5;
+    private readonly DEFAULT_PRIORITY = this.LOWEST_PRIORITY;
     private readonly RANDOM_COHORT = Math.floor(Math.random() * 128)
     private readonly _value: number;
     constructor(
