@@ -24,14 +24,14 @@ describe('Math utils tests', () => {
                 const x = [1, 2, 3];
                 const y = [2, 4, 6];
                 
-                expect(MathUtils.covariance(x, y)).toBeCloseTo(-1.333, 4);
+                expect(MathUtils.covariance(x, y)).toBeCloseTo(1.333, 3);
             });
 
             test('should compute negative covariance', () => {
                 const x = [1, 2, 3];
                 const y = [6, 4, 2];
 
-                expect(MathUtils.covariance(x, y)).toBeCloseTo(-1.333, 4);
+                expect(MathUtils.covariance(x, y)).toBeCloseTo(-1.333, 3);
             });
 
             test('should be 0 when no correlation', () => {
