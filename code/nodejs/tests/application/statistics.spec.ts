@@ -1,6 +1,7 @@
 import { Statistics } from '../../src/application/statistics';
 import { Event } from '../../src/domain/events';
 import { NotEnoughStatsException } from '../../src/domain/exceptions/not-enough-stats.exception';
+import { MathUtils } from '../../src/domain/math/math-utils';
 import { Priority } from '../../src/domain/priority';
 import { Request } from '../../src/domain/request';
 
@@ -99,80 +100,88 @@ describe('Statistics tests', () => {
     })
 
     describe('Test calculateCumulativePriorityDistribution', () => {
+        const expectedResult = 0;
+        const threshold = 10;
+        const expectedPercentile = 100 - threshold;
+        let spy: jest.SpyInstance<number, [values: number[], percentile: number], any>;
+
+        beforeEach(() => {
+            spy = jest.spyOn(MathUtils, 'percentile').mockReturnValue(expectedResult);
+        });
+
+        afterEach(() => {
+            spy.mockRestore();
+        });
 
         test('when exists only one value should calculate expected cumulative priority', () => {
-            const priority = cohort;
+            const values = [1];
+            const expectedPriorities = createExpectedPriorities(values);
+            values.forEach(value => statistics.add(createPriorityRequest(value)));
 
-            statistics.add(createPriorityRequest(1));
+            const result = statistics.calculateCumulativePriorityDistribution(threshold);
 
-            expect(statistics.calculateCumulativePriorityDistribution(10)).toBe(priority);
-            expect(statistics.calculateCumulativePriorityDistribution(20)).toBe(priority);
-            expect(statistics.calculateCumulativePriorityDistribution(30)).toBe(priority);
-            expect(statistics.calculateCumulativePriorityDistribution(40)).toBe(priority);
-            expect(statistics.calculateCumulativePriorityDistribution(50)).toBe(priority);
-            expect(statistics.calculateCumulativePriorityDistribution(60)).toBe(priority);
-            expect(statistics.calculateCumulativePriorityDistribution(70)).toBe(priority);
-            expect(statistics.calculateCumulativePriorityDistribution(80)).toBe(priority);
-            expect(statistics.calculateCumulativePriorityDistribution(90)).toBe(priority);
-            expect(statistics.calculateCumulativePriorityDistribution(100)).toBe(priority);
-        })
+            expect(result).toBe(expectedResult);
+            expect(spy).toHaveBeenCalledWith(expectedPriorities, expectedPercentile);
+        });
 
         test('when exists unordered values should calculate expected cumulative priority', () => {
             const max = 3;
             const middle = 2;
             const min = 1;
-            statistics.add(createPriorityRequest(middle));
-            statistics.add(createPriorityRequest(max));
-            statistics.add(createPriorityRequest(min));
 
-            expect(statistics.calculateCumulativePriorityDistribution(0)).toBe(max * cohort);
-            expect(statistics.calculateCumulativePriorityDistribution(10)).toBe(358);
-            expect(statistics.calculateCumulativePriorityDistribution(50)).toBe(middle * cohort);
-            expect(statistics.calculateCumulativePriorityDistribution(100)).toBe(min * cohort);
+            const values = [middle, max, min];
+            const expectedPriorities = createExpectedPriorities(values);
+            values.forEach(value => statistics.add(createPriorityRequest(value)));
+
+            const result = statistics.calculateCumulativePriorityDistribution(threshold);
+
+            expect(result).toBe(expectedResult);
+            expect(spy).toHaveBeenCalledWith(expectedPriorities, expectedPercentile);
         })
 
         test('when exists ordered values should calculate expected cumulative priority', () => {
             const max = 3;
             const middle = 2;
             const min = 1;
-            statistics.add(createPriorityRequest(max));
-            statistics.add(createPriorityRequest(middle));
-            statistics.add(createPriorityRequest(min));
 
-            expect(statistics.calculateCumulativePriorityDistribution(0)).toBe(max * cohort);
-            expect(statistics.calculateCumulativePriorityDistribution(10)).toBe(358);
-            expect(statistics.calculateCumulativePriorityDistribution(50)).toBe(middle * cohort);
-            expect(statistics.calculateCumulativePriorityDistribution(100)).toBe(min * cohort);
+            const values = [max, middle, min];
+            const expectedPriorities = createExpectedPriorities(values);
+            values.forEach(value => statistics.add(createPriorityRequest(value)));
+
+            const result = statistics.calculateCumulativePriorityDistribution(threshold);
+
+            expect(result).toBe(expectedResult);
+            expect(spy).toHaveBeenCalledWith(expectedPriorities, expectedPercentile);
         })
 
         test('when exists same value should calculate expected cumulative priority', () => {
             const priority = 3;
-            const expectedPriority = priority * cohort;
 
-            statistics.add(createPriorityRequest(priority));
-            statistics.add(createPriorityRequest(priority));
-            statistics.add(createPriorityRequest(priority));
+            const values = [priority, priority, priority];
+            const expectedPriorities = createExpectedPriorities(values);
+            values.forEach(value => statistics.add(createPriorityRequest(value)));
 
-            expect(statistics.calculateCumulativePriorityDistribution(10)).toBe(expectedPriority);
-            expect(statistics.calculateCumulativePriorityDistribution(50)).toBe(expectedPriority);
-            expect(statistics.calculateCumulativePriorityDistribution(100)).toBe(expectedPriority);
+            const result = statistics.calculateCumulativePriorityDistribution(threshold)
+
+            expect(result).toBe(expectedResult);
+            expect(spy).toHaveBeenCalledWith(expectedPriorities, expectedPercentile);
+
         });
 
         test('when exists multiple values should calculate expected cumulative priority', () => {
-            [3, 2, 5, 4, 4, 5, 4, 1, 4, 3].forEach(priority => statistics.add(createPriorityRequest(priority)));
-            
-            expect(statistics.calculateCumulativePriorityDistribution(0)).toBe(5 * cohort);
-            expect(statistics.calculateCumulativePriorityDistribution(10)).toBe(5 * cohort);
-            expect(statistics.calculateCumulativePriorityDistribution(20)).toBe(537);
-            expect(statistics.calculateCumulativePriorityDistribution(30)).toBe(4 * cohort);
-            expect(statistics.calculateCumulativePriorityDistribution(40)).toBe(4 * cohort);
-            expect(statistics.calculateCumulativePriorityDistribution(50)).toBe(4 * cohort);
-            expect(statistics.calculateCumulativePriorityDistribution(60)).toBe(460);
-            expect(statistics.calculateCumulativePriorityDistribution(70)).toBe(3 * cohort);
-            expect(statistics.calculateCumulativePriorityDistribution(80)).toBe(358);
-            expect(statistics.calculateCumulativePriorityDistribution(90)).toBe(243);
-            expect(statistics.calculateCumulativePriorityDistribution(100)).toBe(1 * cohort);
+            const values = [3, 2, 5, 4, 4, 5, 4, 1, 4, 3];
+            const expectedPriorities = createExpectedPriorities(values);
+            values.forEach(value => statistics.add(createPriorityRequest(value)));
+
+            const result = statistics.calculateCumulativePriorityDistribution(threshold)
+
+            expect(result).toBe(expectedResult);
+            expect(spy).toHaveBeenCalledWith(expectedPriorities, expectedPercentile);
         });
+
+        function createExpectedPriorities(priorities: number[]): number[] {
+            return priorities.map(priority => priority * cohort);
+        }
     })
 
     function createPriorityRequest(priority: number): Request {

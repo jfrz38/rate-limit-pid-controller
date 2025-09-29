@@ -1,5 +1,6 @@
 import { Event } from "../domain/events";
 import { NotEnoughStatsException } from "../domain/exceptions/not-enough-stats.exception";
+import { MathUtils } from "../domain/math/math-utils";
 import { Request } from "../domain/request";
 
 export class Statistics {
@@ -89,11 +90,8 @@ export class Statistics {
   }
 
   calculateCumulativePriorityDistribution(threshold: number): number {
-    const priorities = this.requests.map((request) => request.priority).sort((a, b) => a - b);
-    const index = ((100 - threshold) / 100) * (priorities.length - 1);
-    const lowerIndex = Math.floor(index);
-    const upperIndex = Math.ceil(index);
-    const percentile = priorities[lowerIndex] + (index - lowerIndex) * (priorities[upperIndex] - priorities[lowerIndex]);
-    return Math.floor(percentile);
+    const priorities = this.requests.map((request) => request.priority);
+    const percentile = 100 - threshold;
+    return MathUtils.percentile(priorities, percentile);
   }
 }
