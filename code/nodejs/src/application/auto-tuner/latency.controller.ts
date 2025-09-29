@@ -1,5 +1,5 @@
+import { MathUtils } from "../../domain/math/math-utils";
 import { Statistics } from "../statistics";
-import { covariance } from "../../domain/math/math-utils";
 
 export class LatencyController {
     private _targetLatency = 100;
@@ -24,11 +24,11 @@ export class LatencyController {
             return;
         }
 
-        const cov = covariance(this.maxInflights, this.intervalThroughputs);
+        const covariance = MathUtils.covariance(this.maxInflights, this.intervalThroughputs);
 
-        if (cov > 0) {
+        if (covariance > 0) {
             this._targetLatency = minLatency;
-        } else if (cov < 0) {
+        } else if (covariance < 0) {
             this._targetLatency = Math.round(this._targetLatency * factor);
         }
 
