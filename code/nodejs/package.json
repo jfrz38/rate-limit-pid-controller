@@ -13,7 +13,8 @@
     "start": "ts-node src/index.ts",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build",
-    "test": "jest"
+    "test": "jest",
+    "test-coverage": "jest --coverage"
   },
   "repository": {
     "type": "git",
@@ -28,7 +29,7 @@
   ],
   "author": "José F. Ruiz <jrz899@inlumine.ual.es>",
   "license": "MIT",
-  "type": "module",
+  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/jfrz38/rate-limit-pid-controller/issues"
   },
