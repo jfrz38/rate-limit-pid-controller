@@ -36,7 +36,7 @@ describe('Rejector', () => {
     describe('process', () => {
         test('when request priority is lower than threshold should add request to statistics', () => {
             const request = createPriorityRequest(1);
-            
+
             setThreshold(100);
 
             rejector.process(request);
@@ -44,12 +44,12 @@ describe('Rejector', () => {
             expect(statisticsMock.add).toHaveBeenCalledWith(request);
             expect(priorityQueueMock.addRequest).toHaveBeenCalledWith(request);
             expect(getStatus(request)).toBe(Event.QUEUED);
-            
+
         });
 
         test('when request priority is higher than threshold should reject request and throw exception', () => {
             const request = createPriorityRequest(999);
-            
+
             setThreshold(500);
 
             expect(() => rejector.process(request)).toThrow(RejectedRequestException);
@@ -62,7 +62,7 @@ describe('Rejector', () => {
         }
 
         function getStatus(request: Request) {
-            return(request as any)._status
+            return (request as any)._status
         }
     });
 
