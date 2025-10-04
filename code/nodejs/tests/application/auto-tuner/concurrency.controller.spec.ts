@@ -4,27 +4,27 @@ import { Scheduler } from "../../../src/application/scheduler";
 import { Statistics } from "../../../src/application/statistics";
 
 describe('ConcurrencyController', () => {
-  let schedulerMock: jest.Mocked<Scheduler>;
-  let statisticsMock: jest.Mocked<Statistics>;
-  let latencyControllerMock: LatencyController;
+  let scheduler: jest.Mocked<Scheduler>;
+  let statistics: jest.Mocked<Statistics>;
+  let latencyController: LatencyController;
   let controller: ConcurrencyController;
 
   beforeEach(() => {
-    schedulerMock = { updateMaxConcurrentRequests: jest.fn() } as unknown as jest.Mocked<Scheduler>;
-    statisticsMock = {
+    scheduler = { updateMaxConcurrentRequests: jest.fn() } as unknown as jest.Mocked<Scheduler>;
+    statistics = {
       getPercentileLatencySuccessfulRequests: jest.fn(),
       getThroughputForInterval: jest.fn(),
     } as unknown as jest.Mocked<Statistics>;
 
-    latencyControllerMock = {} as LatencyController;
-    Object.defineProperty(latencyControllerMock, 'targetLatency', {
+    latencyController = {} as LatencyController;
+    Object.defineProperty(latencyController, 'targetLatency', {
       get: () => 100,
     });
 
     controller = new ConcurrencyController(
-      schedulerMock,
-      statisticsMock,
-      latencyControllerMock,
+      scheduler,
+      statistics,
+      latencyController,
     );
 
     // Silence console.info
@@ -36,52 +36,52 @@ describe('ConcurrencyController', () => {
   });
 
   test('should not update inflightLimit if not enough stats', () => {
-    statisticsMock.getPercentileLatencySuccessfulRequests.mockImplementation(() => {
+    statistics.getPercentileLatencySuccessfulRequests.mockImplementation(() => {
       throw new Error('Not enough stats');
     });
 
     controller.update();
 
-    expect(statisticsMock.getPercentileLatencySuccessfulRequests).toHaveBeenCalledTimes(1);
-    expect(schedulerMock.updateMaxConcurrentRequests).not.toHaveBeenCalledTimes(1);
+    expect(statistics.getPercentileLatencySuccessfulRequests).toHaveBeenCalledTimes(1);
+    expect(scheduler.updateMaxConcurrentRequests).not.toHaveBeenCalledTimes(1);
   });
 
   test('should calculate new limit and apply it', () => {
-    statisticsMock.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
-    statisticsMock.getThroughputForInterval.mockReturnValue(20);
+    statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
+    statistics.getThroughputForInterval.mockReturnValue(20);
 
     controller.update();
 
-    expect(statisticsMock.getPercentileLatencySuccessfulRequests).toHaveBeenCalledTimes(1);
-    expect(statisticsMock.getThroughputForInterval).toHaveBeenCalledTimes(1);
+    expect(statistics.getPercentileLatencySuccessfulRequests).toHaveBeenCalledTimes(1);
+    expect(statistics.getThroughputForInterval).toHaveBeenCalledTimes(1);
 
-    const newLimit = schedulerMock.updateMaxConcurrentRequests.mock.calls[0][0];
+    const newLimit = scheduler.updateMaxConcurrentRequests.mock.calls[0][0];
     expect(typeof newLimit).toBe('number');
   });
 
   test('should respect lower bound (cores)', () => {
-    statisticsMock.getPercentileLatencySuccessfulRequests.mockReturnValue(1);
-    statisticsMock.getThroughputForInterval.mockReturnValue(20);
+    statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(1);
+    statistics.getThroughputForInterval.mockReturnValue(20);
 
     controller.update();
 
-    const appliedLimit = schedulerMock.updateMaxConcurrentRequests.mock.calls[0][0];
+    const appliedLimit = scheduler.updateMaxConcurrentRequests.mock.calls[0][0];
     expect(appliedLimit).toBeGreaterThanOrEqual(require('os').cpus().length);
   });
 
   test('should respect upper bound (inflightLimit * 10)', () => {
-    statisticsMock.getPercentileLatencySuccessfulRequests.mockReturnValue(0.1);
-    statisticsMock.getThroughputForInterval.mockReturnValue(50);
+    statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(0.1);
+    statistics.getThroughputForInterval.mockReturnValue(50);
 
     controller.update();
 
-    const appliedLimit = schedulerMock.updateMaxConcurrentRequests.mock.calls[0][0];
+    const appliedLimit = scheduler.updateMaxConcurrentRequests.mock.calls[0][0];
     expect(appliedLimit).toBeLessThanOrEqual(10 * 10); // inflightLimit * 10
   });
 
   test('should remove oldest element when intervalThroughput exceeds max size', () => {
-    statisticsMock.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
-    statisticsMock.getThroughputForInterval.mockReturnValue(1);
+    statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
+    statistics.getThroughputForInterval.mockReturnValue(1);
 
     for (let i = 0; i < 50; i++) {
       controller['pushFixed'](controller['intervalThroughput'], i, 50);
@@ -94,14 +94,14 @@ describe('ConcurrencyController', () => {
   });
 
   test('should decrease queue when above beta in calculateNewLimit', () => {
-    statisticsMock.getPercentileLatencySuccessfulRequests.mockReturnValue(250);
-    statisticsMock.getThroughputForInterval.mockReturnValue(20);
+    statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(250);
+    statistics.getThroughputForInterval.mockReturnValue(20);
 
     const spy = jest.spyOn(controller as any, 'applyNewLimit');
 
     controller.update();
 
-    const appliedLimit = schedulerMock.updateMaxConcurrentRequests.mock.calls[0][0];
+    const appliedLimit = scheduler.updateMaxConcurrentRequests.mock.calls[0][0];
     expect(appliedLimit).toBe(controller['inflightLimit']);
     expect(spy).toHaveBeenCalled();
   });

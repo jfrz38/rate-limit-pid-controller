@@ -3,15 +3,15 @@ import { Statistics } from "../../../src/application/statistics";
 import { MathUtils } from "../../../src/domain/math/math-utils";
 
 describe('LatencyController', () => {
-  let statisticsMock: jest.Mocked<Statistics>;
+  let statistics: jest.Mocked<Statistics>;
   let latencyController: LatencyController;
 
   beforeEach(() => {
-    statisticsMock = {
+    statistics = {
       getLowestLatencyForInterval: jest.fn(),
     } as unknown as jest.Mocked<Statistics>;
 
-    latencyController = new LatencyController(statisticsMock);
+    latencyController = new LatencyController(statistics);
 
     // Silence console.info
     jest.spyOn(console, 'info').mockImplementation(() => {});
@@ -26,16 +26,16 @@ describe('LatencyController', () => {
   });
 
   test('should set targetLatency to minLatency when maxInflights < 10', () => {
-    statisticsMock.getLowestLatencyForInterval.mockReturnValue(42);
+    statistics.getLowestLatencyForInterval.mockReturnValue(42);
 
     latencyController.update();
 
-    expect(statisticsMock.getLowestLatencyForInterval).toHaveBeenCalledTimes(1);
+    expect(statistics.getLowestLatencyForInterval).toHaveBeenCalledTimes(1);
     expect(latencyController.targetLatency).toBe(42);
   });
 
   test('should keep targetLatency = minLatency when covariance > 0', () => {
-    statisticsMock.getLowestLatencyForInterval.mockReturnValue(50);
+    statistics.getLowestLatencyForInterval.mockReturnValue(50);
 
     (latencyController as any).maxInflights = Array(10).fill(1);
     (latencyController as any).intervalThroughputs = Array(10).fill(2);
@@ -53,7 +53,7 @@ describe('LatencyController', () => {
   });
 
   test('should reduce targetLatency when covariance < 0', () => {
-    statisticsMock.getLowestLatencyForInterval.mockReturnValue(80);
+    statistics.getLowestLatencyForInterval.mockReturnValue(80);
 
     (latencyController as any).maxInflights = Array(10).fill(1);
     (latencyController as any).intervalThroughputs = Array(10).fill(2);
@@ -66,7 +66,7 @@ describe('LatencyController', () => {
   });
 
   test('should not change targetLatency if covariance = 0', () => {
-    statisticsMock.getLowestLatencyForInterval.mockReturnValue(70);
+    statistics.getLowestLatencyForInterval.mockReturnValue(70);
 
     (latencyController as any).maxInflights = Array(10).fill(1);
     (latencyController as any).intervalThroughputs = Array(10).fill(2);
