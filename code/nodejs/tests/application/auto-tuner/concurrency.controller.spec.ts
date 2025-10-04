@@ -28,7 +28,7 @@ describe('ConcurrencyController', () => {
     );
 
     // Silence console.info
-    jest.spyOn(console, 'info').mockImplementation(() => {});
+    jest.spyOn(console, 'info').mockImplementation(() => { });
   });
 
   afterEach(() => {
@@ -77,6 +77,33 @@ describe('ConcurrencyController', () => {
 
     const appliedLimit = schedulerMock.updateMaxConcurrentRequests.mock.calls[0][0];
     expect(appliedLimit).toBeLessThanOrEqual(10 * 10); // inflightLimit * 10
+  });
+
+  test('should remove oldest element when intervalThroughput exceeds max size', () => {
+    statisticsMock.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
+    statisticsMock.getThroughputForInterval.mockReturnValue(1);
+
+    for (let i = 0; i < 50; i++) {
+      controller['pushFixed'](controller['intervalThroughput'], i, 50);
+    }
+
+    controller.update();
+
+    expect(controller['intervalThroughput'].length).toBe(50);
+    expect(controller['intervalThroughput'][0]).toBe(1);
+  });
+
+  test('should decrease queue when above beta in calculateNewLimit', () => {
+    statisticsMock.getPercentileLatencySuccessfulRequests.mockReturnValue(250);
+    statisticsMock.getThroughputForInterval.mockReturnValue(20);
+
+    const spy = jest.spyOn(controller as any, 'applyNewLimit');
+
+    controller.update();
+
+    const appliedLimit = schedulerMock.updateMaxConcurrentRequests.mock.calls[0][0];
+    expect(appliedLimit).toBe(controller['inflightLimit']);
+    expect(spy).toHaveBeenCalled();
   });
 });
 

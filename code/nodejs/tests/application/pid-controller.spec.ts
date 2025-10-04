@@ -76,4 +76,32 @@ describe("PidController", () => {
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBeLessThan(threshold);
     });
+
+    test("increases threshold above limit should set as maximum threshold", () => {
+        const maximumThreshold = 100;
+
+        (schedulerMock.getMaxConcurrentRequests as jest.Mock).mockReturnValue(10);
+        (schedulerMock.getProcessingRequests as jest.Mock).mockReturnValue(0);
+        priorityQueueMock.entryRequests = 1000;
+        priorityQueueMock.exitRequests = 0;
+
+        (controller as any).currentThreshold = 95;
+
+        const newThreshold = controller.updateThreshold();
+        expect(newThreshold).toBe(maximumThreshold);
+    });
+
+    test("decreases threshold under limit should set as minimum threshold", () => {
+        const minimumThreshold = 0;
+
+        (schedulerMock.getMaxConcurrentRequests as jest.Mock).mockReturnValue(10);
+        (schedulerMock.getProcessingRequests as jest.Mock).mockReturnValue(10);
+        priorityQueueMock.entryRequests = 0;
+        priorityQueueMock.exitRequests = 1000;
+
+        (controller as any).currentThreshold = 1;
+
+        const newThreshold = controller.updateThreshold();
+        expect(newThreshold).toBe(minimumThreshold);
+    });
 });
