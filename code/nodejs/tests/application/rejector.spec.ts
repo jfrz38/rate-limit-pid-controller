@@ -10,63 +10,63 @@ import { Request } from "../../src/domain/request";
 jest.useFakeTimers();
 
 describe('Rejector', () => {
-    let priorityQueueMock: jest.Mocked<PriorityQueue>;
-    let statisticsMock: jest.Mocked<Statistics>;
-    let pidControllerMock: jest.Mocked<PidController>;
+    let priorityQueue: jest.Mocked<PriorityQueue>;
+    let statistics: jest.Mocked<Statistics>;
+    let pidController: jest.Mocked<PidController>;
+    let request: jest.Mocked<Request>;
     let rejector: Rejector;
 
     beforeEach(() => {
-        priorityQueueMock = {
+        priorityQueue = {
             add: jest.fn(),
             getTimeSinceLastEmpty: jest.fn().mockReturnValue(0),
         } as unknown as jest.Mocked<PriorityQueue>;
 
-        statisticsMock = {
+        statistics = {
             add: jest.fn(),
             calculateCumulativePriorityDistribution: jest.fn().mockReturnValue(100),
         } as unknown as jest.Mocked<Statistics>;
 
-        pidControllerMock = {
+        pidController = {
             updateThreshold: jest.fn().mockReturnValue(123),
         } as unknown as jest.Mocked<PidController>;
+
+        request = {} as unknown as jest.Mocked<Request>;
 
         // Silence console.info
         jest.spyOn(console, 'info').mockImplementation(() => { });
 
-        rejector = new Rejector(priorityQueueMock, statisticsMock, pidControllerMock);
+        rejector = new Rejector(priorityQueue, statistics, pidController);
     });
 
     describe('process', () => {
         test('when request priority is lower than threshold should add request to statistics', () => {
-            const request = createPriorityRequest(1);
+            request = {
+                priority: 10
+            } as unknown as jest.Mocked<Request>;
 
-            setThreshold(100);
+            setThreshold(500);
 
             rejector.process(request);
 
-            expect(statisticsMock.add).toHaveBeenNthCalledWith(1, request);
-            expect(priorityQueueMock.add).toHaveBeenNthCalledWith(1, request);
-            expect(getStatus(request)).toBe(Event.QUEUED);
+            expect(statistics.add).toHaveBeenNthCalledWith(1, request);
+            expect(priorityQueue.add).toHaveBeenNthCalledWith(1, request);
+            expect((request as any).status).toBe(Event.QUEUED);
 
         });
 
         test('when request priority is higher than threshold should reject request and throw exception', () => {
-            const request = createPriorityRequest(999);
+            request = {
+                priority: 999
+            } as unknown as jest.Mocked<Request>;
 
-            setThreshold(500);
+            setThreshold(1);
 
             expect(() => rejector.process(request)).toThrow(RejectedRequestException);
-            expect(getStatus(request)).toBe(Event.REJECTED);
-            expect(priorityQueueMock.add).not.toHaveBeenCalled();
+            expect(statistics.add).toHaveBeenNthCalledWith(1, request);
+            expect(priorityQueue.add).not.toHaveBeenCalled();
+            expect((request as any).status).toBe(Event.REJECTED);
         });
-
-        function createPriorityRequest(priority: number): Request {
-            return new Request(() => null, new Priority(priority, 0));
-        }
-
-        function getStatus(request: Request) {
-            return (request as any)._status
-        }
     });
 
     describe('updateThreshold', () => {
@@ -87,9 +87,9 @@ describe('Rejector', () => {
     describe('startThresholdCheck', () => {
         test('should call updateThreshold if overloaded and threshold changes', () => {
             const spyUpdate = jest.spyOn(rejector, 'updateThreshold');
-            priorityQueueMock.getTimeSinceLastEmpty.mockReturnValue(20);
-            statisticsMock.calculateCumulativePriorityDistribution.mockReturnValue(555);
-            pidControllerMock.updateThreshold.mockReturnValue(123);
+            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(20);
+            statistics.calculateCumulativePriorityDistribution.mockReturnValue(555);
+            pidController.updateThreshold.mockReturnValue(123);
 
             rejector.startThresholdCheck(1000);
 
@@ -100,7 +100,7 @@ describe('Rejector', () => {
 
         test('should not update if not overloaded', () => {
             const spyUpdate = jest.spyOn(rejector, 'updateThreshold');
-            priorityQueueMock.getTimeSinceLastEmpty.mockReturnValue(0);
+            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(0);
 
             rejector.startThresholdCheck(1000);
             jest.advanceTimersByTime(1000);
@@ -111,16 +111,16 @@ describe('Rejector', () => {
 
     describe('private methods', () => {
         test('isServiceOverloaded returns true when queue empty time > MAX', () => {
-            priorityQueueMock.getTimeSinceLastEmpty.mockReturnValue(999);
+            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(999);
             expect((rejector as any).isServiceOverloaded()).toBe(true);
         });
 
         test('getPriorityThreshold combines pid + stats', () => {
-            pidControllerMock.updateThreshold.mockReturnValue(321);
-            statisticsMock.calculateCumulativePriorityDistribution.mockReturnValue(777);
+            pidController.updateThreshold.mockReturnValue(321);
+            statistics.calculateCumulativePriorityDistribution.mockReturnValue(777);
             const result = (rejector as any).getPriorityThreshold();
-            expect(pidControllerMock.updateThreshold).toHaveBeenCalledTimes(1);
-            expect(statisticsMock.calculateCumulativePriorityDistribution).toHaveBeenNthCalledWith(1, 321);
+            expect(pidController.updateThreshold).toHaveBeenCalledTimes(1);
+            expect(statistics.calculateCumulativePriorityDistribution).toHaveBeenNthCalledWith(1, 321);
             expect(result).toBe(777);
         });
     });
