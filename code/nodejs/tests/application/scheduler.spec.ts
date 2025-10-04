@@ -19,6 +19,8 @@ describe("Scheduler", () => {
 
         // Silence console.error
         jest.spyOn(console, 'error').mockImplementation(() => { });
+        // Silence console.info
+        jest.spyOn(console, 'info').mockImplementation(() => { });
     });
 
     afterEach(() => {

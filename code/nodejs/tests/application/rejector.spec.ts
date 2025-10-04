@@ -30,6 +30,9 @@ describe('Rejector', () => {
             updateThreshold: jest.fn().mockReturnValue(123),
         } as unknown as jest.Mocked<PidController>;
 
+        // Silence console.info
+        jest.spyOn(console, 'info').mockImplementation(() => { });
+
         rejector = new Rejector(priorityQueueMock, statisticsMock, pidControllerMock);
     });
 
