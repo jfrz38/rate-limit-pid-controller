@@ -14,7 +14,8 @@
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build",
     "test": "jest",
-    "test-coverage": "jest --coverage"
+    "test-coverage": "jest --coverage",
+    "local": "ts-node src/index.local.ts"
   },
   "repository": {
     "type": "git",
