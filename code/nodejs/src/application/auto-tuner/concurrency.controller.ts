@@ -57,8 +57,11 @@ export class ConcurrencyController {
             queue -= Math.floor(Math.log10(this.inflightLimit));
         }
 
-        if (queue < this.cores) queue = this.cores;
-        if (queue > this.inflightLimit * 10) queue = this.inflightLimit * 10;
+        if (queue < this.cores) {
+            queue = this.cores;
+        } else if (queue > this.inflightLimit * 10) {
+            queue = this.inflightLimit * 10;
+        }
 
         return queue;
     }

@@ -27,7 +27,7 @@ describe('Request', () => {
         });
     });
 
-    describe('status setter', () => {
+    describe('status getter & setter', () => {
         test('should update status and add entry to eventLog', () => {
             const request = new Request(task, priority);
             const now = new Date();
@@ -38,6 +38,24 @@ describe('Request', () => {
             expect(request.getEventLog().get(Event.LAUNCHED)).toEqual(now);
 
             jest.useRealTimers();
+        });
+
+        test('when request is created should return expected status', () => {
+            const request = new Request(task, priority);
+
+            const status = request.status;
+
+            expect(status).toBe(Event.CREATED);
+        });
+
+        test('when status is updated should return expected status', () => {
+            const request = new Request(task, priority);
+            const newStatus = Event.QUEUED;
+
+            request.status = newStatus;
+            const currentStatus = request.status;
+
+            expect(request.status).toBe(newStatus);
         });
     });
 

@@ -15,6 +15,84 @@ describe('Statistics tests', () => {
         intervalEnd = new Date();
     });
 
+    describe('Test add', () => {
+        test('when add request and is full should remove first request and add new one', () => {
+            const request = {} as unknown as jest.Mocked<Request>;
+            const queuedRequest = {} as unknown as jest.Mocked<Request>;
+
+            (statistics as any).MAX_REQUESTS = 1;
+            (statistics as any).requests = [queuedRequest];
+
+            statistics.add(request);
+
+            const queue = (statistics as any).requests
+            expect(queue.length).toBe(1);
+            expect(queue[0]).toBe(request);
+
+        });
+
+        describe('Test getAverageProcessingTime', () => {
+            test('when there are not enough valid requests should throw NotEnoughStatsException', () => {
+                for (let i = 0; i < 4; i++) {
+                    const request = createRequestWithEvents(0, 10);
+                    statistics.add(request);
+                }
+                expect(() => statistics.getAverageProcessingTime()).toThrow(NotEnoughStatsException);
+            });
+
+            test('when some requests have missing events should ignore them and throw if not enough valid remain', () => {
+                for (let i = 0; i < 3; i++) {
+                    statistics.add(createRequestWithEvents(0, 10));
+                }
+                for (let i = 0; i < 2; i++) {
+                    const invalidRequest = {} as unknown as jest.Mocked<Request>;
+                    invalidRequest.hasEventCreatedAndCompleted = jest.fn().mockReturnValue(false);
+                    statistics.add(invalidRequest);
+                }
+                expect(() => statistics.getAverageProcessingTime()).toThrow(NotEnoughStatsException);
+            });
+
+            test('when there are enough valid requests should return correct average processing time', () => {
+                const times = [10, 20, 30, 40, 50];
+                times.forEach(offset => statistics.add(createRequestWithEvents(0, offset)));
+                const expectedAverage = times.reduce((a, b) => a + b, 0) / times.length;
+                expect(statistics.getAverageProcessingTime()).toBe(expectedAverage);
+            });
+
+            test('when requests have varying times should calculate precise average', () => {
+                const times = [100, 200, 300, 400, 500];
+                times.forEach(offset => statistics.add(createRequestWithEvents(0, offset)));
+                const expectedAverage = times.reduce((a, b) => a + b, 0) / times.length;
+                expect(statistics.getAverageProcessingTime()).toBe(expectedAverage);
+            });
+
+            function createRequestWithEvents(createdOffset: number, completedOffset: number): Request {
+                const request = {} as unknown as jest.Mocked<Request>;
+                const created = new Date(createdOffset);
+                const completed = new Date(completedOffset);
+                request.hasEventCreatedAndCompleted = jest.fn().mockReturnValue(true);
+                request.getEventByType = jest.fn()
+                    .mockImplementation((type: Event) => type === Event.CREATED ? created : completed);
+                return request;
+            }
+        });
+
+        test('when add request and is not full should add without remove any request', () => {
+            const request = {} as unknown as jest.Mocked<Request>;
+            const queuedRequest = {} as unknown as jest.Mocked<Request>;
+
+            (statistics as any).MAX_REQUESTS = 2;
+            (statistics as any).requests = [queuedRequest];
+
+            statistics.add(request);
+
+            const queue = (statistics as any).requests
+            expect(queue.length).toBe(2);
+            expect(queue[0]).toBe(queuedRequest);
+            expect(queue[1]).toBe(request);
+        });
+    });
+
     describe('Test getPercentileLatencySuccessfulRequests', () => {
         test('when no exists enough requests should throws expected exception', () => {
             for (let i = 0; i < 4; i++) {
@@ -57,7 +135,6 @@ describe('Statistics tests', () => {
             expect(Math.round(result * 10) / 10).toBe(224.1);
         });
     })
-
 
     describe('Test getThroughputForInterval', () => {
         test('when no requests should return no throughputs', () => {
