@@ -15,7 +15,6 @@ describe('LatencyController', () => {
 
     // Silence console.info
     jest.spyOn(console, 'info').mockImplementation(() => {});
-    jest.restoreAllMocks();
   });
 
   afterEach(() => {
