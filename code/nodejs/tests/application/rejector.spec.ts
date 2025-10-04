@@ -17,7 +17,7 @@ describe('Rejector', () => {
 
     beforeEach(() => {
         priorityQueueMock = {
-            addRequest: jest.fn(),
+            add: jest.fn(),
             getTimeSinceLastEmpty: jest.fn().mockReturnValue(0),
         } as unknown as jest.Mocked<PriorityQueue>;
 
