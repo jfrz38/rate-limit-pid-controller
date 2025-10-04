@@ -20,8 +20,8 @@ export class PidControllerRateLimit {
 
     constructor() {
         this.statistics = new Statistics();
-        this.priorityQueue = new PriorityQueue();
-        this.scheduler = new Scheduler();
+        this.priorityQueue = new PriorityQueue(this.statistics);
+        this.scheduler = new Scheduler(this.statistics);
         this.pidController = new PidController(this.scheduler, this.priorityQueue);
         this.rejector = new Rejector(this.priorityQueue, this.statistics, this.pidController);
 

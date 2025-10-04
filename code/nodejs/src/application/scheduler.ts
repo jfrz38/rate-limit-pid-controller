@@ -1,6 +1,7 @@
 import { Event } from "../domain/events";
 import { PriorityQueue } from '../domain/priority-queue';
 import { Request } from "../domain/request";
+import { Statistics } from "./statistics";
 
 export class Scheduler {
 
@@ -11,9 +12,12 @@ export class Scheduler {
     private queue: Request[] = [];
     private executor: PriorityQueue;
 
-    constructor(maxConcurrentRequests?: number) {
+    constructor(
+        private readonly statistics: Statistics,
+        maxConcurrentRequests?: number
+    ) {
         this.maxConcurrentRequests = maxConcurrentRequests ?? this.MAX_CONCURRENT_REQUESTS
-        this.executor = new PriorityQueue({ concurrency: this.maxConcurrentRequests });
+        this.executor = new PriorityQueue(statistics);
         this.start();
     }
 
