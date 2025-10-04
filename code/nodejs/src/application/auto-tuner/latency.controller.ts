@@ -20,7 +20,7 @@ export class LatencyController {
         this._targetLatency = minLatency;
 
         if (this.maxInflights.length < 10) {
-            console.info('new targetLatency: ', this._targetLatency);
+            console.info('New targetLatency: ', this._targetLatency);
             return;
         }
 
@@ -32,6 +32,6 @@ export class LatencyController {
             this._targetLatency = Math.round(this._targetLatency * factor);
         }
 
-        console.info('new targetLatency: ', this._targetLatency);
+        console.info('New targetLatency: ', this._targetLatency);
     }
 }

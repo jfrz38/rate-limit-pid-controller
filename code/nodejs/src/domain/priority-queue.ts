@@ -58,14 +58,14 @@ export class PriorityQueue {
             const newTimeout = Math.round(avgProcessingTime * 0.33);
 
             if (newTimeout !== this.queueTimeout) {
-                console.log(
+                console.info(
                     `Updating timeout from ${this.queueTimeout} to ${newTimeout}`
                 );
                 this.queueTimeout = newTimeout;
             }
         } catch (e: any) {
             if (e instanceof NotEnoughStatsException) {
-                console.log('Not enough stats to update timeout');
+                console.info('Not enough stats to update timeout');
             } else {
                 throw e;
             }
