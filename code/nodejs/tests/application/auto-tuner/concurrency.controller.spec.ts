@@ -6,7 +6,7 @@ import { Statistics } from "../../../src/application/statistics";
 describe('ConcurrencyController', () => {
   let scheduler: jest.Mocked<Scheduler>;
   let statistics: jest.Mocked<Statistics>;
-  let latencyController: LatencyController;
+  let latencyController: jest.Mocked<LatencyController>;
   let controller: ConcurrencyController;
 
   beforeEach(() => {
@@ -16,10 +16,9 @@ describe('ConcurrencyController', () => {
       getThroughputForInterval: jest.fn(),
     } as unknown as jest.Mocked<Statistics>;
 
-    latencyController = {} as LatencyController;
-    Object.defineProperty(latencyController, 'targetLatency', {
-      get: () => 100,
-    });
+    latencyController = {
+      targetLatency: 100
+    } as jest.Mocked<LatencyController>;
 
     controller = new ConcurrencyController(
       scheduler,
