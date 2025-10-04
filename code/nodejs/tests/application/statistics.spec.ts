@@ -121,7 +121,7 @@ describe('Statistics tests', () => {
             const result = statistics.calculateCumulativePriorityDistribution(threshold);
 
             expect(result).toBe(expectedResult);
-            expect(spy).toHaveBeenCalledWith(expectedPriorities, expectedPercentile);
+            expect(spy).toHaveBeenNthCalledWith(1, expectedPriorities, expectedPercentile);
         });
 
         test('when exists unordered values should calculate expected cumulative priority', () => {
@@ -136,7 +136,7 @@ describe('Statistics tests', () => {
             const result = statistics.calculateCumulativePriorityDistribution(threshold);
 
             expect(result).toBe(expectedResult);
-            expect(spy).toHaveBeenCalledWith(expectedPriorities, expectedPercentile);
+            expect(spy).toHaveBeenNthCalledWith(1, expectedPriorities, expectedPercentile);
         })
 
         test('when exists ordered values should calculate expected cumulative priority', () => {
@@ -151,7 +151,7 @@ describe('Statistics tests', () => {
             const result = statistics.calculateCumulativePriorityDistribution(threshold);
 
             expect(result).toBe(expectedResult);
-            expect(spy).toHaveBeenCalledWith(expectedPriorities, expectedPercentile);
+            expect(spy).toHaveBeenNthCalledWith(1, expectedPriorities, expectedPercentile);
         })
 
         test('when exists same value should calculate expected cumulative priority', () => {
@@ -164,7 +164,7 @@ describe('Statistics tests', () => {
             const result = statistics.calculateCumulativePriorityDistribution(threshold)
 
             expect(result).toBe(expectedResult);
-            expect(spy).toHaveBeenCalledWith(expectedPriorities, expectedPercentile);
+            expect(spy).toHaveBeenNthCalledWith(1, expectedPriorities, expectedPercentile);
 
         });
 
@@ -176,7 +176,7 @@ describe('Statistics tests', () => {
             const result = statistics.calculateCumulativePriorityDistribution(threshold)
 
             expect(result).toBe(expectedResult);
-            expect(spy).toHaveBeenCalledWith(expectedPriorities, expectedPercentile);
+            expect(spy).toHaveBeenNthCalledWith(1, expectedPriorities, expectedPercentile);
         });
 
         function createExpectedPriorities(priorities: number[]): number[] {

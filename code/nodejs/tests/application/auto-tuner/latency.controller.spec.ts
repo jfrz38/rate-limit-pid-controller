@@ -31,7 +31,7 @@ describe('LatencyController', () => {
 
     latencyController.update();
 
-    expect(statisticsMock.getLowestLatencyForInterval).toHaveBeenCalled();
+    expect(statisticsMock.getLowestLatencyForInterval).toHaveBeenCalledTimes(1);
     expect(latencyController.targetLatency).toBe(42);
   });
 
@@ -45,7 +45,8 @@ describe('LatencyController', () => {
 
     latencyController.update();
 
-    expect(MathUtils.covariance).toHaveBeenCalledWith(
+    expect(MathUtils.covariance).toHaveBeenNthCalledWith(
+      1,
       (latencyController as any).maxInflights,
       (latencyController as any).intervalThroughputs
     );

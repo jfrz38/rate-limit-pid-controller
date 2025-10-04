@@ -41,8 +41,8 @@ describe('Rejector', () => {
 
             rejector.process(request);
 
-            expect(statisticsMock.add).toHaveBeenCalledWith(request);
-            expect(priorityQueueMock.addRequest).toHaveBeenCalledWith(request);
+            expect(statisticsMock.add).toHaveBeenNthCalledWith(1, request);
+            expect(priorityQueueMock.addRequest).toHaveBeenNthCalledWith(1, request);
             expect(getStatus(request)).toBe(Event.QUEUED);
 
         });
@@ -70,7 +70,7 @@ describe('Rejector', () => {
         test('should update threshold and log info', () => {
             const spy = jest.spyOn(console, 'info').mockImplementation();
             rejector.updateThreshold(500);
-            expect(spy).toHaveBeenCalledWith('Threshold modified from 768 to: 500');
+            expect(spy).toHaveBeenNthCalledWith(1, 'Threshold modified from 768 to: 500');
             spy.mockRestore();
         });
 
@@ -92,7 +92,7 @@ describe('Rejector', () => {
 
             jest.advanceTimersByTime(1000);
 
-            expect(spyUpdate).toHaveBeenCalledWith(555);
+            expect(spyUpdate).toHaveBeenNthCalledWith(1, 555);
         });
 
         test('should not update if not overloaded', () => {
@@ -116,15 +116,14 @@ describe('Rejector', () => {
             pidControllerMock.updateThreshold.mockReturnValue(321);
             statisticsMock.calculateCumulativePriorityDistribution.mockReturnValue(777);
             const result = (rejector as any).getPriorityThreshold();
-            expect(pidControllerMock.updateThreshold).toHaveBeenCalled();
-            expect(statisticsMock.calculateCumulativePriorityDistribution).toHaveBeenCalledWith(321);
+            expect(pidControllerMock.updateThreshold).toHaveBeenCalledTimes(1);
+            expect(statisticsMock.calculateCumulativePriorityDistribution).toHaveBeenNthCalledWith(1, 321);
             expect(result).toBe(777);
         });
     });
 
     function setThreshold(threshold: number) {
         (rejector as any).threshold = new Priority(threshold, 0).value;
-        // (rejector as unknown as { threshold: number }).threshold = 500;
     }
 });
 

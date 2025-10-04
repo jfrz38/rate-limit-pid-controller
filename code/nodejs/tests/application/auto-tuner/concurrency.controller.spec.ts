@@ -42,8 +42,8 @@ describe('ConcurrencyController', () => {
 
     controller.update();
 
-    expect(statisticsMock.getPercentileLatencySuccessfulRequests).toHaveBeenCalled();
-    expect(schedulerMock.updateMaxConcurrentRequests).not.toHaveBeenCalled();
+    expect(statisticsMock.getPercentileLatencySuccessfulRequests).toHaveBeenCalledTimes(1);
+    expect(schedulerMock.updateMaxConcurrentRequests).not.toHaveBeenCalledTimes(1);
   });
 
   test('should calculate new limit and apply it', () => {
@@ -52,8 +52,8 @@ describe('ConcurrencyController', () => {
 
     controller.update();
 
-    expect(statisticsMock.getPercentileLatencySuccessfulRequests).toHaveBeenCalled();
-    expect(statisticsMock.getThroughputForInterval).toHaveBeenCalled();
+    expect(statisticsMock.getPercentileLatencySuccessfulRequests).toHaveBeenCalledTimes(1);
+    expect(statisticsMock.getThroughputForInterval).toHaveBeenCalledTimes(1);
 
     const newLimit = schedulerMock.updateMaxConcurrentRequests.mock.calls[0][0];
     expect(typeof newLimit).toBe('number');
