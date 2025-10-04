@@ -7,14 +7,17 @@ export class Request {
 
     readonly id: UUID;
     readonly task: Function;
-    _status: Event
+    private _status: Event
 
 
     constructor(task: Function, private readonly _priority: Priority) {
         this.id = randomUUID();
         this.task = task;
-        // TODO: Maybe this can be clearer
         this.status = this._status = Event.CREATED
+    }
+
+    get status() {
+        return this._status
     }
 
     get priority(): number {
