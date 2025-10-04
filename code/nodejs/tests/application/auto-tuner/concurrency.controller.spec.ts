@@ -135,19 +135,6 @@ describe('ConcurrencyController', () => {
     });
 
     test('should cap newLimit when queue > inflightLimit * 10', () => {
-      // const spyCalc = jest.spyOn(controller as any, 'calculateNewLimit').mockReturnValue(9999);
-
-      // statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(100);
-      // statistics.getThroughputForInterval.mockReturnValue(10);
-
-      // controller.update();
-
-      // const appliedLimit = scheduler.updateMaxConcurrentRequests.mock.calls[0][0];
-      // expect(appliedLimit).toBe(controller['inflightLimit'] * 10);
-
-      // spyCalc.mockRestore();
-      // statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(100);
-      // statistics.getThroughputForInterval.mockReturnValue(10);
       const cores = -1;
       (controller as any).cores = cores;
       controller['inflightLimit'] = -1;
