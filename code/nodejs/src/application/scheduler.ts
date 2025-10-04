@@ -1,4 +1,3 @@
-import PQueue from 'p-queue';
 import { Event } from "../domain/events";
 import { PriorityQueue } from '../domain/priority-queue';
 import { Request } from "../domain/request";
@@ -10,11 +9,12 @@ export class Scheduler {
     private processingRequests: number = 0;
 
     private queue: Request[] = [];
-    private executor: PQueue;
+    private executor: PriorityQueue;
 
     constructor(maxConcurrentRequests?: number) {
         this.maxConcurrentRequests = maxConcurrentRequests ?? this.MAX_CONCURRENT_REQUESTS
         this.executor = new PriorityQueue({ concurrency: this.maxConcurrentRequests });
+        this.start();
     }
 
     start() {
@@ -22,30 +22,34 @@ export class Scheduler {
             while (true) {
                 try {
                     if (this.canProcess()) {
-                        const request = this.queue.shift()!;
-                        this.processingRequests++;
-                        request.status = Event.LAUNCHED;
-
-                        this.executor.add(async () => {
-                            try {
-                                await request.task();
-                                request.status = Event.COMPLETED;
-                            } catch (error) {
-                                request.status = Event.FAILED;
-                                console.error('Error processing request', error);
-                            } finally {
-                                this.processingRequests--;
-                            }
-                        });
+                        this.processRequest();
                     } else {
                         await new Promise((res) => setTimeout(res, 10));
                     }
-                } catch (e) {
-                    console.error('Error processing request', e);
+                } catch (error) {
+                    console.error('Error processing request', error);
                 }
             }
         };
         loop();
+    }
+
+    private processRequest() {
+        const request = this.queue.shift()!;
+        this.processingRequests++;
+        request.status = Event.LAUNCHED;
+
+        this.executor.add(async () => {
+            try {
+                await request.task();
+                request.status = Event.COMPLETED;
+            } catch (error) {
+                request.status = Event.FAILED;
+                console.error('Error processing request', error);
+            } finally {
+                this.processingRequests--;
+            }
+        });
     }
 
     private canProcess() {
