@@ -31,10 +31,10 @@ export class PidController {
   }
 
   private getControlError(): number {
-    const inRequests = this.priorityQueue.entryRequests;
-    const outRequests = this.priorityQueue.exitRequests;
-    const maxInflights = this.scheduler.getMaxConcurrentRequests();
-    const freeInflights = maxInflights - this.scheduler.getProcessingRequests();
+    const inRequests = this.priorityQueue._entryRequests;
+    const outRequests = this.priorityQueue._exitRequests;
+    const maxInflights = this.scheduler.maxConcurrentRequests;
+    const freeInflights = maxInflights - this.scheduler.processingRequests;
     const outPrime = outRequests === 0 ? maxInflights : outRequests;
 
     return (inRequests - (outRequests + freeInflights)) / outPrime;

@@ -42,7 +42,7 @@ describe('Rejector', () => {
             rejector.process(request);
 
             expect(statisticsMock.add).toHaveBeenNthCalledWith(1, request);
-            expect(priorityQueueMock.addRequest).toHaveBeenNthCalledWith(1, request);
+            expect(priorityQueueMock.add).toHaveBeenNthCalledWith(1, request);
             expect(getStatus(request)).toBe(Event.QUEUED);
 
         });
@@ -54,7 +54,7 @@ describe('Rejector', () => {
 
             expect(() => rejector.process(request)).toThrow(RejectedRequestException);
             expect(getStatus(request)).toBe(Event.REJECTED);
-            expect(priorityQueueMock.addRequest).not.toHaveBeenCalled();
+            expect(priorityQueueMock.add).not.toHaveBeenCalled();
         });
 
         function createPriorityRequest(priority: number): Request {

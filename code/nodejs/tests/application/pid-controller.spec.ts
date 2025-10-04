@@ -3,75 +3,72 @@ import { Scheduler } from "../../src/application/scheduler";
 import { PriorityQueue } from "../../src/domain/priority-queue";
 
 describe("PidController", () => {
-    let schedulerMock: jest.Mocked<Scheduler>;
-    let priorityQueueMock: jest.Mocked<PriorityQueue>;
+    let scheduler: jest.Mocked<Scheduler>;
+    let priorityQueue: jest.Mocked<PriorityQueue>;
     let controller: PidController;
 
     beforeEach(() => {
-        schedulerMock = {
-            getMaxConcurrentRequests: jest.fn(),
-            getProcessingRequests: jest.fn(),
-        } as unknown as jest.Mocked<Scheduler>;
+        scheduler = {} as unknown as jest.Mocked<Scheduler>;
 
-        priorityQueueMock = {
+        priorityQueue = {
             entryRequests: 0,
             exitRequests: 0,
         } as unknown as jest.Mocked<PriorityQueue>;
 
         controller = new PidController(
-            schedulerMock,
-            priorityQueueMock
+            scheduler,
+            priorityQueue
         );
 
     });
 
     test("increases threshold when overloaded", () => {
-        (schedulerMock.getMaxConcurrentRequests as jest.Mock).mockReturnValue(100);
-        (schedulerMock.getProcessingRequests as jest.Mock).mockReturnValue(100);
-        priorityQueueMock.entryRequests = 1000;
-        priorityQueueMock.exitRequests = 0;
+        (scheduler as any).maxConcurrentRequests = 100;
+        (scheduler as any).processingRequests = 100;
+        priorityQueue._entryRequests = 1000;
+        priorityQueue._exitRequests = 0;
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBeGreaterThan(0);
     });
 
     test("decreases threshold when not overloaded", () => {
-        (schedulerMock.getMaxConcurrentRequests as jest.Mock).mockReturnValue(100);
-        (schedulerMock.getProcessingRequests as jest.Mock).mockReturnValue(0);
-        priorityQueueMock.entryRequests = 0;
-        priorityQueueMock.exitRequests = 1000;
+        (scheduler as any).maxConcurrentRequests = 100;
+        (scheduler as any).processingRequests = 0;
+        priorityQueue._entryRequests = 0;
+        priorityQueue._exitRequests = 1000;
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBe(0);
     });
 
     test("increases threshold on second calculation when still overloaded", () => {
-        (schedulerMock.getMaxConcurrentRequests as jest.Mock).mockReturnValue(100);
-        (schedulerMock.getProcessingRequests as jest.Mock).mockReturnValue(10);
-        priorityQueueMock.entryRequests = 10000;
-        priorityQueueMock.exitRequests = 1000;
+        (scheduler as any).maxConcurrentRequests = 100;
+        (scheduler as any).processingRequests = 10;
+        priorityQueue._entryRequests = 10000;
+        priorityQueue._exitRequests = 1000;
 
         const threshold = controller.updateThreshold();
 
-        (schedulerMock.getProcessingRequests as jest.Mock).mockReturnValue(80);
-        priorityQueueMock.entryRequests = 100;
-        priorityQueueMock.exitRequests = 10;
+        (scheduler as any).processingRequests = 80;
+        priorityQueue._entryRequests = 100;
+        priorityQueue._exitRequests = 10;
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBeGreaterThan(threshold);
     });
 
     test("decreases threshold on second calculation when not overloaded", () => {
-        (schedulerMock.getMaxConcurrentRequests as jest.Mock).mockReturnValue(100);
-        (schedulerMock.getProcessingRequests as jest.Mock).mockReturnValue(10);
-        priorityQueueMock.entryRequests = 10000;
-        priorityQueueMock.exitRequests = 1000;
+        (scheduler as any).maxConcurrentRequests = 100;
+        (scheduler as any).processingRequests = 10;
+        priorityQueue._entryRequests = 10000;
+        priorityQueue._exitRequests = 1000;
 
         const threshold = controller.updateThreshold();
 
-        (schedulerMock.getProcessingRequests as jest.Mock).mockReturnValue(4);
-        priorityQueueMock.entryRequests = 40;
-        priorityQueueMock.exitRequests = 40;
+        (scheduler as any).processingRequests = 4;
+        priorityQueue._entryRequests = 40;
+        priorityQueue._exitRequests = 40;
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBeLessThan(threshold);
@@ -80,10 +77,10 @@ describe("PidController", () => {
     test("increases threshold above limit should set as maximum threshold", () => {
         const maximumThreshold = 100;
 
-        (schedulerMock.getMaxConcurrentRequests as jest.Mock).mockReturnValue(10);
-        (schedulerMock.getProcessingRequests as jest.Mock).mockReturnValue(0);
-        priorityQueueMock.entryRequests = 1000;
-        priorityQueueMock.exitRequests = 0;
+        (scheduler as any).maxConcurrentRequests = 10;
+        (scheduler as any).processingRequests = 0;
+        priorityQueue._entryRequests = 1000;
+        priorityQueue._exitRequests = 0;
 
         (controller as any).currentThreshold = 95;
 
@@ -94,10 +91,10 @@ describe("PidController", () => {
     test("decreases threshold under limit should set as minimum threshold", () => {
         const minimumThreshold = 0;
 
-        (schedulerMock.getMaxConcurrentRequests as jest.Mock).mockReturnValue(10);
-        (schedulerMock.getProcessingRequests as jest.Mock).mockReturnValue(10);
-        priorityQueueMock.entryRequests = 0;
-        priorityQueueMock.exitRequests = 1000;
+        (scheduler as any).maxConcurrentRequests = 10;
+        (scheduler as any).processingRequests = 10;
+        priorityQueue._entryRequests = 0;
+        priorityQueue._exitRequests = 1000;
 
         (controller as any).currentThreshold = 1;
 

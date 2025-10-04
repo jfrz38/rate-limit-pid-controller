@@ -1,37 +1,51 @@
-import PQueue from 'p-queue';
-import { RunFunction } from 'p-queue/dist/queue';
-import { Request } from "./request";
 import { Statistics } from '../application/statistics';
 import { NotEnoughStatsException } from './exceptions/not-enough-stats.exception';
+import { Request } from "./request";
+import { Event } from './events';
 
-// TODO: Esta clase no me convence, no funciona bien
-export class PriorityQueue extends PQueue {
+export class PriorityQueue {
+    private queue: Request[] = [];
+
     private queueTimeout: number = 100;
     private lastTimeEmpty = Date.now();
-    
-    entryRequests: number = 0;
-    exitRequests: number = 0;
+
+    _entryRequests: number = 0;
+    _exitRequests: number = 0;
+
+    _length: number = 0;
 
     constructor(private readonly statistics: Statistics) {
-        super();
         this.initializeUpdateQueueTimeout();
     }
 
-    addRequest(request: Request): void {
-        this.entryRequests++;
+    add(request: Request): void {
+        this.queue.push(request);
+        this.queue.sort((a, b) => a.priority - b.priority);
+        this._entryRequests++;
+        this.scheduleTimeoutRemoval(request);
+    }
 
-        const run: RunFunction = async () => {
-            // TODO: comprobar que no se ejecuta aquí sino en el scheduler
-            await request.task();
-            this.exitRequests++;
-            // TODO : Check if is removed correctly
-            if (this.size === 0) {
-                this.lastTimeEmpty = Date.now();
+    poll(): Request | null {
+        if (this.queue.length === 0) {
+            return null;
+        }
+        const request: Request = this.queue.shift()!;
+        this._exitRequests++;
+        if (this.queue.length === 0) {
+            this.lastTimeEmpty = Date.now();
+        }
+        return request;
+    }
+
+    private scheduleTimeoutRemoval(request: Request) {
+        setTimeout(() => {
+            const index = this.queue.indexOf(request);
+            if (index !== -1) {
+                this.queue.splice(index, 1);
+                request.status = Event.EVICTED;
+                if (this.queue.length === 0) this.lastTimeEmpty = Date.now();
             }
-        };
-
-        // TODO: Comprobar que la prioridad está bien y no es es al revés
-        this.add(run, { priority: request.priority });
+        }, this.queueTimeout);
     }
 
     private initializeUpdateQueueTimeout() {
@@ -60,5 +74,21 @@ export class PriorityQueue extends PQueue {
 
     getTimeSinceLastEmpty(): number {
         return (Date.now() - this.lastTimeEmpty) / 1000;
+    }
+
+    get entryRequests(): number {
+        return this._entryRequests;
+    }
+
+    get exitRequests(): number {
+        return this._exitRequests;
+    }
+
+    isEmpty(): boolean {
+        return this.queue.length === 0;
+    }
+
+    get length(): number {
+        return this.queue.length;
     }
 }

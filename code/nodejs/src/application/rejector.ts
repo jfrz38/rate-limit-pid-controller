@@ -26,16 +26,16 @@ export class Rejector {
             throw new RejectedRequestException(request.priority, this.threshold)
         }
 
-        this.priorityQueue.addRequest(request);
+        this.priorityQueue.add(request);
         request.status = Event.QUEUED;
     }
 
     updateThreshold(newThreshold: number): void {
         const oldThreshold = this.threshold;
         this.threshold = newThreshold;
-        
+
         console.info(`Threshold modified from ${oldThreshold} to: ${newThreshold}`)
-        
+
         const isDecreased = oldThreshold < this.threshold
         if (isDecreased) {
             // TODO: Crear método de la cola para cuando baje el threshold eliminar los valores que ya no deberían ejecutarse

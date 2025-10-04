@@ -1,24 +1,18 @@
 import { Event } from "../domain/events";
 import { PriorityQueue } from '../domain/priority-queue';
 import { Request } from "../domain/request";
-import { Statistics } from "./statistics";
+import { Executor } from "./executor";
 
 export class Scheduler {
-
-    private maxConcurrentRequests;
-    private readonly MAX_CONCURRENT_REQUESTS: number = 10;
-    private processingRequests: number = 0;
-
-    private queue: Request[] = [];
-    private executor: PriorityQueue;
+    private _maxConcurrentRequests: number;
+    private _processingRequests: number = 0;
 
     constructor(
-        private readonly statistics: Statistics,
-        maxConcurrentRequests?: number
+        private readonly queue: PriorityQueue,
+        private readonly executor: Executor
     ) {
-        this.maxConcurrentRequests = maxConcurrentRequests ?? this.MAX_CONCURRENT_REQUESTS
-        this.executor = new PriorityQueue(statistics);
         this.start();
+        this._maxConcurrentRequests = executor.concurrency;
     }
 
     start() {
@@ -26,7 +20,11 @@ export class Scheduler {
             while (true) {
                 try {
                     if (this.canProcess()) {
-                        this.processRequest();
+                        const request = this.queue.poll();
+                        if (!request) {
+                            continue;
+                        }
+                        this.processRequest(request);
                     } else {
                         await new Promise((res) => setTimeout(res, 10));
                     }
@@ -38,9 +36,13 @@ export class Scheduler {
         loop();
     }
 
-    private processRequest() {
-        const request = this.queue.shift()!;
-        this.processingRequests++;
+    private canProcess() {
+        return this.queue.length > 0 &&
+            this._processingRequests < this._maxConcurrentRequests;
+    }
+
+    private processRequest(request: Request) {
+        this._processingRequests++;
         request.status = Event.LAUNCHED;
 
         this.executor.add(async () => {
@@ -51,27 +53,22 @@ export class Scheduler {
                 request.status = Event.FAILED;
                 console.error('Error processing request', error);
             } finally {
-                this.processingRequests--;
+                this._processingRequests--;
             }
         });
     }
 
-    private canProcess() {
-        return this.queue.length > 0 &&
-            this.processingRequests < this.maxConcurrentRequests;
-    }
-
     updateMaxConcurrentRequests(max: number) {
-        this.maxConcurrentRequests = max;
+        this._maxConcurrentRequests = max;
         this.executor.concurrency = max;
         console.info('Max concurrent requests updated to:', max);
     }
 
-    getMaxConcurrentRequests() {
-        return this.maxConcurrentRequests;
+    get maxConcurrentRequests(): number {
+        return this._maxConcurrentRequests;
     }
 
-    getProcessingRequests() {
-        return this.processingRequests;
+    get processingRequests(): number {
+        return this._processingRequests;
     }
 }
