@@ -7,21 +7,21 @@ jest.mock('crypto', () => ({
 }));
 
 describe('Request', () => {
-    let taskMock: jest.Mock;
-    let priorityMock: jest.Mocked<Priority>;
+    let task: jest.Mock;
+    let priority: jest.Mocked<Priority>;
 
     beforeEach(() => {
-        taskMock = jest.fn();
-        priorityMock = {} as unknown as jest.Mocked<Priority>;
+        task = jest.fn();
+        priority = {} as unknown as jest.Mocked<Priority>;
     });
 
     describe('constructor', () => {
         test('should set id, task, priority, and initial status', () => {
-            const request = new Request(taskMock, priorityMock);
+            const request = new Request(task, priority);
 
             expect(request.id).toBe('mock-uuid');
-            expect(request.task).toBe(taskMock);
-            expect(request.priority).toBe(priorityMock.value);
+            expect(request.task).toBe(task);
+            expect(request.priority).toBe(priority.value);
             expect(request['_status']).toBe(Event.CREATED);
             expect(request.getEventLog().has(Event.CREATED)).toBe(true);
         });
@@ -29,7 +29,7 @@ describe('Request', () => {
 
     describe('status setter', () => {
         test('should update status and add entry to eventLog', () => {
-            const request = new Request(taskMock, priorityMock);
+            const request = new Request(task, priority);
             const now = new Date();
             jest.useFakeTimers().setSystemTime(now);
 
@@ -43,7 +43,7 @@ describe('Request', () => {
 
     describe('event log helpers', () => {
         test('hasEventCreatedAndCompleted should return true only if both events exist', () => {
-            const request = new Request(taskMock, priorityMock);
+            const request = new Request(task, priority);
             expect(request.hasEventCreatedAndCompleted()).toBe(false);
 
             request.status = Event.COMPLETED;
@@ -51,7 +51,7 @@ describe('Request', () => {
         });
 
         test('hasEventCompletedAndLaunched should return true only if both events exist', () => {
-            const request = new Request(taskMock, priorityMock);
+            const request = new Request(task, priority);
             expect(request.hasEventCompletedAndLaunched()).toBe(false);
 
             request.status = Event.LAUNCHED;
@@ -62,7 +62,7 @@ describe('Request', () => {
         });
 
         test('getEventByType should return the correct Date', () => {
-            const request = new Request(taskMock, priorityMock);
+            const request = new Request(task, priority);
             const now = new Date();
             jest.useFakeTimers().setSystemTime(now);
 
