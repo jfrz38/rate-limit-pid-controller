@@ -14,7 +14,9 @@ export class Rejector {
         private readonly priorityQueue: PriorityQueue,
         private readonly statistics: Statistics,
         private readonly pidController: PidController
-    ) { }
+    ) {
+        this.startThresholdCheck();
+    }
 
     process(request: Request): void {
         this.statistics.add(request);
@@ -24,16 +26,16 @@ export class Rejector {
             throw new RejectedRequestException(request.priority, this.threshold)
         }
 
-        this.priorityQueue.addRequest(request);
+        this.priorityQueue.add(request);
         request.status = Event.QUEUED;
     }
 
     updateThreshold(newThreshold: number): void {
         const oldThreshold = this.threshold;
         this.threshold = newThreshold;
-        
+
         console.info(`Threshold modified from ${oldThreshold} to: ${newThreshold}`)
-        
+
         const isDecreased = oldThreshold < this.threshold
         if (isDecreased) {
             // TODO: Crear método de la cola para cuando baje el threshold eliminar los valores que ya no deberían ejecutarse
@@ -41,7 +43,6 @@ export class Rejector {
     }
 
     startThresholdCheck(interval: number = 500): void {
-        // TODO: Comprobar que entra aquí
         setInterval(() => {
             if (this.isServiceOverloaded()) {
                 const newThreshold = this.getPriorityThreshold();

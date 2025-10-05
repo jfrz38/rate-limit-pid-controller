@@ -1,67 +1,74 @@
-import PQueue from 'p-queue';
 import { Event } from "../domain/events";
-import { Request } from "../domain/request";
 import { PriorityQueue } from '../domain/priority-queue';
+import { Request } from "../domain/request";
+import { Executor } from "./executor";
 
 export class Scheduler {
+    private _maxConcurrentRequests: number;
+    private _processingRequests: number = 0;
 
-    private maxConcurrentRequests;
-    private readonly MAX_CONCURRENT_REQUESTS: number = 10;
-    private processingRequests: number = 0;
-
-    private queue: Request[] = [];
-    private executor: PQueue;
-
-    constructor(maxConcurrentRequests?: number) {
-        this.maxConcurrentRequests = maxConcurrentRequests ?? this.MAX_CONCURRENT_REQUESTS
-        this.executor = new PriorityQueue({ concurrency: this.maxConcurrentRequests });
+    constructor(
+        private readonly queue: PriorityQueue,
+        private readonly executor: Executor
+    ) {
+        this.start();
+        this._maxConcurrentRequests = executor.concurrency;
     }
 
     start() {
         const loop = async () => {
             while (true) {
                 try {
-                    if (
-                        this.processingRequests < this.maxConcurrentRequests &&
-                        this.queue.length > 0
-                    ) {
-                        const request = this.queue.shift()!;
-                        this.processingRequests++;
-                        request.status = Event.LAUNCHED;
-
-                        this.executor.add(async () => {
-                            try {
-                                await request.task();
-                                request.status = Event.COMPLETED;
-                            } catch (e) {
-                                request.status = Event.FAILED;
-                                console.error('Error processing request', e);
-                            } finally {
-                                this.processingRequests--;
-                            }
-                        });
+                    if (this.canProcess()) {
+                        const request = this.queue.poll();
+                        if (!request) {
+                            continue;
+                        }
+                        this.processRequest(request);
                     } else {
                         await new Promise((res) => setTimeout(res, 10));
                     }
-                } catch (e) {
-                    console.error('Error processing request', e);
+                } catch (error) {
+                    console.error('Error processing request', error);
                 }
             }
         };
         loop();
     }
 
+    private canProcess() {
+        return this.queue.length > 0 &&
+            this._processingRequests < this._maxConcurrentRequests;
+    }
+
+    private processRequest(request: Request) {
+        this._processingRequests++;
+        request.status = Event.LAUNCHED;
+
+        this.executor.add(async () => {
+            try {
+                await request.task();
+                request.status = Event.COMPLETED;
+            } catch (error) {
+                request.status = Event.FAILED;
+                console.error('Error processing request', error);
+            } finally {
+                this._processingRequests--;
+            }
+        });
+    }
+
     updateMaxConcurrentRequests(max: number) {
-        this.maxConcurrentRequests = max;
+        this._maxConcurrentRequests = max;
         this.executor.concurrency = max;
         console.info('Max concurrent requests updated to:', max);
     }
 
-    getMaxConcurrentRequests() {
-        return this.maxConcurrentRequests;
+    get maxConcurrentRequests(): number {
+        return this._maxConcurrentRequests;
     }
 
-    getProcessingRequests() {
-        return this.processingRequests;
+    get processingRequests(): number {
+        return this._processingRequests;
     }
 }

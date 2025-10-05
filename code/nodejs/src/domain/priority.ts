@@ -3,14 +3,17 @@
  */
 export class Priority {
 
-    private readonly DEFAULT_PRIORITY = 5;
-    private readonly RANDOM_COHORT = Math.floor(Math.random() * 128)
+    private static readonly LOWEST_PRIORITY = 5;
+    private static readonly DEFAULT_PRIORITY = Priority.LOWEST_PRIORITY;
+    
     private readonly _value: number;
+
     constructor(
-        private readonly priority: number = this.DEFAULT_PRIORITY,
-        private readonly cohort: number = this.RANDOM_COHORT) {
-            this._value = priority * 128 + cohort;
-        }
+        private readonly priority: number = Priority.DEFAULT_PRIORITY,
+        private readonly cohort: number = Math.floor(Math.random() * 128)
+    ) {
+        this._value = priority * 128 + cohort;
+    }
 
     get value(): number {
         return this._value;
