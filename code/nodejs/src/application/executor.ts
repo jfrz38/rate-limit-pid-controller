@@ -6,5 +6,6 @@ export class Executor extends PQueue {
     constructor(maxConcurrentRequests?: number) {
         super()
         this.concurrency = maxConcurrentRequests ?? this.MAX_CONCURRENT_REQUESTS;
+        this.start();
     }
 } 
