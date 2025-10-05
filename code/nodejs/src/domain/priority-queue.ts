@@ -20,6 +20,8 @@ export class PriorityQueue {
 
     add(request: Request): void {
         this.queue.push(request);
+        // TODO: Mirar si ordenar así o buscar una librería priority queue o 
+        // TODO: hacerlo de otra manera más eficiente
         this.queue.sort((a, b) => a.priority - b.priority);
         this._entryRequests++;
         this.scheduleTimeoutRemoval(request);
