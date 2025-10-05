@@ -7,10 +7,11 @@ import { Rejector } from "./application/rejector";
 import { Scheduler } from "./application/scheduler";
 import { Statistics } from "./application/statistics";
 import { Priority } from "./domain/priority";
-import { PriorityQueue } from "./domain/priority-queue";
+import { RequestPriorityComparator } from "./domain/priority-queue/comparator";
+import { Heap } from "./domain/priority-queue/heap";
+import { PriorityQueue } from "./domain/priority-queue/priority-queue";
 import { Request } from "./domain/request";
 
-// TODO: First approach, not all features from Cinnamon
 export class PidControllerRateLimit {
 
     private readonly rejector: Rejector;
@@ -23,7 +24,7 @@ export class PidControllerRateLimit {
     constructor() {
         this.executor = new Executor();
         this.statistics = new Statistics();
-        this.priorityQueue = new PriorityQueue(this.statistics);
+        this.priorityQueue = new PriorityQueue(this.statistics, new Heap(RequestPriorityComparator.compare()));
         this.scheduler = new Scheduler(this.priorityQueue, this.executor);
         this.pidController = new PidController(this.scheduler, this.priorityQueue);
         this.rejector = new Rejector(this.priorityQueue, this.statistics, this.pidController);

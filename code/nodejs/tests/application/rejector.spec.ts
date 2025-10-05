@@ -4,7 +4,7 @@ import { Statistics } from "../../src/application/statistics";
 import { Event } from "../../src/domain/events";
 import { RejectedRequestException } from "../../src/domain/exceptions/rejected-request.exception";
 import { Priority } from "../../src/domain/priority";
-import { PriorityQueue } from "../../src/domain/priority-queue";
+import { PriorityQueue } from "../../src/domain/priority-queue/priority-queue";
 import { Request } from "../../src/domain/request";
 
 jest.useFakeTimers();

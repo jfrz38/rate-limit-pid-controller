@@ -1,6 +1,6 @@
 import { PidController } from "../../src/application/pid-controller";
 import { Scheduler } from "../../src/application/scheduler";
-import { PriorityQueue } from "../../src/domain/priority-queue";
+import { PriorityQueue } from "../../src/domain/priority-queue/priority-queue";
 
 describe("PidController", () => {
     let scheduler: jest.Mocked<Scheduler>;

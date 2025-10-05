@@ -1,7 +1,7 @@
 import { Executor } from '../../src/application/executor';
 import { Scheduler } from '../../src/application/scheduler';
 import { Event } from '../../src/domain/events';
-import { PriorityQueue } from '../../src/domain/priority-queue';
+import { PriorityQueue } from '../../src/domain/priority-queue/priority-queue';
 
 describe("Scheduler", () => {
     let scheduler: Scheduler;

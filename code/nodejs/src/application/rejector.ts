@@ -1,6 +1,6 @@
 import { Event } from "../domain/events";
 import { RejectedRequestException } from "../domain/exceptions/rejected-request.exception";
-import { PriorityQueue } from "../domain/priority-queue";
+import { PriorityQueue } from "../domain/priority-queue/priority-queue";
 import { Request } from "../domain/request";
 import { PidController } from "./pid-controller";
 import { Statistics } from "./statistics";
