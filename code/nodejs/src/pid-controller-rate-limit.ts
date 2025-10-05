@@ -46,4 +46,8 @@ export class PidControllerRateLimit {
         this.rejector.process(request);
         this.statistics.add(request);
     }
+
+    shutdown(): void {
+        this.scheduler.terminate();
+    }
 }

@@ -6,6 +6,7 @@ import { Executor } from "./executor";
 export class Scheduler {
     private _maxConcurrentRequests: number;
     private _processingRequests: number = 0;
+    private isRunning: boolean = true;
 
     constructor(
         private readonly queue: PriorityQueue,
@@ -17,7 +18,7 @@ export class Scheduler {
 
     start() {
         const loop = async () => {
-            while (true) {
+            while (this.isRunning) {
                 try {
                     if (this.canProcess()) {
                         const request = this.queue.poll();
@@ -70,5 +71,9 @@ export class Scheduler {
 
     get processingRequests(): number {
         return this._processingRequests;
+    }
+
+    terminate() {
+        this.isRunning = false;
     }
 }

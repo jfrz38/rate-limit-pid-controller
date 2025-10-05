@@ -73,4 +73,12 @@ describe('PidControllerRateLimit (mocked)', () => {
         expect(rejector.process).toHaveBeenCalledWith(expect.any(Request));
         expect(statistics.add).toHaveBeenCalledWith(expect.any(Request));
     });
+
+    test('when shutdown should call expected functions', () => {
+        const scheduler = (controller as any).scheduler;
+
+        controller.shutdown();
+
+        expect(scheduler.terminate).toHaveBeenCalledTimes(1);
+    });
 });
