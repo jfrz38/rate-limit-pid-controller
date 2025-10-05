@@ -12,7 +12,6 @@ export class Scheduler {
         private readonly queue: PriorityQueue,
         private readonly executor: Executor
     ) {
-        this.start();
         this._maxConcurrentRequests = executor.concurrency;
     }
 
