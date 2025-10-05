@@ -13,7 +13,6 @@ describe('Scheduler', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        // jest.spyOn(Scheduler.prototype as any, 'start').mockImplementation(() => { });
 
         queue = {
             poll: jest.fn()
