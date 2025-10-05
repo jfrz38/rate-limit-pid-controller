@@ -1,4 +1,4 @@
-import { PriorityQueue } from "../domain/priority-queue";
+import { PriorityQueue } from "../domain/priority-queue/priority-queue";
 import { Scheduler } from "./scheduler";
 
 export class PidController {

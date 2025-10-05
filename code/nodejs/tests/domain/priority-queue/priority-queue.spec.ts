@@ -1,14 +1,17 @@
-import { Statistics } from "../../src/application/statistics";
-import { Event } from "../../src/domain/events";
-import { NotEnoughStatsException } from "../../src/domain/exceptions/not-enough-stats.exception";
-import { Priority } from "../../src/domain/priority";
-import { PriorityQueue } from "../../src/domain/priority-queue";
-import { Request } from "../../src/domain/request";
+import { Statistics } from "../../../src/application/statistics";
+import { Event } from "../../../src/domain/events";
+import { NotEnoughStatsException } from "../../../src/domain/exceptions/not-enough-stats.exception";
+import { Priority } from "../../../src/domain/priority";
+import { RequestPriorityComparator } from "../../../src/domain/priority-queue/comparator";
+import { Heap } from "../../../src/domain/priority-queue/heap";
+import { PriorityQueue } from "../../../src/domain/priority-queue/priority-queue";
+import { Request } from "../../../src/domain/request";
 
 jest.useFakeTimers();
 
 describe('PriorityQueue', () => {
     let statistics: jest.Mocked<Statistics>;
+    let heap: Heap;
     let queue: PriorityQueue;
 
     beforeEach(() => {
@@ -17,8 +20,10 @@ describe('PriorityQueue', () => {
             getPercentileLatencySuccessfulRequests: jest.fn(),
             getThroughputForInterval: jest.fn(),
         } as unknown as jest.Mocked<Statistics>;
+        // Real implementation to test add, poll and remove requests
+        heap = new Heap(RequestPriorityComparator.compare());
 
-        queue = new PriorityQueue(statistics);
+        queue = new PriorityQueue(statistics, heap);
 
         // Silence console.info
         jest.spyOn(console, 'info').mockImplementation(() => { });
@@ -49,7 +54,7 @@ describe('PriorityQueue', () => {
         expect(queue.poll()).toBeNull();
     });
 
-    test('entryRequests and exitRequests counters', () => {
+    test('entryRequests and exitRequests counters should be correct', () => {
         const firstRequest = createRequest(0);
         const secondRequest = createRequest(0);
 
@@ -116,27 +121,22 @@ describe('PriorityQueue', () => {
             throw error;
         });
 
-        // Usamos expect().toThrow para comprobar que la excepción se propaga
         expect(() => {
             (queue as any).updateQueueTimeout();
         }).toThrow(error);
     });
 
     test('when queue is empty should return expected values', () => {
-        (queue as any).queue = [];
-
         expect(queue.isEmpty()).toBe(true);
         expect(queue.length).toBe(0);
     });
 
     test('when queue is not empty should return expected values', () => {
-        const newQueue = [createRequest(0)];
-        (queue as any).queue = newQueue;
+        queue.add(createRequest(0));
 
         expect(queue.isEmpty()).toBe(false);
         expect(queue.length).toBe(1);
     });
-
 
     function createRequest(priority: number): Request {
         return new Request(() => null, new Priority(priority));

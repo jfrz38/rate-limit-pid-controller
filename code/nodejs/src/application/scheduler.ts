@@ -1,5 +1,5 @@
 import { Event } from "../domain/events";
-import { PriorityQueue } from '../domain/priority-queue';
+import { PriorityQueue } from '../domain/priority-queue/priority-queue';
 import { Request } from "../domain/request";
 import { Executor } from "./executor";
 

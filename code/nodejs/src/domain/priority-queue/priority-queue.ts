@@ -1,11 +1,10 @@
-import { Statistics } from '../application/statistics';
-import { NotEnoughStatsException } from './exceptions/not-enough-stats.exception';
-import { Request } from "./request";
-import { Event } from './events';
+import { Statistics } from '../../application/statistics';
+import { Event } from '../events';
+import { NotEnoughStatsException } from '../exceptions/not-enough-stats.exception';
+import { Request } from "../request";
+import { Heap } from './heap';
 
 export class PriorityQueue {
-    private queue: Request[] = [];
-
     private queueTimeout: number = 100;
     private lastTimeEmpty = Date.now();
 
@@ -14,15 +13,15 @@ export class PriorityQueue {
 
     _length: number = 0;
 
-    constructor(private readonly statistics: Statistics) {
+    constructor(
+        private readonly statistics: Statistics,
+        private readonly queue: Heap<Request>
+    ) {
         this.initializeUpdateQueueTimeout();
     }
 
     add(request: Request): void {
         this.queue.push(request);
-        // TODO: Mirar si ordenar así o buscar una librería priority queue o 
-        // TODO: hacerlo de otra manera más eficiente
-        this.queue.sort((a, b) => a.priority - b.priority);
         this._entryRequests++;
         this.scheduleTimeoutRemoval(request);
     }
@@ -31,7 +30,7 @@ export class PriorityQueue {
         if (this.queue.length === 0) {
             return null;
         }
-        const request: Request = this.queue.shift()!;
+        const request: Request = this.queue.poll()!;
         this._exitRequests++;
         if (this.queue.length === 0) {
             this.lastTimeEmpty = Date.now();
@@ -43,9 +42,11 @@ export class PriorityQueue {
         setTimeout(() => {
             const index = this.queue.indexOf(request);
             if (index !== -1) {
-                this.queue.splice(index, 1);
+                this.queue.remove(request);
                 request.status = Event.EVICTED;
-                if (this.queue.length === 0) this.lastTimeEmpty = Date.now();
+                if (this.queue.length === 0) {
+                    this.lastTimeEmpty = Date.now();
+                }
             }
         }, this.queueTimeout);
     }
@@ -87,7 +88,7 @@ export class PriorityQueue {
     }
 
     isEmpty(): boolean {
-        return this.queue.length === 0;
+        return this.queue.isEmpty();
     }
 
     get length(): number {
