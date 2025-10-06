@@ -6,6 +6,7 @@ import { PidController } from "./application/pid-controller";
 import { Rejector } from "./application/rejector";
 import { Scheduler } from "./application/scheduler";
 import { Statistics } from "./application/statistics";
+import { ShutdownManager } from "./core/shutdown/shutdown-manager";
 import { Priority } from "./domain/priority";
 import { RequestPriorityComparator } from "./domain/priority-queue/comparator";
 import { Heap } from "./domain/priority-queue/heap";
@@ -20,6 +21,7 @@ export class PidControllerRateLimit {
     private readonly priorityQueue: PriorityQueue;
     private readonly pidController: PidController;
     private readonly executor: Executor;
+    private readonly shutdownManager: ShutdownManager;
 
     constructor() {
         this.executor = new Executor();
@@ -28,6 +30,7 @@ export class PidControllerRateLimit {
         this.scheduler = new Scheduler(this.priorityQueue, this.executor);
         this.pidController = new PidController(this.scheduler, this.priorityQueue);
         this.rejector = new Rejector(this.priorityQueue, this.statistics, this.pidController);
+        this.shutdownManager = new ShutdownManager(this.scheduler);
 
         this.init();
     }
@@ -48,6 +51,6 @@ export class PidControllerRateLimit {
     }
 
     shutdown(): void {
-        this.scheduler.terminate();
+        this.shutdownManager.shutdown();
     }
 }

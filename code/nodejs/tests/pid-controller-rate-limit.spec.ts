@@ -12,6 +12,7 @@ import { Request } from "../src/domain/request";
 import { PidControllerRateLimit } from "../src/pid-controller-rate-limit";
 import { Heap } from "../src/domain/priority-queue/heap";
 import { RequestPriorityComparator } from "../src/domain/priority-queue/comparator";
+import { ShutdownManager } from "../src/core/shutdown/shutdown-manager";
 
 jest.mock("../src/application/statistics");
 jest.mock("../src/domain/priority-queue/priority-queue");
@@ -31,6 +32,7 @@ jest.mock('../src/application/executor', () => {
 jest.mock("../src/domain/request");
 jest.mock("../src/domain/priority-queue/heap");
 jest.mock("../src/domain/priority-queue/comparator");
+jest.mock("../src/core/shutdown/shutdown-manager");
 
 describe('PidControllerRateLimit (mocked)', () => {
     let task: jest.Mock;
@@ -58,6 +60,7 @@ describe('PidControllerRateLimit (mocked)', () => {
         expect(ConcurrencyController).toHaveBeenCalledTimes(1);
         expect(Heap).toHaveBeenCalledTimes(1);
         expect(RequestPriorityComparator.compare).toHaveBeenCalledTimes(1);
+        expect(ShutdownManager).toHaveBeenCalledTimes(1);
     });
 
     test('when run should call expected functions', () => {
@@ -75,10 +78,10 @@ describe('PidControllerRateLimit (mocked)', () => {
     });
 
     test('when shutdown should call expected functions', () => {
-        const scheduler = (controller as any).scheduler;
+        const shutdownManager = (controller as any).shutdownManager;
 
         controller.shutdown();
 
-        expect(scheduler.terminate).toHaveBeenCalledTimes(1);
+        expect(shutdownManager.shutdown).toHaveBeenCalledTimes(1);
     });
 });
