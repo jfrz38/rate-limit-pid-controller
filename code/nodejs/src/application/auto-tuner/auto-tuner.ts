@@ -1,3 +1,4 @@
+import { intervalManager } from "../../core/shutdown/interval-manager";
 import { ConcurrencyController } from "./concurrency.controller";
 import { LatencyController } from "./latency.controller";
 
@@ -6,7 +7,9 @@ export class AutoTuner {
     private readonly concurrencyController: ConcurrencyController,
     private readonly latencyController: LatencyController
   ) {
-    setInterval(() => this.concurrencyController.update(), 2000);
-    setInterval(() => this.latencyController.update(), 10000);
+    const concurrencyId = setInterval(() => this.concurrencyController.update(), 2000);
+    const latencyId = setInterval(() => this.latencyController.update(), 10000);
+
+    intervalManager.addAll([concurrencyId, latencyId]);
   }
 }

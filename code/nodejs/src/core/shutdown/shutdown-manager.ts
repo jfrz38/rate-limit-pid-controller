@@ -1,10 +1,15 @@
 import { Scheduler } from "../../application/scheduler";
+import { IntervalManager } from "./interval-manager";
 
 export class ShutdownManager {
-    constructor(private readonly scheduler: Scheduler) { }
+    constructor(
+        private readonly scheduler: Scheduler,
+        private readonly intervalManager: IntervalManager
+    ) { }
 
     shutdown(): void {
         this.scheduler.terminate();
-        process.exit(0);
+        this.intervalManager.clearAll();
     }
 }
+

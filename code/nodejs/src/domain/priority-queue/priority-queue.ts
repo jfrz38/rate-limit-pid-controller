@@ -1,4 +1,5 @@
 import { Statistics } from '../../application/statistics';
+import { intervalManager } from '../../core/shutdown/interval-manager';
 import { Event } from '../events';
 import { NotEnoughStatsException } from '../exceptions/not-enough-stats.exception';
 import { Request } from "../request";
@@ -52,7 +53,8 @@ export class PriorityQueue {
     }
 
     private initializeUpdateQueueTimeout() {
-        setInterval(() => this.updateQueueTimeout(), 1000);
+        const id = setInterval(() => this.updateQueueTimeout(), 1000);
+        intervalManager.add(id);
     }
 
     private updateQueueTimeout() {

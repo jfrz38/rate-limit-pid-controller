@@ -6,6 +6,7 @@ import { PidController } from "./application/pid-controller";
 import { Rejector } from "./application/rejector";
 import { Scheduler } from "./application/scheduler";
 import { Statistics } from "./application/statistics";
+import { intervalManager } from "./core/shutdown/interval-manager";
 import { ShutdownManager } from "./core/shutdown/shutdown-manager";
 import { Priority } from "./domain/priority";
 import { RequestPriorityComparator } from "./domain/priority-queue/comparator";
@@ -30,7 +31,7 @@ export class PidControllerRateLimit {
         this.scheduler = new Scheduler(this.priorityQueue, this.executor);
         this.pidController = new PidController(this.scheduler, this.priorityQueue);
         this.rejector = new Rejector(this.priorityQueue, this.statistics, this.pidController);
-        this.shutdownManager = new ShutdownManager(this.scheduler);
+        this.shutdownManager = new ShutdownManager(this.scheduler, intervalManager);
 
         this.init();
     }

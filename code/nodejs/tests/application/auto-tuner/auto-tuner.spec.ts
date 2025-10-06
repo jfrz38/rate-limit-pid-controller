@@ -2,6 +2,8 @@ import { AutoTuner } from "../../../src/application/auto-tuner/auto-tuner";
 import { ConcurrencyController } from "../../../src/application/auto-tuner/concurrency.controller";
 import { LatencyController } from "../../../src/application/auto-tuner/latency.controller";
 
+jest.mock("../../../src/core/shutdown/interval-manager");
+
 describe('AutoTuner tests', () => {
   let concurrencyController: jest.Mocked<ConcurrencyController>;
   let latencyController: jest.Mocked<LatencyController>;

@@ -1,3 +1,4 @@
+import { intervalManager } from "../core/shutdown/interval-manager";
 import { Event } from "../domain/events";
 import { RejectedRequestException } from "../domain/exceptions/rejected-request.exception";
 import { PriorityQueue } from "../domain/priority-queue/priority-queue";
@@ -43,7 +44,7 @@ export class Rejector {
     }
 
     startThresholdCheck(interval: number = 500): void {
-        setInterval(() => {
+        const id = setInterval(() => {
             if (this.isServiceOverloaded()) {
                 const newThreshold = this.getPriorityThreshold();
                 if (newThreshold !== this.threshold) {
@@ -51,6 +52,8 @@ export class Rejector {
                 }
             }
         }, interval);
+
+        intervalManager.add(id);
     }
 
     private isServiceOverloaded(): boolean {

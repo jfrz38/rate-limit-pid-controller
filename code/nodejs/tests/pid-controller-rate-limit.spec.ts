@@ -33,6 +33,7 @@ jest.mock("../src/domain/request");
 jest.mock("../src/domain/priority-queue/heap");
 jest.mock("../src/domain/priority-queue/comparator");
 jest.mock("../src/core/shutdown/shutdown-manager");
+jest.mock("../src/core/shutdown/interval-manager");
 
 describe('PidControllerRateLimit (mocked)', () => {
     let task: jest.Mock;
