@@ -1,3 +1,4 @@
+import logger from "../../core/logging/logger";
 import { MathUtils } from "../../domain/math/math-utils";
 import { Statistics } from "../statistics";
 
@@ -20,7 +21,7 @@ export class LatencyController {
         this._targetLatency = minLatency;
 
         if (this.maxInflights.length < 10) {
-            console.info('New targetLatency: ', this._targetLatency);
+            logger.info(`New targetLatency: ${this._targetLatency}`);
             return;
         }
 
@@ -32,6 +33,6 @@ export class LatencyController {
             this._targetLatency = Math.round(this._targetLatency * factor);
         }
 
-        console.info('New targetLatency: ', this._targetLatency);
+        logger.info(`New targetLatency: ${this._targetLatency}`);
     }
 }

@@ -1,4 +1,5 @@
 import { Statistics } from '../../application/statistics';
+import logger from '../../core/logging/logger';
 import { intervalManager } from '../../core/shutdown/interval-manager';
 import { Event } from '../events';
 import { NotEnoughStatsException } from '../exceptions/not-enough-stats.exception';
@@ -63,14 +64,12 @@ export class PriorityQueue {
             const newTimeout = Math.round(avgProcessingTime * 0.33);
 
             if (newTimeout !== this.queueTimeout) {
-                console.info(
-                    `Updating timeout from ${this.queueTimeout} to ${newTimeout}`
-                );
+                logger.info(`Updating timeout from ${this.queueTimeout} to ${newTimeout}`);
                 this.queueTimeout = newTimeout;
             }
         } catch (e: any) {
             if (e instanceof NotEnoughStatsException) {
-                console.info('Not enough stats to update timeout');
+                logger.info('Not enough stats to update timeout');
             } else {
                 throw e;
             }

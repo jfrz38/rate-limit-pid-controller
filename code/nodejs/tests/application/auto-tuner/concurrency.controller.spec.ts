@@ -2,6 +2,7 @@ import { ConcurrencyController } from "../../../src/application/auto-tuner/concu
 import { LatencyController } from "../../../src/application/auto-tuner/latency.controller";
 import { Scheduler } from "../../../src/application/scheduler";
 import { Statistics } from "../../../src/application/statistics";
+import logger from "../../../src/core/logging/logger";
 
 describe('ConcurrencyController', () => {
   let scheduler: jest.Mocked<Scheduler>;
@@ -26,8 +27,8 @@ describe('ConcurrencyController', () => {
       latencyController,
     );
 
-    // Silence console.info
-    jest.spyOn(console, 'info').mockImplementation(() => { });
+    // Silence logger.info
+    jest.spyOn(logger, 'info').mockImplementation(() => { });
   });
 
   afterEach(() => {

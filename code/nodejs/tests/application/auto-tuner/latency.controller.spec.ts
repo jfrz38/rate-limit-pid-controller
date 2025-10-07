@@ -1,5 +1,6 @@
 import { LatencyController } from "../../../src/application/auto-tuner/latency.controller";
 import { Statistics } from "../../../src/application/statistics";
+import logger from "../../../src/core/logging/logger";
 import { MathUtils } from "../../../src/domain/math/math-utils";
 
 describe('LatencyController', () => {
@@ -13,8 +14,8 @@ describe('LatencyController', () => {
 
     latencyController = new LatencyController(statistics);
 
-    // Silence console.info
-    jest.spyOn(console, 'info').mockImplementation(() => {});
+    // Silence logger.info
+    jest.spyOn(logger, 'info').mockImplementation(() => { });
   });
 
   afterEach(() => {

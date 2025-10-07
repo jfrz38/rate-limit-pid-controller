@@ -1,5 +1,6 @@
 import { Executor } from '../../src/application/executor';
 import { Scheduler } from '../../src/application/scheduler';
+import logger from '../../src/core/logging/logger';
 import { Event } from '../../src/domain/events';
 import { PriorityQueue } from '../../src/domain/priority-queue/priority-queue';
 import { Request } from '../../src/domain/request';
@@ -21,10 +22,10 @@ describe('Scheduler', () => {
 
         scheduler = new Scheduler(queue, executor);
 
-        // Silence console.error
-        jest.spyOn(console, 'error').mockImplementation(() => { });
-        // Silence console.info
-        jest.spyOn(console, 'info').mockImplementation(() => { });
+        // Silence logger.error
+        jest.spyOn(logger, 'error').mockImplementation(() => { });
+        // Silence logger.info
+        jest.spyOn(logger, 'info').mockImplementation(() => { });
     });
 
     afterEach(() => {

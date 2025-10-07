@@ -1,3 +1,4 @@
+import logger from "../core/logging/logger";
 import { intervalManager } from "../core/shutdown/interval-manager";
 import { Event } from "../domain/events";
 import { RejectedRequestException } from "../domain/exceptions/rejected-request.exception";
@@ -35,7 +36,7 @@ export class Rejector {
         const oldThreshold = this.threshold;
         this.threshold = newThreshold;
 
-        console.info(`Threshold modified from ${oldThreshold} to: ${newThreshold}`)
+        logger.info(`Threshold modified from ${oldThreshold} to: ${newThreshold}`)
 
         const isDecreased = oldThreshold < this.threshold
         if (isDecreased) {

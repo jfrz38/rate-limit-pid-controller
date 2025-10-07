@@ -1,4 +1,5 @@
 import { Statistics } from "../../../src/application/statistics";
+import logger from "../../../src/core/logging/logger";
 import { Event } from "../../../src/domain/events";
 import { NotEnoughStatsException } from "../../../src/domain/exceptions/not-enough-stats.exception";
 import { Priority } from "../../../src/domain/priority";
@@ -26,8 +27,8 @@ describe('PriorityQueue', () => {
 
         queue = new PriorityQueue(statistics, heap);
 
-        // Silence console.info
-        jest.spyOn(console, 'info').mockImplementation(() => { });
+        // Silence logger.info
+        jest.spyOn(logger, 'info').mockImplementation(() => { });
     });
 
     test('add and poll returns the same request', () => {
@@ -108,7 +109,7 @@ describe('PriorityQueue', () => {
             throw new NotEnoughStatsException();
         });
 
-        const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => { });
+        const consoleSpy = jest.spyOn(logger, 'info').mockImplementation(() => { });
 
         (queue as any).updateQueueTimeout();
         expect(consoleSpy).toHaveBeenCalledWith('Not enough stats to update timeout');

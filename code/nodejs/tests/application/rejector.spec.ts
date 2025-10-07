@@ -1,6 +1,7 @@
 import { PidController } from "../../src/application/pid-controller";
 import { Rejector } from "../../src/application/rejector";
 import { Statistics } from "../../src/application/statistics";
+import logger from "../../src/core/logging/logger";
 import { Event } from "../../src/domain/events";
 import { RejectedRequestException } from "../../src/domain/exceptions/rejected-request.exception";
 import { Priority } from "../../src/domain/priority";
@@ -34,8 +35,8 @@ describe('Rejector', () => {
 
         request = {} as unknown as jest.Mocked<Request>;
 
-        // Silence console.info
-        jest.spyOn(console, 'info').mockImplementation(() => { });
+        // Silence logger.info
+        jest.spyOn(logger, 'info').mockImplementation(() => { });
 
         rejector = new Rejector(priorityQueue, statistics, pidController);
     });
@@ -72,7 +73,7 @@ describe('Rejector', () => {
 
     describe('updateThreshold', () => {
         test('should update threshold and log info', () => {
-            const spy = jest.spyOn(console, 'info').mockImplementation();
+            const spy = jest.spyOn(logger, 'info').mockImplementation();
             rejector.updateThreshold(500);
             expect(spy).toHaveBeenNthCalledWith(1, 'Threshold modified from 768 to: 500');
             spy.mockRestore();

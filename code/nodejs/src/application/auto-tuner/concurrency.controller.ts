@@ -1,3 +1,4 @@
+import logger from "../../core/logging/logger";
 import { Scheduler } from "../scheduler";
 import { Statistics } from "../statistics";
 import { LatencyController } from "./latency.controller";
@@ -27,7 +28,7 @@ export class ConcurrencyController {
         try {
             aggregatedLatency = this.statistics.getPercentileLatencySuccessfulRequests(intervalEnd);
         } catch {
-            console.info('Not enough stats to update inflight concurrent requests');
+            logger.info('Not enough stats to update inflight concurrent requests');
             return;
         }
 
@@ -70,7 +71,7 @@ export class ConcurrencyController {
         if (newLimit !== this.inflightLimit) {
             this.inflightLimit = newLimit;
             this.scheduler.updateMaxConcurrentRequests(this.inflightLimit);
-            console.info('New inflightLimit: ', this.inflightLimit);
+            logger.info(`New inflightLimit: ${this.inflightLimit}`);
         }
     }
 }

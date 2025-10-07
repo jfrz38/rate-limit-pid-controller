@@ -1,3 +1,4 @@
+import logger from "../core/logging/logger";
 import { Event } from "../domain/events";
 import { PriorityQueue } from '../domain/priority-queue/priority-queue';
 import { Request } from "../domain/request";
@@ -29,7 +30,7 @@ export class Scheduler {
                         await new Promise((res) => setTimeout(res, 10));
                     }
                 } catch (error) {
-                    console.error('Error processing request', error);
+                    logger.error(`Error processing request ${error}`);
                 }
             }
         };
@@ -49,9 +50,10 @@ export class Scheduler {
             try {
                 await request.task();
                 request.status = Event.COMPLETED;
+                logger.info(`Completed request with priority ${request.priority}`)
             } catch (error) {
                 request.status = Event.FAILED;
-                console.error('Error processing request', error);
+                logger.error(`Error processing request ${error}`);
             } finally {
                 this._processingRequests--;
             }
@@ -61,7 +63,7 @@ export class Scheduler {
     updateMaxConcurrentRequests(max: number) {
         this._maxConcurrentRequests = max;
         this.executor.concurrency = max;
-        console.info('Max concurrent requests updated to:', max);
+        logger.info(`Max concurrent requests updated to: ${max}`);
     }
 
     get maxConcurrentRequests(): number {
