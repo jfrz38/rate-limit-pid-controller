@@ -1,7 +1,12 @@
 import { LatencyController } from "../../../src/application/auto-tuner/latency.controller";
 import { Statistics } from "../../../src/application/statistics";
-import logger from "../../../src/core/logging/logger";
 import { MathUtils } from "../../../src/domain/math/math-utils";
+
+jest.mock("../../../src/core/logging/logger", () => ({
+  getLogger: jest.fn().mockReturnValue({
+    info: jest.fn()
+  }),
+}));
 
 describe('LatencyController', () => {
   let statistics: jest.Mocked<Statistics>;
@@ -13,9 +18,6 @@ describe('LatencyController', () => {
     } as unknown as jest.Mocked<Statistics>;
 
     latencyController = new LatencyController(statistics);
-
-    // Silence logger.info
-    jest.spyOn(logger, 'info').mockImplementation(() => { });
   });
 
   afterEach(() => {

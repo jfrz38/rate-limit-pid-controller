@@ -1,5 +1,5 @@
 import { Statistics } from "../../../src/application/statistics";
-import logger from "../../../src/core/logging/logger";
+import { getLogger } from "../../../src/core/logging/logger";
 import { Event } from "../../../src/domain/events";
 import { NotEnoughStatsException } from "../../../src/domain/exceptions/not-enough-stats.exception";
 import { Priority } from "../../../src/domain/priority";
@@ -8,13 +8,21 @@ import { Heap } from "../../../src/domain/priority-queue/heap";
 import { PriorityQueue } from "../../../src/domain/priority-queue/priority-queue";
 import { Request } from "../../../src/domain/request";
 
+
 jest.useFakeTimers();
 jest.mock("../../../src/core/shutdown/interval-manager");
+
+jest.mock("../../../src/core/logging/logger", () => ({
+    getLogger: jest.fn().mockReturnValue({
+        info: jest.fn()
+    }),
+}));
 
 describe('PriorityQueue', () => {
     let statistics: jest.Mocked<Statistics>;
     let heap: Heap;
     let queue: PriorityQueue;
+    let logger = jest.fn();
 
     beforeEach(() => {
         statistics = {
@@ -25,10 +33,12 @@ describe('PriorityQueue', () => {
         // Real implementation to test add, poll and remove requests
         heap = new Heap(RequestPriorityComparator.compare());
 
-        queue = new PriorityQueue(statistics, heap);
+        (getLogger as jest.Mock).mockReturnValue({
+            info: logger,
+            warn: jest.fn(),
+        });
 
-        // Silence logger.info
-        jest.spyOn(logger, 'info').mockImplementation(() => { });
+        queue = new PriorityQueue(statistics, heap);        
     });
 
     test('add and poll returns the same request', () => {
@@ -104,17 +114,15 @@ describe('PriorityQueue', () => {
         expect(request.status).toBe(Event.EVICTED);
     });
 
-    test('updateQueueTimeout logs info when NotEnoughStatsException is thrown', () => {
+    test('updateQueueTimeout when NotEnoughStatsException is thrown should not throw exception', () => {
         statistics.getAverageProcessingTime.mockImplementation(() => {
             throw new NotEnoughStatsException();
         });
 
-        const consoleSpy = jest.spyOn(logger, 'info').mockImplementation(() => { });
-
-        (queue as any).updateQueueTimeout();
-        expect(consoleSpy).toHaveBeenCalledWith('Not enough stats to update timeout');
-
-        consoleSpy.mockRestore();
+        expect(() => {
+            (queue as any).updateQueueTimeout()
+        }).not.toThrow();
+        expect(logger).toHaveBeenCalledWith('Not enough stats to update timeout');
     });
 
     test('updateQueueTimeout re-throws unknown exceptions', () => {

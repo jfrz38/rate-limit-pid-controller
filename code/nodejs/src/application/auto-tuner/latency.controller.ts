@@ -1,4 +1,4 @@
-import logger from "../../core/logging/logger";
+import { getLogger } from "../../core/logging/logger";
 import { MathUtils } from "../../domain/math/math-utils";
 import { Statistics } from "../statistics";
 
@@ -6,6 +6,8 @@ export class LatencyController {
     private _targetLatency = 100;
     private maxInflights: number[] = [];
     private intervalThroughputs: number[] = [];
+
+    private logger = getLogger();
 
     constructor(private readonly statistics: Statistics) { }
 
@@ -21,7 +23,7 @@ export class LatencyController {
         this._targetLatency = minLatency;
 
         if (this.maxInflights.length < 10) {
-            logger.info(`New targetLatency: ${this._targetLatency}`);
+            this.logger.info(`New targetLatency: ${this._targetLatency}`);
             return;
         }
 
@@ -33,6 +35,6 @@ export class LatencyController {
             this._targetLatency = Math.round(this._targetLatency * factor);
         }
 
-        logger.info(`New targetLatency: ${this._targetLatency}`);
+        this.logger.info(`New targetLatency: ${this._targetLatency}`);
     }
 }

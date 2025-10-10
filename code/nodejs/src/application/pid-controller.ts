@@ -2,9 +2,6 @@ import { PriorityQueue } from "../domain/priority-queue/priority-queue";
 import { Scheduler } from "./scheduler";
 
 export class PidController {
-  private readonly KP = 0.1;
-  private readonly KI = 1.4;
-
   private readonly MAX_THRESHOLD = 100; // Can't be more than 100% usage
   private readonly MIN_THRESHOLD = 0;   // Can't be less than 0% usage
 
@@ -12,7 +9,9 @@ export class PidController {
 
   constructor(
     private readonly scheduler: Scheduler,
-    private readonly priorityQueue: PriorityQueue
+    private readonly priorityQueue: PriorityQueue,
+    private readonly KP: number = 0.1,
+    private readonly KI: number = 1.4
   ) { }
 
   updateThreshold(): number {

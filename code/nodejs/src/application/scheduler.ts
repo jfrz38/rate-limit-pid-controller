@@ -1,4 +1,4 @@
-import logger from "../core/logging/logger";
+import { getLogger } from "../core/logging/logger";
 import { Event } from "../domain/events";
 import { PriorityQueue } from '../domain/priority-queue/priority-queue';
 import { Request } from "../domain/request";
@@ -8,6 +8,8 @@ export class Scheduler {
     private _maxConcurrentRequests: number;
     private _processingRequests: number = 0;
     private isRunning: boolean = true;
+
+    private logger = getLogger();
 
     constructor(
         private readonly queue: PriorityQueue,
@@ -30,7 +32,7 @@ export class Scheduler {
                         await new Promise((res) => setTimeout(res, 10));
                     }
                 } catch (error) {
-                    logger.error(`Error processing request ${error}`);
+                    this.logger.error(`Error processing request ${error}`);
                 }
             }
         };
@@ -50,10 +52,10 @@ export class Scheduler {
             try {
                 await request.task();
                 request.status = Event.COMPLETED;
-                logger.info(`Completed request with priority ${request.priority}`)
+                this.logger.info(`Completed request with priority ${request.priority}`)
             } catch (error) {
                 request.status = Event.FAILED;
-                logger.error(`Error processing request ${error}`);
+                this.logger.error(`Error processing request ${error}`);
             } finally {
                 this._processingRequests--;
             }
@@ -63,7 +65,7 @@ export class Scheduler {
     updateMaxConcurrentRequests(max: number) {
         this._maxConcurrentRequests = max;
         this.executor.concurrency = max;
-        logger.info(`Max concurrent requests updated to: ${max}`);
+        this.logger.info(`Max concurrent requests updated to: ${max}`);
     }
 
     get maxConcurrentRequests(): number {

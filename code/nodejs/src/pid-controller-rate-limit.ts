@@ -6,6 +6,7 @@ import { PidController } from "./application/pid-controller";
 import { Rejector } from "./application/rejector";
 import { Scheduler } from "./application/scheduler";
 import { Statistics } from "./application/statistics";
+import { initLogger, Log } from "./core/logging/logger";
 import { intervalManager } from "./core/shutdown/interval-manager";
 import { ShutdownManager } from "./core/shutdown/shutdown-manager";
 import { Priority } from "./domain/priority";
@@ -13,6 +14,21 @@ import { RequestPriorityComparator } from "./domain/priority-queue/comparator";
 import { Heap } from "./domain/priority-queue/heap";
 import { PriorityQueue } from "./domain/priority-queue/priority-queue";
 import { Request } from "./domain/request";
+
+type Options = {
+    threshold?: {
+        initial?: number
+    }
+    log?: {
+        level?: Log,
+    },
+    pid?: {
+        KP?: number,
+        KI?: number
+    }
+    maxConcurrentRequests?: number,
+}
+
 
 export class PidControllerRateLimit {
 
@@ -24,16 +40,24 @@ export class PidControllerRateLimit {
     private readonly executor: Executor;
     private readonly shutdownManager: ShutdownManager;
 
-    constructor() {
-        this.executor = new Executor();
+    constructor(options: Options = {}) {
+        this.initializeOptions(options);
+
+        const { threshold, maxConcurrentRequests, pid } = options;
+
+        this.executor = new Executor(maxConcurrentRequests);
         this.statistics = new Statistics();
         this.priorityQueue = new PriorityQueue(this.statistics, new Heap(RequestPriorityComparator.compare()));
         this.scheduler = new Scheduler(this.priorityQueue, this.executor);
-        this.pidController = new PidController(this.scheduler, this.priorityQueue);
-        this.rejector = new Rejector(this.priorityQueue, this.statistics, this.pidController);
+        this.pidController = new PidController(this.scheduler, this.priorityQueue, pid?.KP, pid?.KI);
+        this.rejector = new Rejector(this.priorityQueue, this.statistics, this.pidController, threshold?.initial);
         this.shutdownManager = new ShutdownManager(this.scheduler, intervalManager);
 
         this.init();
+    }
+
+    initializeOptions(options: Options) {
+        initLogger(options?.log?.level);
     }
 
     private init(): void {
@@ -55,3 +79,4 @@ export class PidControllerRateLimit {
         this.shutdownManager.shutdown();
     }
 }
+

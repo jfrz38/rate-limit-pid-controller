@@ -1,9 +1,16 @@
+import { error } from 'console';
 import { Executor } from '../../src/application/executor';
 import { Scheduler } from '../../src/application/scheduler';
-import logger from '../../src/core/logging/logger';
 import { Event } from '../../src/domain/events';
 import { PriorityQueue } from '../../src/domain/priority-queue/priority-queue';
 import { Request } from '../../src/domain/request';
+
+jest.mock("../../src/core/logging/logger", () => ({
+    getLogger: jest.fn().mockReturnValue({
+        info: jest.fn(),
+        error: jest.fn()
+    }),
+}));
 
 jest.useFakeTimers();
 
@@ -21,11 +28,6 @@ describe('Scheduler', () => {
         executor = {} as unknown as jest.Mocked<Executor>;
 
         scheduler = new Scheduler(queue, executor);
-
-        // Silence logger.error
-        jest.spyOn(logger, 'error').mockImplementation(() => { });
-        // Silence logger.info
-        jest.spyOn(logger, 'info').mockImplementation(() => { });
     });
 
     afterEach(() => {

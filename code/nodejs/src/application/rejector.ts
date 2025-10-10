@@ -1,4 +1,4 @@
-import logger from "../core/logging/logger";
+import { getLogger } from "../core/logging/logger";
 import { intervalManager } from "../core/shutdown/interval-manager";
 import { Event } from "../domain/events";
 import { RejectedRequestException } from "../domain/exceptions/rejected-request.exception";
@@ -12,11 +12,16 @@ export class Rejector {
     private threshold: number = 768;
     private readonly MAX_QUEUE_EMPTY_TIME: number = 10;
 
+    private logger = getLogger();
+
     constructor(
         private readonly priorityQueue: PriorityQueue,
         private readonly statistics: Statistics,
-        private readonly pidController: PidController
+        private readonly pidController: PidController,
+        initialThreshold: number = 768
     ) {
+        this.threshold = initialThreshold;
+        this.logger.info(`Initial threshold: ${this.threshold}`);
         this.startThresholdCheck();
     }
 
@@ -36,7 +41,7 @@ export class Rejector {
         const oldThreshold = this.threshold;
         this.threshold = newThreshold;
 
-        logger.info(`Threshold modified from ${oldThreshold} to: ${newThreshold}`)
+        this.logger.info(`Threshold modified from ${oldThreshold} to: ${newThreshold}`)
 
         const isDecreased = oldThreshold < this.threshold
         if (isDecreased) {

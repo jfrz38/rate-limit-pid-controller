@@ -45,7 +45,6 @@ describe('PidControllerRateLimit (mocked)', () => {
         controller = new PidControllerRateLimit();
     });
 
-
     test('when initialize should create expected components', () => {
         const scheduler = (controller as any).scheduler;
 
