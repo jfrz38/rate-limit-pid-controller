@@ -1,4 +1,3 @@
-import { Statistics } from "../../../src/application/statistics";
 import { getLogger } from "../../../src/core/logging/logger";
 import { Event } from "../../../src/domain/events";
 import { Priority } from "../../../src/domain/priority";
@@ -10,7 +9,6 @@ import { Request } from "../../../src/domain/request";
 
 
 jest.useFakeTimers();
-jest.mock("../../../src/core/shutdown/interval-manager");
 
 jest.mock("../../../src/core/logging/logger", () => ({
     getLogger: jest.fn().mockReturnValue({
@@ -19,18 +17,12 @@ jest.mock("../../../src/core/logging/logger", () => ({
 }));
 
 describe('PriorityQueue', () => {
-    let statistics: jest.Mocked<Statistics>;
     let heap: Heap;
     let queue: PriorityQueue;
     let timeoutHandler: jest.Mocked<TimeoutHandler>;
     let logger = jest.fn();
 
     beforeEach(() => {
-        statistics = {
-            getAverageProcessingTime: jest.fn(),
-            getPercentileLatencySuccessfulRequests: jest.fn(),
-            getThroughputForInterval: jest.fn(),
-        } as unknown as jest.Mocked<Statistics>;
 
         timeoutHandler = {} as unknown as jest.Mocked<TimeoutHandler>;
 
