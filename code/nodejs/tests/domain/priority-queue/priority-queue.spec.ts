@@ -30,6 +30,7 @@ describe('PriorityQueue', () => {
             getPercentileLatencySuccessfulRequests: jest.fn(),
             getThroughputForInterval: jest.fn(),
         } as unknown as jest.Mocked<Statistics>;
+
         // Real implementation to test add, poll and remove requests
         heap = new Heap(RequestPriorityComparator.compare());
 
@@ -43,26 +44,37 @@ describe('PriorityQueue', () => {
 
     test('add and poll returns the same request', () => {
         const request = createRequest(0);
+
         queue.add(request);
+        
         expect(queue.poll()).toBe(request);
     });
 
-    test('poll returns null if request timed out', () => {
+    test('poll when request timed out should return null', () => {
         const request = createRequest(0);
+        const timeout = 300;
+
+        queue = new PriorityQueue(statistics, heap, timeout);
         queue.add(request);
-        jest.advanceTimersByTime(200);
+
+        jest.advanceTimersByTime(timeout + 100);
+
         expect(queue.poll()).toBeNull();
     });
 
-    test('poll after adding two requests removes first and times out second', () => {
+    test('poll when adding two requests and times out one should return expected first request and null second request', () => {
         const firstRequest = createRequest(0);
         const secondRequest = createRequest(1);
+        const timeout = 300;
+
+        queue = new PriorityQueue(statistics, heap, timeout);
         queue.add(firstRequest);
         queue.add(secondRequest);
 
         expect(queue.poll()).toBe(firstRequest);
 
-        jest.advanceTimersByTime(200);
+        jest.advanceTimersByTime(timeout + 100);
+
         expect(queue.poll()).toBeNull();
     });
 
@@ -87,30 +99,38 @@ describe('PriorityQueue', () => {
         expect(queue.exitRequests).toBe(1);
     });
 
-    test('getTimeSinceLastEmpty returns 0 if never added', () => {
-        expect(queue.getTimeSinceLastEmpty()).toBeCloseTo(0, 1);
+    test('getTimeSinceLastEmpty when never add a request should return 0', () => {
+        expect(queue.getTimeSinceLastEmpty()).toBe(0);
     });
 
-    test('getTimeSinceLastEmpty after adding value', () => {
+    test('getTimeSinceLastEmpty when a value is added should return expected time', () => {
         const request = createRequest(0);
+        const timeout = 2000;
+
+        queue = new PriorityQueue(statistics, heap, timeout)
         queue.add(request);
 
         jest.advanceTimersByTime(1200);
         expect(queue.getTimeSinceLastEmpty()).toBeGreaterThanOrEqual(1);
     });
 
-    test('getTimeSinceLastEmpty after adding and polling', () => {
+    test('getTimeSinceLastEmpty when a request is added an polled should return 0', () => {
         const request = createRequest(0);
         queue.add(request);
         queue.poll();
 
-        expect(queue.getTimeSinceLastEmpty()).toBeCloseTo(0, 1);
+        expect(queue.getTimeSinceLastEmpty()).toBe(0);
     });
 
     test('requests are evicted after timeout', () => {
         const request = createRequest(0);
+        const timeout = 300;
+
+        queue = new PriorityQueue(statistics, heap, timeout);   
         queue.add(request);
-        jest.advanceTimersByTime(200);
+
+        jest.advanceTimersByTime(timeout + 100);
+        
         expect(request.status).toBe(Event.EVICTED);
     });
 

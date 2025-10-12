@@ -7,7 +7,6 @@ import { Request } from "../request";
 import { Heap } from './heap';
 
 export class PriorityQueue {
-    private queueTimeout: number = 100;
     private lastTimeEmpty = Date.now();
 
     _entryRequests: number = 0;
@@ -19,7 +18,8 @@ export class PriorityQueue {
 
     constructor(
         private readonly statistics: Statistics,
-        private readonly queue: Heap<Request>
+        private readonly queue: Heap<Request>,
+        private queueTimeout: number = 500
     ) {
         this.initializeUpdateQueueTimeout();
     }
@@ -36,9 +36,7 @@ export class PriorityQueue {
         }
         const request: Request = this.queue.poll()!;
         this._exitRequests++;
-        if (this.queue.length === 0) {
-            this.lastTimeEmpty = Date.now();
-        }
+        this.setLastTimeEmpty();
         return request;
     }
 
@@ -48,16 +46,22 @@ export class PriorityQueue {
             if (index !== -1) {
                 this.queue.remove(request);
                 request.status = Event.EVICTED;
-                if (this.queue.length === 0) {
-                    this.lastTimeEmpty = Date.now();
-                }
+                this.logger.info(`Evicted request with priority ${request.priority}`)
+                this.setLastTimeEmpty();
             }
         }, this.queueTimeout);
     }
 
     private initializeUpdateQueueTimeout() {
+        // TODO: Todo esto de queue timeout puede ir a una clase inyectada
         const id = setInterval(() => this.updateQueueTimeout(), 1000);
         intervalManager.add(id);
+    }
+
+    private setLastTimeEmpty(): void {
+        if (this.queue.isEmpty()) {
+            this.lastTimeEmpty = Date.now();
+        }
     }
 
     private updateQueueTimeout() {
@@ -79,6 +83,7 @@ export class PriorityQueue {
     }
 
     getTimeSinceLastEmpty(): number {
+        if (this.isEmpty()) return 0;
         return (Date.now() - this.lastTimeEmpty) / 1000;
     }
 
