@@ -9,7 +9,7 @@ import { Statistics } from "./statistics";
 
 export class Rejector {
 
-    private threshold: number = 768;
+    private threshold: number;
     private readonly MAX_QUEUE_EMPTY_TIME: number = 10;
 
     private logger = getLogger();
