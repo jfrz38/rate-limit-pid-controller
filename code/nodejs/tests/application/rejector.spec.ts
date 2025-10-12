@@ -75,21 +75,13 @@ describe('Rejector', () => {
 
     describe('updateThreshold', () => {
         test('should update threshold', () => {
-            // const spy = jest.spyOn(logger, 'info').mockImplementation();
             const newThreshold = 400;
-            rejector.updateThreshold(newThreshold);
-            const currentThreshold = (rejector as any).threshold
-            // expect(logger).toHaveBeenNthCalledWith(1, 'Threshold modified from '+currentThreshold+' to: 500');
-            // spy.mockRestore();
 
+            rejector.updateThreshold(newThreshold);
+
+            const currentThreshold = (rejector as any).threshold
             expect(currentThreshold).toBeDefined();
             expect(currentThreshold).toBe(newThreshold);
-        });
-
-        test('should mark decrease correctly', () => {
-            (rejector as any).threshold = 100;
-            rejector.updateThreshold(50);
-            // TODO: decrease flow
         });
     });
 

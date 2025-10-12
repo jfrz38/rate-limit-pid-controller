@@ -38,15 +38,8 @@ export class Rejector {
     }
 
     updateThreshold(newThreshold: number): void {
-        const oldThreshold = this.threshold;
+        this.logger.info(`Threshold modified from ${this.threshold} to: ${newThreshold}`)
         this.threshold = newThreshold;
-
-        this.logger.info(`Threshold modified from ${oldThreshold} to: ${newThreshold}`)
-
-        const isDecreased = oldThreshold < this.threshold
-        if (isDecreased) {
-            // TODO: Crear método de la cola para cuando baje el threshold eliminar los valores que ya no deberían ejecutarse
-        }
     }
 
     startThresholdCheck(interval: number = 500): void {
@@ -70,4 +63,5 @@ export class Rejector {
         const pidThreshold = this.pidController.updateThreshold();
         return this.statistics.calculateCumulativePriorityDistribution(pidThreshold);
     }
+
 }
