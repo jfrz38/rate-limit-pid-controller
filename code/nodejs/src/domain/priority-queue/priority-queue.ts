@@ -34,7 +34,6 @@ export class PriorityQueue {
     }
 
     private scheduleTimeoutRemoval(request: Request) {
-        console.log("Timeout = ",this.timeoutHandler)
         setTimeout(() => {
             const index = this.queue.indexOf(request);
             if (index !== -1) {
