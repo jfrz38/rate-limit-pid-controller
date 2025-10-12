@@ -13,6 +13,7 @@ import { PidControllerRateLimit } from "../src/pid-controller-rate-limit";
 import { Heap } from "../src/domain/priority-queue/heap";
 import { RequestPriorityComparator } from "../src/domain/priority-queue/comparator";
 import { ShutdownManager } from "../src/core/shutdown/shutdown-manager";
+import { TimeoutHandler } from "../src/domain/priority-queue/timeout-handler";
 
 jest.mock("../src/application/statistics");
 jest.mock("../src/domain/priority-queue/priority-queue");
@@ -34,6 +35,7 @@ jest.mock("../src/domain/priority-queue/heap");
 jest.mock("../src/domain/priority-queue/comparator");
 jest.mock("../src/core/shutdown/shutdown-manager");
 jest.mock("../src/core/shutdown/interval-manager");
+jest.mock("../src/domain/priority-queue/timeout-handler");
 
 describe('PidControllerRateLimit (mocked)', () => {
     let task: jest.Mock;
@@ -61,6 +63,7 @@ describe('PidControllerRateLimit (mocked)', () => {
         expect(Heap).toHaveBeenCalledTimes(1);
         expect(RequestPriorityComparator.compare).toHaveBeenCalledTimes(1);
         expect(ShutdownManager).toHaveBeenCalledTimes(1);
+        expect(TimeoutHandler).toHaveBeenCalledTimes(1);
     });
 
     test('when run should call expected functions', () => {

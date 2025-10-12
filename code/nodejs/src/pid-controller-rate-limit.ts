@@ -13,6 +13,7 @@ import { Priority } from "./domain/priority";
 import { RequestPriorityComparator } from "./domain/priority-queue/comparator";
 import { Heap } from "./domain/priority-queue/heap";
 import { PriorityQueue } from "./domain/priority-queue/priority-queue";
+import { TimeoutHandler } from "./domain/priority-queue/timeout-handler";
 import { Request } from "./domain/request";
 
 type Options = {
@@ -28,7 +29,10 @@ type Options = {
     }
     maxConcurrentRequests?: number,
     timeout?: {
-        priorityQueue?: number
+        priorityQueue?: {
+            value?: number,
+            ratio?: number
+        }
     }
 }
 
@@ -42,6 +46,7 @@ export class PidControllerRateLimit {
     private readonly pidController: PidController;
     private readonly executor: Executor;
     private readonly shutdownManager: ShutdownManager;
+    private readonly queueTimeout: TimeoutHandler;
 
     constructor(options: Options = {}) {
         this.initializeOptions(options);
@@ -50,7 +55,8 @@ export class PidControllerRateLimit {
 
         this.executor = new Executor(maxConcurrentRequests);
         this.statistics = new Statistics();
-        this.priorityQueue = new PriorityQueue(this.statistics, new Heap(RequestPriorityComparator.compare()), timeout?.priorityQueue);
+        this.queueTimeout = new TimeoutHandler(this.statistics, timeout?.priorityQueue?.value, timeout?.priorityQueue?.ratio);
+        this.priorityQueue = new PriorityQueue(new Heap(RequestPriorityComparator.compare()), this.queueTimeout);
         this.scheduler = new Scheduler(this.priorityQueue, this.executor);
         this.pidController = new PidController(this.scheduler, this.priorityQueue, pid?.KP, pid?.KI);
         this.rejector = new Rejector(this.priorityQueue, this.statistics, this.pidController, threshold?.initial);

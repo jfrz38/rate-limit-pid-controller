@@ -1,11 +1,11 @@
 import { Statistics } from "../../../src/application/statistics";
 import { getLogger } from "../../../src/core/logging/logger";
 import { Event } from "../../../src/domain/events";
-import { NotEnoughStatsException } from "../../../src/domain/exceptions/not-enough-stats.exception";
 import { Priority } from "../../../src/domain/priority";
 import { RequestPriorityComparator } from "../../../src/domain/priority-queue/comparator";
 import { Heap } from "../../../src/domain/priority-queue/heap";
 import { PriorityQueue } from "../../../src/domain/priority-queue/priority-queue";
+import { TimeoutHandler } from "../../../src/domain/priority-queue/timeout-handler";
 import { Request } from "../../../src/domain/request";
 
 
@@ -22,6 +22,7 @@ describe('PriorityQueue', () => {
     let statistics: jest.Mocked<Statistics>;
     let heap: Heap;
     let queue: PriorityQueue;
+    let timeoutHandler: jest.Mocked<TimeoutHandler>;
     let logger = jest.fn();
 
     beforeEach(() => {
@@ -31,6 +32,8 @@ describe('PriorityQueue', () => {
             getThroughputForInterval: jest.fn(),
         } as unknown as jest.Mocked<Statistics>;
 
+        timeoutHandler = {} as unknown as jest.Mocked<TimeoutHandler>;
+
         // Real implementation to test add, poll and remove requests
         heap = new Heap(RequestPriorityComparator.compare());
 
@@ -39,14 +42,14 @@ describe('PriorityQueue', () => {
             warn: jest.fn(),
         });
 
-        queue = new PriorityQueue(statistics, heap);        
+        queue = new PriorityQueue(heap, timeoutHandler);
     });
 
     test('add and poll returns the same request', () => {
         const request = createRequest(0);
 
         queue.add(request);
-        
+
         expect(queue.poll()).toBe(request);
     });
 
@@ -54,7 +57,8 @@ describe('PriorityQueue', () => {
         const request = createRequest(0);
         const timeout = 300;
 
-        queue = new PriorityQueue(statistics, heap, timeout);
+        (timeoutHandler as any).timeout = timeout;
+
         queue.add(request);
 
         jest.advanceTimersByTime(timeout + 100);
@@ -67,7 +71,8 @@ describe('PriorityQueue', () => {
         const secondRequest = createRequest(1);
         const timeout = 300;
 
-        queue = new PriorityQueue(statistics, heap, timeout);
+        (timeoutHandler as any).timeout = timeout;
+
         queue.add(firstRequest);
         queue.add(secondRequest);
 
@@ -103,14 +108,16 @@ describe('PriorityQueue', () => {
         expect(queue.getTimeSinceLastEmpty()).toBe(0);
     });
 
-    test('getTimeSinceLastEmpty when a value is added should return expected time', () => {
+    test('getTimeSinceLastEmpty when one value is added should return expected time', () => {
         const request = createRequest(0);
         const timeout = 2000;
 
-        queue = new PriorityQueue(statistics, heap, timeout)
+        (timeoutHandler as any).timeout = timeout;
+
         queue.add(request);
 
         jest.advanceTimersByTime(1200);
+
         expect(queue.getTimeSinceLastEmpty()).toBeGreaterThanOrEqual(1);
     });
 
@@ -126,34 +133,12 @@ describe('PriorityQueue', () => {
         const request = createRequest(0);
         const timeout = 300;
 
-        queue = new PriorityQueue(statistics, heap, timeout);   
+        (timeoutHandler as any).timeout = timeout;
         queue.add(request);
 
         jest.advanceTimersByTime(timeout + 100);
-        
+
         expect(request.status).toBe(Event.EVICTED);
-    });
-
-    test('updateQueueTimeout when NotEnoughStatsException is thrown should not throw exception', () => {
-        statistics.getAverageProcessingTime.mockImplementation(() => {
-            throw new NotEnoughStatsException();
-        });
-
-        expect(() => {
-            (queue as any).updateQueueTimeout()
-        }).not.toThrow();
-        expect(logger).toHaveBeenCalledWith('Not enough stats to update timeout');
-    });
-
-    test('updateQueueTimeout re-throws unknown exceptions', () => {
-        const error = new Error('Something went wrong');
-        statistics.getAverageProcessingTime.mockImplementation(() => {
-            throw error;
-        });
-
-        expect(() => {
-            (queue as any).updateQueueTimeout();
-        }).toThrow(error);
     });
 
     test('when queue is empty should return expected values', () => {

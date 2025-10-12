@@ -1,10 +1,8 @@
-import { Statistics } from '../../application/statistics';
 import { getLogger } from '../../core/logging/logger';
-import { intervalManager } from '../../core/shutdown/interval-manager';
 import { Event } from '../events';
-import { NotEnoughStatsException } from '../exceptions/not-enough-stats.exception';
 import { Request } from "../request";
 import { Heap } from './heap';
+import { TimeoutHandler } from './timeout-handler';
 
 export class PriorityQueue {
     private lastTimeEmpty = Date.now();
@@ -12,17 +10,12 @@ export class PriorityQueue {
     _entryRequests: number = 0;
     _exitRequests: number = 0;
 
-    _length: number = 0;
-
     private logger = getLogger();
 
     constructor(
-        private readonly statistics: Statistics,
         private readonly queue: Heap<Request>,
-        private queueTimeout: number = 500
-    ) {
-        this.initializeUpdateQueueTimeout();
-    }
+        private readonly timeoutHandler: TimeoutHandler
+    ) { }
 
     add(request: Request): void {
         this.queue.push(request);
@@ -41,6 +34,7 @@ export class PriorityQueue {
     }
 
     private scheduleTimeoutRemoval(request: Request) {
+        console.log("Timeout = ",this.timeoutHandler)
         setTimeout(() => {
             const index = this.queue.indexOf(request);
             if (index !== -1) {
@@ -49,36 +43,12 @@ export class PriorityQueue {
                 this.logger.info(`Evicted request with priority ${request.priority}`)
                 this.setLastTimeEmpty();
             }
-        }, this.queueTimeout);
-    }
-
-    private initializeUpdateQueueTimeout() {
-        // TODO: Todo esto de queue timeout puede ir a una clase inyectada
-        const id = setInterval(() => this.updateQueueTimeout(), 1000);
-        intervalManager.add(id);
+        }, this.timeoutHandler.timeout);
     }
 
     private setLastTimeEmpty(): void {
         if (this.queue.isEmpty()) {
             this.lastTimeEmpty = Date.now();
-        }
-    }
-
-    private updateQueueTimeout() {
-        try {
-            const avgProcessingTime = this.statistics.getAverageProcessingTime();
-            const newTimeout = Math.round(avgProcessingTime * 0.33);
-
-            if (newTimeout !== this.queueTimeout) {
-                this.logger.info(`Updating timeout from ${this.queueTimeout} to ${newTimeout}`);
-                this.queueTimeout = newTimeout;
-            }
-        } catch (e: any) {
-            if (e instanceof NotEnoughStatsException) {
-                this.logger.info('Not enough stats to update timeout');
-            } else {
-                throw e;
-            }
         }
     }
 
