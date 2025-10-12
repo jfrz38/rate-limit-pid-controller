@@ -27,6 +27,9 @@ type Options = {
         KI?: number
     }
     maxConcurrentRequests?: number,
+    timeout?: {
+        priorityQueue?: number
+    }
 }
 
 
@@ -43,11 +46,11 @@ export class PidControllerRateLimit {
     constructor(options: Options = {}) {
         this.initializeOptions(options);
 
-        const { threshold, maxConcurrentRequests, pid } = options;
+        const { threshold, maxConcurrentRequests, pid, timeout } = options;
 
         this.executor = new Executor(maxConcurrentRequests);
         this.statistics = new Statistics();
-        this.priorityQueue = new PriorityQueue(this.statistics, new Heap(RequestPriorityComparator.compare()));
+        this.priorityQueue = new PriorityQueue(this.statistics, new Heap(RequestPriorityComparator.compare()), timeout?.priorityQueue);
         this.scheduler = new Scheduler(this.priorityQueue, this.executor);
         this.pidController = new PidController(this.scheduler, this.priorityQueue, pid?.KP, pid?.KI);
         this.rejector = new Rejector(this.priorityQueue, this.statistics, this.pidController, threshold?.initial);
