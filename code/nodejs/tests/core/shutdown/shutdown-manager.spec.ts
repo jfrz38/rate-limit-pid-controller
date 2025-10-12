@@ -17,17 +17,37 @@ describe('Shutdown Manager', () => {
         } as unknown as jest.Mocked<IntervalManager>
 
         shutdownManager = new ShutdownManager(scheduler, intervalManager);
-
-        jest.spyOn(process, 'exit').mockImplementation(() => { return undefined as never });
     });
 
     afterEach(() => {
         jest.restoreAllMocks();
+        process.removeAllListeners('SIGINT');
+        process.removeAllListeners('SIGTERM');
     });
 
     test('should call scheduler terminate and interval manager clearAll when shutdown is called', () => {
+        const exit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
         shutdownManager.shutdown();
+
         expect(scheduler.terminate).toHaveBeenCalledTimes(1);
         expect(intervalManager.clearAll).toHaveBeenCalledTimes(1);
+        expect(exit).toHaveBeenNthCalledWith(1, 0);
+    });
+
+    test('when SIGINT is called should shutdown program', () => {
+        const exit = jest.spyOn(shutdownManager, 'shutdown').mockImplementation(() => undefined);
+
+        process.emit('SIGINT');
+
+        expect(exit).toHaveBeenCalledTimes(1);
+    });
+
+    test('when SIGTERM is called should shutdown program', () => {
+        const exit = jest.spyOn(shutdownManager, 'shutdown').mockImplementation(() => undefined);
+
+        process.emit('SIGTERM');
+
+        expect(exit).toHaveBeenCalledTimes(1);
     });
 });
