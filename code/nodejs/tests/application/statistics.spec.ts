@@ -54,22 +54,28 @@ describe('Statistics tests', () => {
 
             test('when there are enough valid requests should return correct average processing time', () => {
                 const times = [10, 20, 30, 40, 50];
-                times.forEach(offset => statistics.add(createRequestWithEvents(0, offset)));
-                const expectedAverage = times.reduce((a, b) => a + b, 0) / times.length;
-                expect(statistics.getAverageProcessingTime()).toBe(expectedAverage);
+                times.forEach(time => statistics.add(createRequestWithEvents(0, time)));
+                const expectedAverage = 30;
+
+                const result = statistics.getAverageProcessingTime()
+
+                expect(result).toBe(expectedAverage);
             });
 
             test('when requests have varying times should calculate precise average', () => {
                 const times = [100, 200, 300, 400, 500];
-                times.forEach(offset => statistics.add(createRequestWithEvents(0, offset)));
-                const expectedAverage = times.reduce((a, b) => a + b, 0) / times.length;
-                expect(statistics.getAverageProcessingTime()).toBe(expectedAverage);
+                times.forEach(time => statistics.add(createRequestWithEvents(0, time)));
+                const expectedAverage = 300;
+
+                const result = statistics.getAverageProcessingTime()
+
+                expect(result).toBe(expectedAverage);
             });
 
-            function createRequestWithEvents(createdOffset: number, completedOffset: number): Request {
+            function createRequestWithEvents(createdDate: number, completedDate: number): Request {
                 const request = {} as unknown as jest.Mocked<Request>;
-                const created = new Date(createdOffset);
-                const completed = new Date(completedOffset);
+                const created = new Date(createdDate);
+                const completed = new Date(completedDate);
                 request.hasEventCreatedAndCompleted = jest.fn().mockReturnValue(true);
                 request.getEventByType = jest.fn()
                     .mockImplementation((type: Event) => type === Event.CREATED ? created : completed);
