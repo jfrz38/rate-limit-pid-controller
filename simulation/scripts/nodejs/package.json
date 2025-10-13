@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "log": "ts-node run-log.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.2"
+  }
+}
