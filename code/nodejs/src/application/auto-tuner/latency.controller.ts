@@ -16,10 +16,9 @@ export class LatencyController {
     }
 
     update(): void {
-        const intervalEnd = new Date();
         const factor = 0.8;
 
-        const minLatency = this.statistics.getLowestLatencyForInterval(intervalEnd);
+        const minLatency = this.statistics.getLowestLatencyForInterval();
         this._targetLatency = minLatency;
 
         if (this.maxInflights.length < 10) {

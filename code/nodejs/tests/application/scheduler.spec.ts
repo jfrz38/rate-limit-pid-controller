@@ -1,4 +1,3 @@
-import { error } from 'console';
 import { Executor } from '../../src/application/executor';
 import { Scheduler } from '../../src/application/scheduler';
 import { Event } from '../../src/domain/events';

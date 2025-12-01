@@ -1,5 +1,6 @@
 import { PidController } from "../../src/application/pid-controller";
 import { Scheduler } from "../../src/application/scheduler";
+import { DefaultOptions } from "../../src/default-parameters";
 import { PriorityQueue } from "../../src/domain/priority-queue/priority-queue";
 
 describe("PidController", () => {
@@ -17,7 +18,8 @@ describe("PidController", () => {
 
         controller = new PidController(
             scheduler,
-            priorityQueue
+            priorityQueue,
+            DefaultOptions.values.pid
         );
 
     });
@@ -25,8 +27,8 @@ describe("PidController", () => {
     test("increases threshold when overloaded", () => {
         (scheduler as any).maxConcurrentRequests = 100;
         (scheduler as any).processingRequests = 100;
-        priorityQueue._entryRequests = 1000;
-        priorityQueue._exitRequests = 0;
+        (priorityQueue as any).entryRequests = 1000;
+        (priorityQueue as any).exitRequests = 0;
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBeGreaterThan(0);
@@ -35,8 +37,8 @@ describe("PidController", () => {
     test("decreases threshold when not overloaded", () => {
         (scheduler as any).maxConcurrentRequests = 100;
         (scheduler as any).processingRequests = 0;
-        priorityQueue._entryRequests = 0;
-        priorityQueue._exitRequests = 1000;
+        (priorityQueue as any).entryRequests = 0;
+        (priorityQueue as any).exitRequests = 1000;
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBe(0);
@@ -45,14 +47,14 @@ describe("PidController", () => {
     test("increases threshold on second calculation when still overloaded", () => {
         (scheduler as any).maxConcurrentRequests = 100;
         (scheduler as any).processingRequests = 10;
-        priorityQueue._entryRequests = 10000;
-        priorityQueue._exitRequests = 1000;
+        (priorityQueue as any).exitRequests = 1000;
+        (priorityQueue as any).entryRequests = 10000;
 
         const threshold = controller.updateThreshold();
 
         (scheduler as any).processingRequests = 80;
-        priorityQueue._entryRequests = 100;
-        priorityQueue._exitRequests = 10;
+        (priorityQueue as any).entryRequests = 100;
+        (priorityQueue as any).exitRequests = 10;
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBeGreaterThan(threshold);
@@ -61,14 +63,14 @@ describe("PidController", () => {
     test("decreases threshold on second calculation when not overloaded", () => {
         (scheduler as any).maxConcurrentRequests = 100;
         (scheduler as any).processingRequests = 10;
-        priorityQueue._entryRequests = 10000;
-        priorityQueue._exitRequests = 1000;
+        (priorityQueue as any).entryRequests = 10000;
+        (priorityQueue as any).exitRequests = 1000;
 
         const threshold = controller.updateThreshold();
 
         (scheduler as any).processingRequests = 4;
-        priorityQueue._entryRequests = 40;
-        priorityQueue._exitRequests = 40;
+        (priorityQueue as any).entryRequests = 40;
+        (priorityQueue as any).exitRequests = 40;
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBeLessThan(threshold);
@@ -79,8 +81,8 @@ describe("PidController", () => {
 
         (scheduler as any).maxConcurrentRequests = 10;
         (scheduler as any).processingRequests = 0;
-        priorityQueue._entryRequests = 1000;
-        priorityQueue._exitRequests = 0;
+        (priorityQueue as any).entryRequests = 1000;
+        (priorityQueue as any).exitRequests = 0;
 
         (controller as any).currentThreshold = 95;
 
@@ -93,8 +95,8 @@ describe("PidController", () => {
 
         (scheduler as any).maxConcurrentRequests = 10;
         (scheduler as any).processingRequests = 10;
-        priorityQueue._entryRequests = 0;
-        priorityQueue._exitRequests = 1000;
+        (priorityQueue as any).entryRequests = 0;
+        (priorityQueue as any).exitRequests = 1000;
 
         (controller as any).currentThreshold = 1;
 

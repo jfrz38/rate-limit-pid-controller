@@ -20,21 +20,22 @@ export class ConcurrencyController {
     constructor(
         private readonly scheduler: Scheduler,
         private readonly statistics: Statistics,
-        private readonly latencyController: LatencyController
-    ) { }
+        private readonly latencyController: LatencyController,
+        maxCores: number,
+    ) {
+        this.cores = Math.max(1, Math.min(maxCores, this.cores));
+    }
 
     update(): void {
-        const intervalEnd = new Date();
-
         let aggregatedLatency: number;
         try {
-            aggregatedLatency = this.statistics.getPercentileLatencySuccessfulRequests(intervalEnd);
+            aggregatedLatency = this.statistics.getPercentileLatencySuccessfulRequests();
         } catch {
             this.logger.info('Not enough stats to update inflight concurrent requests');
             return;
         }
 
-        const intervalThroughput = this.statistics.getThroughputForInterval(intervalEnd);
+        const intervalThroughput = this.statistics.getSuccessfulThroughput();
         this.pushFixed(this.intervalThroughput, intervalThroughput, 50);
         this.pushFixed(this.maxInflights, this.inflightLimit, 50);
 

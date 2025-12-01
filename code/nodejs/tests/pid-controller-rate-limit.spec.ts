@@ -43,6 +43,7 @@ describe('PidControllerRateLimit (mocked)', () => {
     let controller: PidControllerRateLimit;
 
     beforeEach(() => {
+        jest.resetModules();
         jest.clearAllMocks();
         controller = new PidControllerRateLimit();
     });

@@ -1,5 +1,6 @@
 import { Statistics } from "../../../src/application/statistics";
 import { getLogger } from "../../../src/core/logging/logger";
+import { DefaultOptions } from "../../../src/default-parameters";
 import { NotEnoughStatsException } from "../../../src/domain/exceptions/not-enough-stats.exception";
 import { TimeoutHandler } from "../../../src/domain/priority-queue/timeout-handler";
 
@@ -15,6 +16,8 @@ describe('Queue timeout handler', () => {
     let timeoutHandler: jest.Mocked<TimeoutHandler>;
     let logger = jest.fn();
 
+    const timeoutParameters = DefaultOptions.values.timeout;
+
     beforeEach(() => {
         statistics = {
             getAverageProcessingTime: jest.fn(),
@@ -27,7 +30,7 @@ describe('Queue timeout handler', () => {
             warn: jest.fn(),
         });
 
-        timeoutHandler = new TimeoutHandler(statistics);
+        timeoutHandler = new TimeoutHandler(statistics, timeoutParameters);
     });
 
     test('updateQueueTimeout when NotEnoughStatsException is thrown should not throw exception', () => {
@@ -43,6 +46,7 @@ describe('Queue timeout handler', () => {
 
     test('updateQueueTimeout when unknown exception should re-throws', () => {
         const error = new Error('Something went wrong');
+        
         statistics.getAverageProcessingTime.mockImplementation(() => {
             throw error;
         });

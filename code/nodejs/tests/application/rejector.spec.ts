@@ -1,6 +1,7 @@
 import { PidController } from "../../src/application/pid-controller";
 import { Rejector } from "../../src/application/rejector";
 import { Statistics } from "../../src/application/statistics";
+import { DefaultOptions } from "../../src/default-parameters";
 import { Event } from "../../src/domain/events";
 import { RejectedRequestException } from "../../src/domain/exceptions/rejected-request.exception";
 import { Priority } from "../../src/domain/priority";
@@ -9,7 +10,6 @@ import { Request } from "../../src/domain/request";
 
 jest.useFakeTimers();
 jest.mock("../../src/core/shutdown/interval-manager");
-
 jest.mock("../../src/core/logging/logger", () => ({
     getLogger: jest.fn().mockReturnValue({
         info: jest.fn()
@@ -22,6 +22,9 @@ describe('Rejector', () => {
     let pidController: jest.Mocked<PidController>;
     let request: jest.Mocked<Request>;
     let rejector: Rejector;
+
+    const initialThreshold = DefaultOptions.values.threshold.initial;
+    const initialInterval = DefaultOptions.values.pid.interval;
 
     beforeEach(() => {
         priorityQueue = {
@@ -40,7 +43,7 @@ describe('Rejector', () => {
 
         request = {} as unknown as jest.Mocked<Request>;
 
-        rejector = new Rejector(priorityQueue, statistics, pidController);
+        rejector = new Rejector(priorityQueue, statistics, pidController, initialThreshold, initialInterval);
     });
 
     describe('process', () => {

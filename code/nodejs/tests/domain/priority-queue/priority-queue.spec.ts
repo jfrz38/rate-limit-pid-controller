@@ -7,7 +7,6 @@ import { PriorityQueue } from "../../../src/domain/priority-queue/priority-queue
 import { TimeoutHandler } from "../../../src/domain/priority-queue/timeout-handler";
 import { Request } from "../../../src/domain/request";
 
-
 jest.useFakeTimers();
 
 jest.mock("../../../src/core/logging/logger", () => ({
