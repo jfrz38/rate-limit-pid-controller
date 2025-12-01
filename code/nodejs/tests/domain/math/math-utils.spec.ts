@@ -156,4 +156,27 @@ describe('Math utils tests', () => {
         }
     });
 
+    describe('Average tests', () => {
+        test('when no values should return 0', () => {
+            expect(MathUtils.average([])).toBe(0);
+        });
+
+        test('when values exist should return expected average', () => {
+            const values = [10, 20, 30, 40, 50];
+            const expectedAverage = 30;
+
+            const result = MathUtils.average(values);
+
+            expect(result).toBe(expectedAverage);
+        });
+
+        test('when requests have varying times should calculate precise average', () => {
+            const values = [100, 200, 300, 400, 500];
+            const expectedAverage = 300;
+
+            const result = MathUtils.average(values);
+
+            expect(result).toBe(expectedAverage);
+        });
+    });
 });
