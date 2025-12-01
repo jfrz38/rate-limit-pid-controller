@@ -18,11 +18,12 @@ export class Rejector {
         private readonly priorityQueue: PriorityQueue,
         private readonly statistics: Statistics,
         private readonly pidController: PidController,
-        initialThreshold: number = 768
+        initialThreshold: number,
+        pidControllerInterval: number
     ) {
         this.threshold = initialThreshold;
         this.logger.info(`Initial threshold: ${this.threshold}`);
-        this.startThresholdCheck();
+        this.startThresholdCheck(pidControllerInterval);
     }
 
     process(request: Request): void {
@@ -42,7 +43,7 @@ export class Rejector {
         this.threshold = newThreshold;
     }
 
-    startThresholdCheck(interval: number = 500): void {
+    startThresholdCheck(interval: number): void {
         const id = setInterval(() => {
             if (this.isServiceOverloaded()) {
                 const newThreshold = this.getPriorityThreshold();

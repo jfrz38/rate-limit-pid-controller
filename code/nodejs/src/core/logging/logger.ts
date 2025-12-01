@@ -1,12 +1,11 @@
 import pino, { Logger } from 'pino';
-
-export type Log = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'
+import { LogLevel } from '../../domain/types/log-level';
 
 let logger: Logger;
 
-export function initLogger(level: Log | undefined): void {
+export function initLogger(level: LogLevel | undefined): void {
     if (!logger) {
-        logger = pino({ level: level ?? 'warn' });
+        logger = pino({ level });
     }
 }
 

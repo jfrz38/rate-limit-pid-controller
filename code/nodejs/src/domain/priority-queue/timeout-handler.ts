@@ -2,16 +2,21 @@ import { Statistics } from "../../application/statistics";
 import { getLogger } from "../../core/logging/logger";
 import { intervalManager } from "../../core/shutdown/interval-manager";
 import { NotEnoughStatsException } from "../exceptions/not-enough-stats.exception";
+import { Timeout } from "../types/timeout";
 
 export class TimeoutHandler {
 
     private logger = getLogger();
+    private _timeout: number;
+    private ratio: number;
 
     constructor(
         private readonly statistics: Statistics,
-        private _timeout: number = 500,
-        private ratio: number = 0.33
+        parameters: Timeout
     ) {
+        this._timeout = parameters.priorityQueue.value;
+        this.ratio = parameters.priorityQueue.ratio;
+        
         this.initializeUpdateQueueTimeout();
     }
 

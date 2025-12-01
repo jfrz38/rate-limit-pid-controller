@@ -7,8 +7,8 @@ import { TimeoutHandler } from './timeout-handler';
 export class PriorityQueue {
     private lastTimeEmpty = Date.now();
 
-    _entryRequests: number = 0;
-    _exitRequests: number = 0;
+    private _entryRequests: number = 0;
+    private _exitRequests: number = 0;
 
     private logger = getLogger();
 
