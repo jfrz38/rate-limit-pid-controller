@@ -14,7 +14,8 @@ export class MathUtils {
   static percentile(values: number[], percentile: number): number {
     if (!values.length) return 0;
 
-    const sorted = values.sort((a, b) => a - b);
+    // const sorted = values.sort((a, b) => a - b);
+    const sorted = [...values].sort((a, b) => a - b)
     const index = (percentile / 100) * (sorted.length - 1);
     const lowerIndex = Math.floor(index);
     const upperIndex = Math.ceil(index);

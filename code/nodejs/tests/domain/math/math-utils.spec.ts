@@ -19,11 +19,11 @@ describe('Math utils tests', () => {
         });
 
         describe('population covariance (default)', () => {
-            
+
             test('should compute positive covariance', () => {
                 const x = [1, 2, 3];
                 const y = [2, 4, 6];
-                
+
                 expect(MathUtils.covariance(x, y)).toBeCloseTo(1.333, 3);
             });
 
@@ -151,6 +151,19 @@ describe('Math utils tests', () => {
             expect(MathUtils.percentile(values, 0)).toBe(1 * cohort);
         });
 
+        test('should not mutate the original array', () => {
+            const values = [30, 10, 20];
+            const valuesCopy = [...values];
+            MathUtils.percentile(values, 50);
+            expect(values).toEqual(valuesCopy);
+        });
+
+        test('should return exactly the min value for percentile 0 and max for 100', () => {
+            const values = [10, 20, 30];
+            expect(MathUtils.percentile(values, 0)).toBe(10);
+            expect(MathUtils.percentile(values, 100)).toBe(30);
+        });
+
         function createValues(...values: number[]): number[] {
             return values.map(value => value * cohort);
         }
@@ -177,6 +190,11 @@ describe('Math utils tests', () => {
             const result = MathUtils.average(values);
 
             expect(result).toBe(expectedAverage);
+        });
+
+        test('should handle floating point results in average', () => {
+            expect(MathUtils.average([1, 2])).toBe(1.5);
+            expect(MathUtils.average([1, 1, 2])).toBeCloseTo(1.333, 3);
         });
     });
 });
