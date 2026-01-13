@@ -1,3 +1,4 @@
+import { getLogger } from "../core/logging/logger";
 import { Event } from "../domain/events";
 import { PriorityQueue } from '../domain/priority-queue/priority-queue';
 import { Request } from "../domain/request";
@@ -6,7 +7,8 @@ import { Executor } from "./executor";
 export class Scheduler {
     private _maxConcurrentRequests: number;
     private _processingRequests: number = 0;
-    private isRunning: boolean = true;
+
+    private logger = getLogger();
 
     constructor(
         private readonly queue: PriorityQueue,
@@ -16,29 +18,24 @@ export class Scheduler {
     }
 
     start() {
-        const loop = async () => {
-            while (this.isRunning) {
-                try {
-                    if (this.canProcess()) {
-                        const request = this.queue.poll();
-                        if (!request) {
-                            continue;
-                        }
-                        this.processRequest(request);
-                    } else {
-                        await new Promise((res) => setTimeout(res, 10));
-                    }
-                } catch (error) {
-                    console.error('Error processing request', error);
-                }
-            }
-        };
-        loop();
+        this.queue.on('requestAdded', () => this.schedule());
+        this.schedule();
     }
 
-    private canProcess() {
-        return this.queue.length > 0 &&
-            this._processingRequests < this._maxConcurrentRequests;
+    private schedule() {
+        while (this.canProcess()) {
+            const request = this.queue.poll();
+            if (!request) {break;}
+
+            this.processRequest(request);
+        }
+    }
+
+    private canProcess(): boolean {
+        return (
+            this.queue.length > 0 &&
+            this._processingRequests < this._maxConcurrentRequests
+        );
     }
 
     private processRequest(request: Request) {
@@ -49,11 +46,13 @@ export class Scheduler {
             try {
                 await request.task();
                 request.status = Event.COMPLETED;
+                this.logger.info(`Completed request with priority ${request.priority}`);
             } catch (error) {
                 request.status = Event.FAILED;
-                console.error('Error processing request', error);
+                this.logger.error(`Error processing request ${error}`);
             } finally {
                 this._processingRequests--;
+                setImmediate(() => this.schedule());
             }
         });
     }
@@ -61,7 +60,8 @@ export class Scheduler {
     updateMaxConcurrentRequests(max: number) {
         this._maxConcurrentRequests = max;
         this.executor.concurrency = max;
-        console.info('Max concurrent requests updated to:', max);
+        this.logger.info(`Max concurrent requests updated to: ${max}`);
+        this.schedule();
     }
 
     get maxConcurrentRequests(): number {
@@ -73,6 +73,6 @@ export class Scheduler {
     }
 
     terminate() {
-        this.isRunning = false;
+        this.queue.removeAllListeners('requestAdded');
     }
 }

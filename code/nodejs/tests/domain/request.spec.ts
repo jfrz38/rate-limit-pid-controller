@@ -2,8 +2,9 @@ import { Priority } from '../../src/domain/priority';
 import { Request } from '../../src/domain/request';
 import { Event } from '../../src/domain/events';
 
+const RANDOM_UUID_MOCK = 'uuid';
 jest.mock('crypto', () => ({
-    randomUUID: jest.fn(() => 'mock-uuid'),
+    randomUUID: jest.fn(() => RANDOM_UUID_MOCK),
 }));
 
 describe('Request', () => {
@@ -19,7 +20,7 @@ describe('Request', () => {
         test('should set id, task, priority, and initial status', () => {
             const request = new Request(task, priority);
 
-            expect(request.id).toBe('mock-uuid');
+            expect(request.id).toBe(RANDOM_UUID_MOCK);
             expect(request.task).toBe(task);
             expect(request.priority).toBe(priority.value);
             expect(request['_status']).toBe(Event.CREATED);
@@ -30,7 +31,8 @@ describe('Request', () => {
     describe('status getter & setter', () => {
         test('should update status and add entry to eventLog', () => {
             const request = new Request(task, priority);
-            const now = new Date();
+            const now = Date.now();
+
             jest.useFakeTimers().setSystemTime(now);
 
             request.status = Event.LAUNCHED;
@@ -55,8 +57,20 @@ describe('Request', () => {
             request.status = newStatus;
             const currentStatus = request.status;
 
-            expect(request.status).toBe(newStatus);
+            expect(currentStatus).toBe(newStatus);
         });
+
+        test('createdAt should be immutable after instantiation', () => {
+            const startTime = 1000;
+            jest.useFakeTimers().setSystemTime(startTime);
+            const request = new Request(task, priority);
+
+            jest.advanceTimersByTime(5000);
+            request.status = Event.LAUNCHED;
+
+            expect(request.createdAt).toBe(startTime);
+        });
+
     });
 
     describe('event log helpers', () => {
@@ -81,7 +95,7 @@ describe('Request', () => {
 
         test('getEventByType should return the correct Date', () => {
             const request = new Request(task, priority);
-            const now = new Date();
+            const now = Date.now();
             jest.useFakeTimers().setSystemTime(now);
 
             request.status = Event.LAUNCHED;
@@ -89,6 +103,34 @@ describe('Request', () => {
             expect(request.getEventByType(Event.COMPLETED)).toBeUndefined();
 
             jest.useRealTimers();
+        });
+
+        test('eventLog should store the latest timestamp if the same status is set twice', () => {
+            jest.useFakeTimers();
+            const request = new Request(task, priority);
+
+            jest.setSystemTime(1000);
+            request.status = Event.LAUNCHED;
+
+            jest.setSystemTime(2000);
+            request.status = Event.LAUNCHED;
+
+            expect(request.getEventByType(Event.LAUNCHED)).toBe(2000);
+            jest.useRealTimers();
+        });
+
+        test('should maintain a history of all status changes', () => {
+            const request = new Request(task, priority);
+            request.status = Event.QUEUED;
+            request.status = Event.LAUNCHED;
+            request.status = Event.COMPLETED;
+
+            const log = request.getEventLog();
+            expect(log.has(Event.CREATED)).toBe(true);
+            expect(log.has(Event.QUEUED)).toBe(true);
+            expect(log.has(Event.LAUNCHED)).toBe(true);
+            expect(log.has(Event.COMPLETED)).toBe(true);
+            expect(log.size).toBe(4);
         });
     });
 });

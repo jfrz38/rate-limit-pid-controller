@@ -1,37 +1,41 @@
+import { getLogger } from "../../core/logging/logger";
 import { MathUtils } from "../../domain/math/math-utils";
-import { Statistics } from "../statistics";
+import { Statistics } from "../../domain/statistics/statistics";
+import { ControllerHistory } from "./controller-history";
 
 export class LatencyController {
     private _targetLatency = 100;
-    private maxInflights: number[] = [];
-    private intervalThroughputs: number[] = [];
 
-    constructor(private readonly statistics: Statistics) { }
+    private logger = getLogger();
+
+    constructor(
+        private readonly statistics: Statistics,
+        private readonly history: ControllerHistory
+    ) { }
 
     get targetLatency(): number {
         return this._targetLatency;
     }
 
     update(): void {
-        const intervalEnd = new Date();
         const factor = 0.8;
 
-        const minLatency = this.statistics.getLowestLatencyForInterval(intervalEnd);
-        this._targetLatency = minLatency;
+        const minLatency = this.statistics.getLowestLatencyForInterval();
 
-        if (this.maxInflights.length < 10) {
-            console.info('New targetLatency: ', this._targetLatency);
+        if (this.history.length < 10) {
+            this._targetLatency = minLatency;
+            this.logger.info(`New targetLatency: ${this._targetLatency}`);
             return;
         }
 
-        const covariance = MathUtils.covariance(this.maxInflights, this.intervalThroughputs);
+        const covariance = MathUtils.covariance(this.history.maxInflights, this.history.intervalThroughputs);
 
         if (covariance > 0) {
-            this._targetLatency = minLatency;
+            this._targetLatency = Math.round((this._targetLatency * 0.9) + (minLatency * 0.1));
         } else if (covariance < 0) {
             this._targetLatency = Math.round(this._targetLatency * factor);
         }
 
-        console.info('New targetLatency: ', this._targetLatency);
+        this.logger.info(`New targetLatency: ${this._targetLatency}`);
     }
 }

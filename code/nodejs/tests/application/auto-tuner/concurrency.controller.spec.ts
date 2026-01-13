@@ -1,37 +1,81 @@
+import os from 'os';
 import { ConcurrencyController } from "../../../src/application/auto-tuner/concurrency.controller";
 import { LatencyController } from "../../../src/application/auto-tuner/latency.controller";
 import { Scheduler } from "../../../src/application/scheduler";
-import { Statistics } from "../../../src/application/statistics";
+import { DefaultOptions } from "../../../src/default-parameters";
+import { Statistics } from "../../../src/domain/statistics/statistics";
+import { ControllerHistory } from '../../../src/application/auto-tuner/controller-history';
+
+jest.mock("../../../src/core/logging/logger", () => ({
+  getLogger: jest.fn().mockReturnValue({
+    info: jest.fn()
+  }),
+}));
 
 describe('ConcurrencyController', () => {
   let scheduler: jest.Mocked<Scheduler>;
   let statistics: jest.Mocked<Statistics>;
   let latencyController: jest.Mocked<LatencyController>;
   let controller: ConcurrencyController;
+  let history: ControllerHistory;
+  let cpuSpy: jest.SpyInstance;
+  const mockedCpus = 4;
+
+  const cores = DefaultOptions.values.capacity.cores;
 
   beforeEach(() => {
+    cpuSpy = jest.spyOn(os, 'cpus').mockImplementation(() => new Array(mockedCpus));
     scheduler = { updateMaxConcurrentRequests: jest.fn() } as unknown as jest.Mocked<Scheduler>;
     statistics = {
       getPercentileLatencySuccessfulRequests: jest.fn(),
       getThroughputForInterval: jest.fn(),
+      getSuccessfulThroughput: jest.fn(),
     } as unknown as jest.Mocked<Statistics>;
 
     latencyController = {
       targetLatency: 100
     } as jest.Mocked<LatencyController>;
 
+    history = {
+      push: jest.fn(),
+      intervalThroughputs: [],
+      maxInflights: [],
+      length: 0
+    } as unknown as jest.Mocked<ControllerHistory>;
+
     controller = new ConcurrencyController(
       scheduler,
       statistics,
       latencyController,
+      history,
+      cores
     );
-
-    // Silence console.info
-    jest.spyOn(console, 'info').mockImplementation(() => { });
   });
 
   afterEach(() => {
+    cpuSpy.mockRestore();
     jest.clearAllMocks();
+  });
+
+  describe('Test initialization', () => {
+
+    test.each([
+      { cores: 2, expectedCores: 2 },
+      { cores: 1, expectedCores: 1 },
+      { cores: 0, expectedCores: 1 },
+      { cores: -1, expectedCores: 1 },
+      { cores: 10, expectedCores: 4 },
+    ])("when cores is $cores should initialize with $expectedCores", ({ cores, expectedCores }) => {
+      controller = new ConcurrencyController(
+        scheduler,
+        statistics,
+        latencyController,
+        history,
+        cores
+      );
+
+      expect((controller as any).cores).toBe(expectedCores);
+    });
   });
 
   describe('Test when update', () => {
@@ -46,14 +90,15 @@ describe('ConcurrencyController', () => {
       expect(scheduler.updateMaxConcurrentRequests).not.toHaveBeenCalledTimes(1);
     });
 
-    test('should calculate new limit and apply it', () => {
+    test('should calculate new limit, apply it and save to history', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
-      statistics.getThroughputForInterval.mockReturnValue(20);
+      statistics.getSuccessfulThroughput.mockReturnValue(20);
 
       controller.update();
 
       expect(statistics.getPercentileLatencySuccessfulRequests).toHaveBeenCalledTimes(1);
-      expect(statistics.getThroughputForInterval).toHaveBeenCalledTimes(1);
+      expect(statistics.getSuccessfulThroughput).toHaveBeenCalledTimes(1);
+      expect(history.push).toHaveBeenCalledTimes(1);
 
       const newLimit = scheduler.updateMaxConcurrentRequests.mock.calls[0][0];
       expect(typeof newLimit).toBe('number');
@@ -61,7 +106,7 @@ describe('ConcurrencyController', () => {
 
     test('should respect lower bound (cores)', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(1);
-      statistics.getThroughputForInterval.mockReturnValue(20);
+      statistics.getSuccessfulThroughput.mockReturnValue(20);
 
       controller.update();
 
@@ -71,7 +116,7 @@ describe('ConcurrencyController', () => {
 
     test('should respect upper bound (inflightLimit * 10)', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(0.1);
-      statistics.getThroughputForInterval.mockReturnValue(50);
+      statistics.getSuccessfulThroughput.mockReturnValue(50);
 
       controller.update();
 
@@ -79,23 +124,9 @@ describe('ConcurrencyController', () => {
       expect(appliedLimit).toBeLessThanOrEqual(10 * 10); // inflightLimit * 10
     });
 
-    test('should remove oldest element when intervalThroughput exceeds max size', () => {
-      statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
-      statistics.getThroughputForInterval.mockReturnValue(1);
-
-      for (let i = 0; i < 50; i++) {
-        controller['pushFixed'](controller['intervalThroughput'], i, 50);
-      }
-
-      controller.update();
-
-      expect(controller['intervalThroughput'].length).toBe(50);
-      expect(controller['intervalThroughput'][0]).toBe(1);
-    });
-
     test('should decrease queue when above beta in calculateNewLimit', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(250);
-      statistics.getThroughputForInterval.mockReturnValue(20);
+      statistics.getSuccessfulThroughput.mockReturnValue(20);
 
       const spy = jest.spyOn(controller as any, 'applyNewLimit');
 
@@ -111,7 +142,7 @@ describe('ConcurrencyController', () => {
       (controller as any).cores = cores;
 
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(10_000);
-      statistics.getThroughputForInterval.mockReturnValue(5);
+      statistics.getSuccessfulThroughput.mockReturnValue(5);
 
       controller.update();
 
@@ -125,7 +156,7 @@ describe('ConcurrencyController', () => {
       (controller as any).cores = cores;
 
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(10_000);
-      statistics.getThroughputForInterval.mockReturnValue(5);
+      statistics.getSuccessfulThroughput.mockReturnValue(5);
 
       controller.update();
 
@@ -140,7 +171,7 @@ describe('ConcurrencyController', () => {
       controller['inflightLimit'] = -1;
 
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(10_000);
-      statistics.getThroughputForInterval.mockReturnValue(5);
+      statistics.getSuccessfulThroughput.mockReturnValue(5);
 
 
       controller.update();
@@ -158,7 +189,7 @@ describe('ConcurrencyController', () => {
 
       (controller as any).applyNewLimit(newLimit);
 
-      expect(scheduler.updateMaxConcurrentRequests).toHaveBeenNthCalledWith(1, newLimit)
+      expect(scheduler.updateMaxConcurrentRequests).toHaveBeenNthCalledWith(1, newLimit);
       expect(controller['inflightLimit']).toBe(newLimit);
     });
 

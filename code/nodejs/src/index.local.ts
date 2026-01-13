@@ -1,3 +1,3 @@
 import { PidControllerRateLimit } from './pid-controller-rate-limit';
 
-new PidControllerRateLimit();
+new PidControllerRateLimit({ log: { level: 'debug' } });
