@@ -46,6 +46,20 @@ describe('Heap', () => {
         expect(heap.length).toBe(1);
     });
 
+    test('when heap is not empty with equal priorities should return expected values', () => {
+        const first = createRequest(1);
+        const second = createRequest(1);
+
+        (first as any)._createdAt = 100;
+        (second as any)._createdAt = 200;
+
+        heap.add(second);
+        heap.add(first);
+
+        expect(heap.poll()).toBe(first);
+        expect(heap.poll()).toBe(second);
+    });
+
 
     function createRequest(priority: number): Request {
         return new Request(() => null, new Priority(priority, 1));
