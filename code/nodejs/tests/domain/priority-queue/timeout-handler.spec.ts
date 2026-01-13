@@ -1,8 +1,11 @@
-import { Statistics } from "../../../src/application/statistics";
 import { getLogger } from "../../../src/core/logging/logger";
 import { DefaultOptions } from "../../../src/default-parameters";
 import { NotEnoughStatsException } from "../../../src/domain/exceptions/not-enough-stats.exception";
 import { TimeoutHandler } from "../../../src/domain/priority-queue/timeout-handler";
+import { Statistics } from "../../../src/domain/statistics/statistics";
+import { Timeout } from "../../../src/domain/types/timeout";
+import { Request } from "../../../src/domain/request";
+import { Priority } from "../../../src/domain/priority";
 
 jest.mock("../../../src/core/shutdown/interval-manager");
 jest.mock("../../../src/core/logging/logger", () => ({
@@ -13,16 +16,18 @@ jest.mock("../../../src/core/logging/logger", () => ({
 
 describe('Queue timeout handler', () => {
     let statistics: jest.Mocked<Statistics>;
-    let timeoutHandler: jest.Mocked<TimeoutHandler>;
+    let timeoutHandler: TimeoutHandler;
     let logger = jest.fn();
 
-    const timeoutParameters = DefaultOptions.values.timeout;
+    const timeoutParameters = DefaultOptions.values.timeout as unknown as jest.Mocked<Timeout>;
 
     beforeEach(() => {
+        jest.useFakeTimers();
+
         statistics = {
             getAverageProcessingTime: jest.fn(),
-            getPercentileLatencySuccessfulRequests: jest.fn(),
-            getThroughputForInterval: jest.fn(),
+            // getPercentileLatencySuccessfulRequests: jest.fn(),
+            // getThroughputForInterval: jest.fn(),
         } as unknown as jest.Mocked<Statistics>;
 
         (getLogger as jest.Mock).mockReturnValue({
@@ -46,7 +51,7 @@ describe('Queue timeout handler', () => {
 
     test('updateQueueTimeout when unknown exception should re-throws', () => {
         const error = new Error('Something went wrong');
-        
+
         statistics.getAverageProcessingTime.mockImplementation(() => {
             throw error;
         });
@@ -87,4 +92,44 @@ describe('Queue timeout handler', () => {
         expect(newTimeout).toBeDefined();
         expect(newTimeout).toBe(expectedTimeout);
     });
+
+    test('isExpired should return true if request age is exactly or over the current timeout', () => {
+        (timeoutHandler as any)._timeout = 200;
+        const now = Date.now();
+
+        const oldRequest = createRequest(0);
+        const newRequest = createRequest(0);
+
+        (oldRequest as any)._createdAt = now - 250;
+        (newRequest as any)._createdAt = now - 50;
+
+        expect(timeoutHandler.isExpired(oldRequest)).toBe(true);
+        expect(timeoutHandler.isExpired(newRequest)).toBe(false);
+    });
+
+    test('updateQueueTimeout should round the resulting timeout to the nearest integer', () => {
+        (timeoutHandler as any).ratio = 1.5;
+        statistics.getAverageProcessingTime.mockReturnValue(100.4);
+
+        (timeoutHandler as any).updateQueueTimeout();
+
+        expect(timeoutHandler.timeout).toBe(151);
+    });
+
+    test('should update timeout automatically when time passes (integration with setInterval)', () => {
+        jest.useFakeTimers();
+        const handler = new TimeoutHandler(statistics, timeoutParameters);
+
+        statistics.getAverageProcessingTime.mockReturnValue(500);
+        (handler as any).ratio = 1;
+
+        jest.advanceTimersByTime(1000);
+
+        expect(handler.timeout).toBe(500);
+        jest.useRealTimers();
+    });
+
+    function createRequest(priority: number): Request {
+        return new Request(() => null, new Priority(priority));
+    }
 });

@@ -1,10 +1,13 @@
+import { EventEmitter } from "events";
 import { getLogger } from '../../core/logging/logger';
 import { Event } from '../events';
 import { Request } from "../request";
 import { Heap } from './heap';
 import { TimeoutHandler } from './timeout-handler';
 
-export class PriorityQueue {
+export class PriorityQueue extends EventEmitter {
+    private readonly timers = new Map<Request, NodeJS.Timeout>();
+
     private lastTimeEmpty = Date.now();
 
     private _entryRequests: number = 0;
@@ -15,26 +18,42 @@ export class PriorityQueue {
     constructor(
         private readonly queue: Heap<Request>,
         private readonly timeoutHandler: TimeoutHandler
-    ) { }
+    ) {
+        super();
+    }
 
-    add(request: Request): void {
+    public add(request: Request): void {
         this.queue.push(request);
         this._entryRequests++;
         this.scheduleTimeoutRemoval(request);
+        this.emit('requestAdded');
     }
 
-    poll(): Request | null {
-        if (this.queue.length === 0) {
-            return null;
+    public poll(): Request | null {
+        while (this.queue.length > 0) {
+            const request = this.queue.pop()!;
+            this.clearTimer(request);
+
+            if (this.timeoutHandler.isExpired(request)) {
+                request.status = Event.EVICTED;
+                this._exitRequests++;
+                continue;
+            }
+
+            this._exitRequests++;
+            this.setLastTimeEmpty();
+            return request;
         }
-        const request: Request = this.queue.poll()!;
-        this._exitRequests++;
-        this.setLastTimeEmpty();
-        return request;
+        return null;
+    }
+
+    public resetCounters(): void {
+        this._entryRequests = 0;
+        this._exitRequests = 0;
     }
 
     private scheduleTimeoutRemoval(request: Request) {
-        setTimeout(() => {
+        const timerId = setTimeout(() => {
             const index = this.queue.indexOf(request);
             if (index !== -1) {
                 this.queue.remove(request);
@@ -42,7 +61,10 @@ export class PriorityQueue {
                 this.logger.info(`Evicted request with priority ${request.priority}`)
                 this.setLastTimeEmpty();
             }
+            this.timers.delete(request);
         }, this.timeoutHandler.timeout);
+
+        this.timers.set(request, timerId);
     }
 
     private setLastTimeEmpty(): void {
@@ -70,5 +92,13 @@ export class PriorityQueue {
 
     get length(): number {
         return this.queue.length;
+    }
+
+    private clearTimer(request: Request): void {
+        const timerId = this.timers.get(request);
+        if (timerId) {
+            clearTimeout(timerId);
+            this.timers.delete(request);
+        }
     }
 }

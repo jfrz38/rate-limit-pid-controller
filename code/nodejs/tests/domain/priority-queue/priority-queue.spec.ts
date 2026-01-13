@@ -23,7 +23,10 @@ describe('PriorityQueue', () => {
 
     beforeEach(() => {
 
-        timeoutHandler = {} as unknown as jest.Mocked<TimeoutHandler>;
+        timeoutHandler = {
+            timeout: 300,
+            isExpired: jest.fn().mockReturnValue(false)
+        } as any;
 
         // Real implementation to test add, poll and remove requests
         heap = new Heap(RequestPriorityComparator.compare());
@@ -142,6 +145,56 @@ describe('PriorityQueue', () => {
 
         expect(queue.isEmpty()).toBe(false);
         expect(queue.length).toBe(1);
+    });
+
+    test('should emit requestAdded event when a request is added', () => {
+        const spy = jest.fn();
+        queue.on('requestAdded', spy);
+
+        queue.add(createRequest(0));
+
+        expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not return a request that was already evicted by setTimeout', () => {
+        const request = createRequest(0);
+        queue.add(request);
+
+        // Avanzamos el tiempo para que el setTimeout lo borre del heap
+        jest.advanceTimersByTime(timeoutHandler.timeout + 1);
+
+        // Intentamos sacar algo de la cola
+        const result = queue.poll();
+
+        expect(result).toBeNull();
+        expect(queue.length).toBe(0);
+        expect(request.status).toBe(Event.EVICTED);
+    });
+
+    test('resetCounters should set entry and exit requests to zero', () => {
+        queue.add(createRequest(0));
+        queue.poll();
+
+        expect(queue.entryRequests).toBe(1);
+        expect(queue.exitRequests).toBe(1);
+
+        queue.resetCounters();
+
+        expect(queue.entryRequests).toBe(0);
+        expect(queue.exitRequests).toBe(0);
+    });
+
+    test('should clear timeout when request is polled', () => {
+        jest.clearAllTimers();
+
+        const request = createRequest(0);
+        queue.add(request);
+
+        expect(jest.getTimerCount()).toBe(1);
+
+        queue.poll();
+
+        expect(jest.getTimerCount()).toBe(0);
     });
 
     function createRequest(priority: number): Request {

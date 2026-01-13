@@ -1,7 +1,8 @@
-import { Statistics } from "../../application/statistics";
 import { getLogger } from "../../core/logging/logger";
 import { intervalManager } from "../../core/shutdown/interval-manager";
 import { NotEnoughStatsException } from "../exceptions/not-enough-stats.exception";
+import { Request } from "../request";
+import { Statistics } from "../statistics/statistics";
 import { Timeout } from "../types/timeout";
 
 export class TimeoutHandler {
@@ -16,12 +17,16 @@ export class TimeoutHandler {
     ) {
         this._timeout = parameters.priorityQueue.value;
         this.ratio = parameters.priorityQueue.ratio;
-        
+
         this.initializeUpdateQueueTimeout();
     }
 
     get timeout(): number {
         return this._timeout;
+    }
+
+    public isExpired(request: Request): boolean {
+        return (Date.now() - request.createdAt) > this.timeout;
     }
 
     private initializeUpdateQueueTimeout() {
