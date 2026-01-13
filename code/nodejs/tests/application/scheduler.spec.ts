@@ -27,7 +27,7 @@ describe('Scheduler', () => {
             on: jest.fn(),
             emit: jest.fn(),
             removeAllListeners: jest.fn()
-        } as unknown as jest.Mocked<EventEmitter>
+        } as unknown as jest.Mocked<EventEmitter>;
 
         queue = {
             on: jest.fn().mockImplementation((ev, cb) => emitter.on(ev, cb)),
@@ -161,7 +161,7 @@ describe('Scheduler', () => {
             await (scheduler as any).processRequest(request);
 
             expect(executor.add).toHaveBeenCalledTimes(1);
-        })
+        });
 
         test('should mark request as COMPLETED on success', async () => {
             const taskMock = jest.fn().mockResolvedValue(undefined);

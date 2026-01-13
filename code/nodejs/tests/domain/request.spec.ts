@@ -2,7 +2,7 @@ import { Priority } from '../../src/domain/priority';
 import { Request } from '../../src/domain/request';
 import { Event } from '../../src/domain/events';
 
-const RANDOM_UUID_MOCK = 'uuid'
+const RANDOM_UUID_MOCK = 'uuid';
 jest.mock('crypto', () => ({
     randomUUID: jest.fn(() => RANDOM_UUID_MOCK),
 }));

@@ -5,16 +5,16 @@ import { ShutdownManager } from "../../../src/core/shutdown/shutdown-manager";
 describe('Shutdown Manager', () => {
 
     let scheduler: jest.Mocked<Scheduler>;
-    let intervalManager: jest.Mocked<IntervalManager>
+    let intervalManager: jest.Mocked<IntervalManager>;
     let shutdownManager: ShutdownManager;
 
     beforeEach(() => {
         scheduler = {
             terminate: jest.fn()
-        } as unknown as jest.Mocked<Scheduler>
+        } as unknown as jest.Mocked<Scheduler>;
         intervalManager = {
             clearAll: jest.fn()
-        } as unknown as jest.Mocked<IntervalManager>
+        } as unknown as jest.Mocked<IntervalManager>;
 
         shutdownManager = new ShutdownManager(scheduler, intervalManager);
     });

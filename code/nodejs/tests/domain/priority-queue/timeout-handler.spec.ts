@@ -42,7 +42,7 @@ describe('Queue timeout handler', () => {
         });
 
         expect(() => {
-            (timeoutHandler as any).updateQueueTimeout()
+            (timeoutHandler as any).updateQueueTimeout();
         }).not.toThrow();
         expect(logger).toHaveBeenCalledWith('Not enough stats to update timeout');
     });

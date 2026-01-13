@@ -136,7 +136,7 @@ describe('Math utils tests', () => {
         });
 
         test('when exists multiple values should calculate expected cumulative priority', () => {
-            const values = createValues(3, 2, 5, 4, 4, 5, 4, 1, 4, 3)
+            const values = createValues(3, 2, 5, 4, 4, 5, 4, 1, 4, 3);
 
             expect(MathUtils.percentile(values, 100)).toBe(5 * cohort);
             expect(MathUtils.percentile(values, 90)).toBe(5 * cohort);

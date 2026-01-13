@@ -29,7 +29,7 @@ jest.mock("../src/domain/priority");
 jest.mock('../src/application/executor', () => {
     return {
         Executor: jest.fn()
-    }
+    };
 });
 jest.mock("../src/domain/request");
 jest.mock("../src/domain/priority-queue/heap");

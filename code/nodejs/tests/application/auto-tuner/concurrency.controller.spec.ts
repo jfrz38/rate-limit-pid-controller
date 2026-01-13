@@ -189,7 +189,7 @@ describe('ConcurrencyController', () => {
 
       (controller as any).applyNewLimit(newLimit);
 
-      expect(scheduler.updateMaxConcurrentRequests).toHaveBeenNthCalledWith(1, newLimit)
+      expect(scheduler.updateMaxConcurrentRequests).toHaveBeenNthCalledWith(1, newLimit);
       expect(controller['inflightLimit']).toBe(newLimit);
     });
 

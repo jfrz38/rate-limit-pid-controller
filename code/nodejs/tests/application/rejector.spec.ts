@@ -91,7 +91,7 @@ describe('Rejector', () => {
 
             rejector.updateThreshold(newThreshold);
 
-            const currentThreshold = (rejector as any).threshold
+            const currentThreshold = (rejector as any).threshold;
             expect(currentThreshold).toBeDefined();
             expect(currentThreshold).toBe(newThreshold);
         });

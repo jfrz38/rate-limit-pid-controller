@@ -29,7 +29,7 @@ describe('IntervalQueue tests', () => {
 
             intervalQueue.add(request);
 
-            const queue = (intervalQueue as any).queue
+            const queue = (intervalQueue as any).queue;
 
             expect(queue.length).toBe(1);
             expect(queue[0]).toBe(request);
@@ -45,7 +45,7 @@ describe('IntervalQueue tests', () => {
 
             intervalQueue.add(request);
 
-            const queue = (intervalQueue as any).queue
+            const queue = (intervalQueue as any).queue;
             expect(queue.length).toBe(2);
             expect(queue[0]).toBe(queuedRequest);
             expect(queue[1]).toBe(request);
@@ -97,8 +97,8 @@ describe('IntervalQueue tests', () => {
             const req = {
                 hasEventCompletedAndLaunched: () => true,
                 getEventByType: jest.fn((type) => {
-                    if (type === Event.LAUNCHED) return 100;
-                    if (type === Event.COMPLETED) return 150;
+                    if (type === Event.LAUNCHED) {return 100;}
+                    if (type === Event.COMPLETED) {return 150;}
                     return null;
                 })
             } as any;

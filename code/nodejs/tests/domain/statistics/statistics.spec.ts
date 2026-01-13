@@ -76,12 +76,12 @@ describe('Statistics tests', () => {
             expect(statistics.getPercentileLatencySuccessfulRequests()).toBe(latency);
 
             expect(intervalQueue.getLatencies).toHaveBeenCalledTimes(1);
-            expect(spy).toHaveBeenNthCalledWith(1, latencies, DefaultOptions.values.statistics.latencyPercentile)
+            expect(spy).toHaveBeenNthCalledWith(1, latencies, DefaultOptions.values.statistics.latencyPercentile);
 
             spy.mockRestore();
         });
 
-    })
+    });
 
     describe('Test getThroughputForInterval', () => {
         test('when no requests should return no throughputs', () => {
@@ -99,7 +99,7 @@ describe('Statistics tests', () => {
             expect(statistics.getSuccessfulThroughput()).toBe(requests);
             expect(intervalQueue.getLaunchedRequests).toHaveBeenCalledTimes(1);
         });
-    })
+    });
 
     describe('Test getLowestLatencyForInterval', () => {
         test('when no requests should return 0 latency', () => {
@@ -132,7 +132,7 @@ describe('Statistics tests', () => {
             intervalQueue.getLatencies.mockReturnValueOnce([10, 10, 10]);
             expect(statistics.getLowestLatencyForInterval()).toBe(10);
         });
-    })
+    });
 
     describe('Test calculateCumulativePriorityDistribution', () => {
         const expectedResult = 0;
@@ -162,10 +162,10 @@ describe('Statistics tests', () => {
             const result = statistics.calculateCumulativePriorityDistribution(threshold);
 
             expect(result).toBe(expectedResult);
-        })
+        });
 
 
-    })
+    });
 
     describe('Test getAverageProcessingTime', () => {
 
@@ -214,4 +214,4 @@ describe('Statistics tests', () => {
             return request;
         }
     });
-})
+});
