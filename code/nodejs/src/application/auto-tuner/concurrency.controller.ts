@@ -1,12 +1,10 @@
 import { getLogger } from "../../core/logging/logger";
+import { Statistics } from "../../domain/statistics/statistics";
 import { Scheduler } from "../scheduler";
-import { Statistics } from "../statistics";
+import { ControllerHistory } from "./controller-history";
 import { LatencyController } from "./latency.controller";
 
 export class ConcurrencyController {
-
-    private intervalThroughput: number[] = [];
-    private maxInflights: number[] = [];
 
     private inflightLimit = 10;
 
@@ -21,6 +19,7 @@ export class ConcurrencyController {
         private readonly scheduler: Scheduler,
         private readonly statistics: Statistics,
         private readonly latencyController: LatencyController,
+        private readonly history: ControllerHistory,
         maxCores: number,
     ) {
         this.cores = Math.max(1, Math.min(maxCores, this.cores));
@@ -35,19 +34,12 @@ export class ConcurrencyController {
             return;
         }
 
-        const intervalThroughput = this.statistics.getSuccessfulThroughput();
-        this.pushFixed(this.intervalThroughput, intervalThroughput, 50);
-        this.pushFixed(this.maxInflights, this.inflightLimit, 50);
-
+        const currentThroughput = this.statistics.getSuccessfulThroughput();
+        
+        this.history.push(this.inflightLimit, currentThroughput);
+        
         const newLimit = this.calculateNewLimit(aggregatedLatency);
         this.applyNewLimit(newLimit);
-    }
-
-    private pushFixed(queue: number[], value: number, maxSize: number): void {
-        if (queue.length >= maxSize) {
-            queue.shift();
-        }
-        queue.push(value);
     }
 
     private calculateNewLimit(aggregatedLatency: number): number {

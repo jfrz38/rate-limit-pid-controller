@@ -2,8 +2,9 @@ import os from 'os';
 import { ConcurrencyController } from "../../../src/application/auto-tuner/concurrency.controller";
 import { LatencyController } from "../../../src/application/auto-tuner/latency.controller";
 import { Scheduler } from "../../../src/application/scheduler";
-import { Statistics } from "../../../src/application/statistics";
 import { DefaultOptions } from "../../../src/default-parameters";
+import { Statistics } from "../../../src/domain/statistics/statistics";
+import { ControllerHistory } from '../../../src/application/auto-tuner/controller-history';
 
 jest.mock("../../../src/core/logging/logger", () => ({
   getLogger: jest.fn().mockReturnValue({
@@ -16,6 +17,7 @@ describe('ConcurrencyController', () => {
   let statistics: jest.Mocked<Statistics>;
   let latencyController: jest.Mocked<LatencyController>;
   let controller: ConcurrencyController;
+  let history: ControllerHistory;
   let cpuSpy: jest.SpyInstance;
   const mockedCpus = 4;
 
@@ -34,10 +36,18 @@ describe('ConcurrencyController', () => {
       targetLatency: 100
     } as jest.Mocked<LatencyController>;
 
+    history = {
+      push: jest.fn(),
+      intervalThroughputs: [],
+      maxInflights: [],
+      length: 0
+    } as unknown as jest.Mocked<ControllerHistory>;
+
     controller = new ConcurrencyController(
       scheduler,
       statistics,
       latencyController,
+      history,
       cores
     );
   });
@@ -60,6 +70,7 @@ describe('ConcurrencyController', () => {
         scheduler,
         statistics,
         latencyController,
+        history,
         cores
       );
 
@@ -79,7 +90,7 @@ describe('ConcurrencyController', () => {
       expect(scheduler.updateMaxConcurrentRequests).not.toHaveBeenCalledTimes(1);
     });
 
-    test('should calculate new limit and apply it', () => {
+    test('should calculate new limit, apply it and save to history', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
       statistics.getSuccessfulThroughput.mockReturnValue(20);
 
@@ -87,6 +98,7 @@ describe('ConcurrencyController', () => {
 
       expect(statistics.getPercentileLatencySuccessfulRequests).toHaveBeenCalledTimes(1);
       expect(statistics.getSuccessfulThroughput).toHaveBeenCalledTimes(1);
+      expect(history.push).toHaveBeenCalledTimes(1);
 
       const newLimit = scheduler.updateMaxConcurrentRequests.mock.calls[0][0];
       expect(typeof newLimit).toBe('number');
@@ -112,19 +124,19 @@ describe('ConcurrencyController', () => {
       expect(appliedLimit).toBeLessThanOrEqual(10 * 10); // inflightLimit * 10
     });
 
-    test('should remove oldest element when intervalThroughput exceeds max size', () => {
-      statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
-      statistics.getSuccessfulThroughput.mockReturnValue(1);
+    // test('should remove oldest element when intervalThroughput exceeds max size', () => {
+    //   statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
+    //   statistics.getSuccessfulThroughput.mockReturnValue(1);
 
-      for (let i = 0; i < 50; i++) {
-        controller['pushFixed'](controller['intervalThroughput'], i, 50);
-      }
+    //   for (let i = 0; i < 50; i++) {
+    //     controller['pushFixed'](controller['intervalThroughput'], i, 50);
+    //   }
 
-      controller.update();
+    //   controller.update();
 
-      expect(controller['intervalThroughput'].length).toBe(50);
-      expect(controller['intervalThroughput'][0]).toBe(1);
-    });
+    //   expect(controller['intervalThroughput'].length).toBe(50);
+    //   expect(controller['intervalThroughput'][0]).toBe(1);
+    // });
 
     test('should decrease queue when above beta in calculateNewLimit', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(250);
