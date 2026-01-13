@@ -1,8 +1,8 @@
 export class MathUtils {
   static covariance(x: number[], y: number[], sample = false): number {
-    if (x.length !== y.length) throw new Error("Vectors must have the same length");
+    if (x.length !== y.length) {throw new Error("Vectors must have the same length");}
     const length = x.length;
-    if (length <= 1) return 0;
+    if (length <= 1) {return 0;}
 
     const meanX = x.reduce((a, b) => a + b, 0) / length;
     const meanY = y.reduce((a, b) => a + b, 0) / length;
@@ -12,10 +12,9 @@ export class MathUtils {
   }
 
   static percentile(values: number[], percentile: number): number {
-    if (!values.length) return 0;
+    if (!values.length) {return 0;}
 
-    // const sorted = values.sort((a, b) => a - b);
-    const sorted = [...values].sort((a, b) => a - b)
+    const sorted = [...values].sort((a, b) => a - b);
     const index = (percentile / 100) * (sorted.length - 1);
     const lowerIndex = Math.floor(index);
     const upperIndex = Math.ceil(index);
@@ -29,7 +28,7 @@ export class MathUtils {
   }
 
   static average(values: number[]): number {
-    if (!values.length) return 0;
+    if (!values.length) {return 0;}
     const total = values.reduce((acc, val) => acc + val, 0);
     return total / values.length;
   }

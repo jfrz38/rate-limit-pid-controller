@@ -1,4 +1,4 @@
-import { RequestInterval } from "./request-interval"
+import { RequestInterval } from "./request-interval";
 
 export type Statistics = {
     /** Maximum number of requests considered in statistics calculation per interval. Default is 1000. */

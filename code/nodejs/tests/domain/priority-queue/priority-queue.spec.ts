@@ -160,10 +160,8 @@ describe('PriorityQueue', () => {
         const request = createRequest(0);
         queue.add(request);
 
-        // Avanzamos el tiempo para que el setTimeout lo borre del heap
         jest.advanceTimersByTime(timeoutHandler.timeout + 1);
 
-        // Intentamos sacar algo de la cola
         const result = queue.poll();
 
         expect(result).toBeNull();

@@ -26,8 +26,6 @@ describe('Queue timeout handler', () => {
 
         statistics = {
             getAverageProcessingTime: jest.fn(),
-            // getPercentileLatencySuccessfulRequests: jest.fn(),
-            // getThroughputForInterval: jest.fn(),
         } as unknown as jest.Mocked<Statistics>;
 
         (getLogger as jest.Mock).mockReturnValue({

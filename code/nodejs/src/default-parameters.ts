@@ -33,7 +33,7 @@ export class DefaultOptions {
                 maxIntervalTime: 30
             }
         }
-    }
+    };
 
     static get values(): RequiredParameters {
         return DefaultOptions.DEFAULT_VALUES;

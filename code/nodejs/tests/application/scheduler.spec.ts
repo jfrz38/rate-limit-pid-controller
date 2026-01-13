@@ -98,17 +98,12 @@ describe('Scheduler', () => {
 
     describe('Start', () => {   
         test('should not process requests if start has not been called (not listening)', () => {
-            // 1. Preparamos una request en la cola
             const request = { status: Event.CREATED } as any;
             (queue as any).length = 1;
             queue.poll.mockReturnValue(request);
 
-            // 2. NO llamamos a scheduler.start()
-            
-            // 3. Emitimos el evento de "nueva request"
             (queue as any).emit('requestAdded');
 
-            // 4. Verificamos que NO se ha enviado al executor
             expect(executor.add).not.toHaveBeenCalled();
             expect(request.status).not.toBe(Event.LAUNCHED);
         });
@@ -284,16 +279,14 @@ describe('Scheduler', () => {
             scheduler.start();
             scheduler.terminate();
 
-            // Simulamos que la cola emite un evento DESPUÉS de terminar
             (queue as any).emit('requestAdded');
 
-            // No debería haber llamado a poll ni a executor porque quitamos el listener
             expect(queue.poll).not.toHaveBeenCalled();
         });
 
         test('should handle empty queue during schedule() gracefully (break loop)', () => {
-            (queue as any).length = 5; // Parece que hay items...
-            queue.poll.mockReturnValue(null); // ...pero poll devuelve nada (race condition)
+            (queue as any).length = 5;
+            queue.poll.mockReturnValue(null); 
 
             (scheduler as any).schedule();
 
@@ -314,7 +307,6 @@ describe('Scheduler', () => {
                 await taskFn();
                 expect(request.status).toBe(Event.FAILED);
                 expect(scheduler.processingRequests).toBe(0);
-                // done();
             });
 
             (scheduler as any).schedule();

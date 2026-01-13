@@ -124,20 +124,6 @@ describe('ConcurrencyController', () => {
       expect(appliedLimit).toBeLessThanOrEqual(10 * 10); // inflightLimit * 10
     });
 
-    // test('should remove oldest element when intervalThroughput exceeds max size', () => {
-    //   statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
-    //   statistics.getSuccessfulThroughput.mockReturnValue(1);
-
-    //   for (let i = 0; i < 50; i++) {
-    //     controller['pushFixed'](controller['intervalThroughput'], i, 50);
-    //   }
-
-    //   controller.update();
-
-    //   expect(controller['intervalThroughput'].length).toBe(50);
-    //   expect(controller['intervalThroughput'][0]).toBe(1);
-    // });
-
     test('should decrease queue when above beta in calculateNewLimit', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(250);
       statistics.getSuccessfulThroughput.mockReturnValue(20);

@@ -7,19 +7,19 @@ export class Request {
 
     readonly id: UUID;
     readonly task: Function;
-    private _status: Event
-    private _createdAt: number
+    private _status: Event;
+    private _createdAt: number;
 
 
     constructor(task: Function, private readonly _priority: Priority) {
         this.id = randomUUID();
         this.task = task;
-        this.status = this._status = Event.CREATED
+        this.status = this._status = Event.CREATED;
         this._createdAt = Date.now();
     }
 
     get status() {
-        return this._status
+        return this._status;
     }
 
     get priority(): number {
@@ -41,11 +41,11 @@ export class Request {
     }
 
     hasEventCreatedAndCompleted(): boolean {
-        return this.eventLog.has(Event.COMPLETED) && this.eventLog.has(Event.CREATED)
+        return this.eventLog.has(Event.COMPLETED) && this.eventLog.has(Event.CREATED);
     }
 
     hasEventCompletedAndLaunched(): boolean {
-        return this.eventLog.has(Event.COMPLETED) && this.eventLog.has(Event.LAUNCHED)
+        return this.eventLog.has(Event.COMPLETED) && this.eventLog.has(Event.LAUNCHED);
     }
 
     getEventByType(event: Event): number | undefined {

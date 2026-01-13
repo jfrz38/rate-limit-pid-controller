@@ -31,7 +31,7 @@ export class Rejector {
 
         if (request.priority > this.threshold) {
             request.status = Event.REJECTED;
-            throw new RejectedRequestException(request.priority, this.threshold)
+            throw new RejectedRequestException(request.priority, this.threshold);
         }
 
         this.priorityQueue.add(request);
@@ -39,22 +39,9 @@ export class Rejector {
     }
 
     public updateThreshold(newThreshold: number): void {
-        this.logger.info(`Threshold modified from ${this.threshold} to: ${newThreshold}`)
+        this.logger.info(`Threshold modified from ${this.threshold} to: ${newThreshold}`);
         this.threshold = newThreshold;
     }
-
-    // startThresholdCheck(interval: number): void {
-    //     const id = setInterval(() => {
-    //         if (this.isServiceOverloaded()) {
-    //             const newThreshold = this.getPriorityThreshold();
-    //             if (newThreshold !== this.threshold) {
-    //                 this.updateThreshold(newThreshold);
-    //             }
-    //         }
-    //     }, interval);
-
-    //     intervalManager.add(id);
-    // }
 
     public startThresholdCheck(interval: number): void {
     const timer = setInterval(() => {

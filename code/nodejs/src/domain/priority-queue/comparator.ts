@@ -1,4 +1,4 @@
-import { Request } from "../request"
+import { Request } from "../request";
 
 export class RequestPriorityComparator {
     static compare(): (a: Request, b: Request) => number {

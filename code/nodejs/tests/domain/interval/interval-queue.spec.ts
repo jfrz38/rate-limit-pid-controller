@@ -64,7 +64,6 @@ describe('IntervalQueue tests', () => {
             const firstRequest = { id: 'first' } as any;
             const lastRequest = { id: 'last' } as any;
 
-            // Llenamos la cola con el límite 1 para simplificar
             const smallQueue = new IntervalQueue(requestInterval, 1);
             smallQueue.add(firstRequest);
             smallQueue.add(lastRequest);
@@ -86,7 +85,6 @@ describe('IntervalQueue tests', () => {
             intervalQueue.add(reqOut);
             intervalQueue.add(reqNoEvent);
 
-            // Mock: solo el tiempo 100 está en el intervalo
             requestInterval.isTimeInInterval.mockImplementation((time) => time === 100);
 
             const result = intervalQueue.getCompletedRequests();
@@ -107,7 +105,6 @@ describe('IntervalQueue tests', () => {
 
             intervalQueue.add(req);
 
-            // Para getSuccessfulRequests(), validamos el tiempo de LAUNCHED (100)
             requestInterval.isTimeInInterval.mockReturnValue(true);
 
             const latencies = intervalQueue.getLatencies();
@@ -130,64 +127,3 @@ describe('IntervalQueue tests', () => {
         } as any;
     }
 });
-
-
-// TODO: Test de intervalQueue
-// test('when some requests have missing events should ignore them and throw if not enough valid remain', () => {
-//     for (let i = 0; i < 3; i++) {
-//         statistics.add(createRequestWithEvents(0, 10));
-//     }
-//     for (let i = 0; i < 2; i++) {
-//         const invalidRequest = {} as unknown as jest.Mocked<Request>;
-//         invalidRequest.hasEventCreatedAndCompleted = jest.fn().mockReturnValue(false);
-//         statistics.add(invalidRequest);
-//     }
-//     expect(() => statistics.getAverageProcessingTime()).toThrow(NotEnoughStatsException);
-// });
-
-// TODO: Esto es más test de math o intervalQueue
-// test('when exists ordered values should calculate expected cumulative priority', () => {
-//     const max = 3;
-//     const middle = 2;
-//     const min = 1;
-
-//     const values = [max, middle, min];
-//     const expectedPriorities = createExpectedPriorities(values);
-//     values.forEach(value => statistics.add(createPriorityRequest(value)));
-
-//     const result = statistics.calculateCumulativePriorityDistribution(threshold);
-
-//     expect(result).toBe(expectedResult);
-//     expect(spy).toHaveBeenNthCalledWith(1, expectedPriorities, expectedPercentile);
-// })
-
-// TODO: Esto es más test de math o intervalQueue
-// test('when exists same value should calculate expected cumulative priority', () => {
-//     const priority = 3;
-
-//     const values = [priority, priority, priority];
-//     const expectedPriorities = createExpectedPriorities(values);
-//     values.forEach(value => statistics.add(createPriorityRequest(value)));
-
-//     const result = statistics.calculateCumulativePriorityDistribution(threshold)
-
-//     expect(result).toBe(expectedResult);
-//     expect(spy).toHaveBeenNthCalledWith(1, expectedPriorities, expectedPercentile);
-
-// });
-
-// TODO: Esto es más test de math o intervalQueue
-// test('when exists multiple values should calculate expected cumulative priority', () => {
-//     const values = [3, 2, 5, 4, 4, 5, 4, 1, 4, 3];
-//     const expectedPriorities = createExpectedPriorities(values);
-//     values.forEach(value => statistics.add(createPriorityRequest(value)));
-
-//     const result = statistics.calculateCumulativePriorityDistribution(threshold)
-
-//     expect(result).toBe(expectedResult);
-//     expect(spy).toHaveBeenNthCalledWith(1, expectedPriorities, expectedPercentile);
-// });
-
-// function createExpectedPriorities(priorities: number[]): number[] {
-//     return priorities.map(priority => priority * cohort);
-// }

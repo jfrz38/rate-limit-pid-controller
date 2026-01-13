@@ -52,31 +52,23 @@ describe('LatencyController', () => {
     (history as any).length = 15;
     history.maxInflights = [10, 11, 12];
     history.intervalThroughputs = [100, 110, 120];
-    // (latencyController as any).maxInflights = Array(10).fill(1);
-    // (latencyController as any).intervalThroughputs = Array(10).fill(2);
 
-    jest.spyOn(MathUtils, 'covariance').mockReturnValue(5); // covariance > 0
+    jest.spyOn(MathUtils, 'covariance').mockReturnValue(5);
 
     latencyController.update();
 
-    // expect(MathUtils.covariance).toHaveBeenNthCalledWith(
-    //   1,
-    //   (latencyController as any).maxInflights,
-    //   (latencyController as any).intervalThroughputs
-    // );
-    // expect(latencyController.targetLatency).toBe(50);
     expect(latencyController.targetLatency).toBe(95);
     expect(MathUtils.covariance).toHaveBeenCalledWith(history.maxInflights, history.intervalThroughputs);
   });
 
   test('should maintain targetLatency if covariance is exactly 0', () => {
-    statistics.getLowestLatencyForInterval.mockReturnValue(200); // Diferente al actual
+    statistics.getLowestLatencyForInterval.mockReturnValue(200);
 
     (history as any).length = 15;
     
     jest.spyOn(MathUtils, 'covariance').mockReturnValue(0);
 
-    const previousTarget = latencyController.targetLatency; // 100
+    const previousTarget = latencyController.targetLatency;
     latencyController.update();
 
     expect(latencyController.targetLatency).toBe(previousTarget);
@@ -85,15 +77,12 @@ describe('LatencyController', () => {
   test('should reduce targetLatency when covariance < 0', () => {
     statistics.getLowestLatencyForInterval.mockReturnValue(80);
 
-    // history.maxInflights = Array(10).fill(1);
-    // history.intervalThroughputs = Array(10).fill(2);
-
     (history as any).length = 5; 
     latencyController.update(); 
     expect(latencyController.targetLatency).toBe(80);
 
     (history as any).length = 15;
-    jest.spyOn(MathUtils, 'covariance').mockReturnValue(-3); // covariance < 0
+    jest.spyOn(MathUtils, 'covariance').mockReturnValue(-3);
 
     latencyController.update();
 

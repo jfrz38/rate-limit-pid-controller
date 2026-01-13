@@ -1,9 +1,9 @@
-import { Capacity } from "./capacity"
-import { Log } from "./log"
-import { Pid } from "./pid"
-import { Statistics } from "./statistics"
-import { Threshold } from "./threshold"
-import { Timeout } from "./timeout"
+import { Capacity } from "./capacity";
+import { Log } from "./log";
+import { Pid } from "./pid";
+import { Statistics } from "./statistics";
+import { Threshold } from "./threshold";
+import { Timeout } from "./timeout";
 
 /**
  * Configuration options for the PID controller and related components.

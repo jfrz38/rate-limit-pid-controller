@@ -123,7 +123,7 @@ describe('Rejector', () => {
 
         test('should not call updateThreshold if the new calculated threshold is identical to the current one', () => {
             const spyUpdate = jest.spyOn(rejector, 'updateThreshold');
-            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(20); // Simula sobrecarga
+            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(20);
 
             const current = (rejector as any).threshold;
             statistics.calculateCumulativePriorityDistribution.mockReturnValue(current);

@@ -25,7 +25,7 @@ export class Scheduler {
     private schedule() {
         while (this.canProcess()) {
             const request = this.queue.poll();
-            if (!request) break;
+            if (!request) {break;}
 
             this.processRequest(request);
         }
@@ -46,7 +46,7 @@ export class Scheduler {
             try {
                 await request.task();
                 request.status = Event.COMPLETED;
-                this.logger.info(`Completed request with priority ${request.priority}`)
+                this.logger.info(`Completed request with priority ${request.priority}`);
             } catch (error) {
                 request.status = Event.FAILED;
                 this.logger.error(`Error processing request ${error}`);

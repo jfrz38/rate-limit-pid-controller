@@ -8,10 +8,7 @@ import { Statistics } from '../../../src/domain/statistics/statistics';
 
 describe('Statistics tests', () => {
     let statistics: Statistics;
-    // let intervalEnd: Date;
-    // let requestInterval: jest.Mocked<RequestInterval>;
     let intervalQueue: jest.Mocked<IntervalQueue>;
-    // const cohort = 128;
     const maxRequests = 5;
 
     beforeEach(() => {
@@ -28,7 +25,6 @@ describe('Statistics tests', () => {
         defaultStatsOptions.minRequestsForLatencyPercentile = maxRequests;
 
         statistics = new Statistics(intervalQueue, DefaultOptions.values.statistics);
-        // intervalEnd = new Date();
     });
 
     afterEach(() => {
@@ -70,27 +66,7 @@ describe('Statistics tests', () => {
             spy.mockRestore();
         });
 
-        // TODO: Si son completas o no va en el test de intervalQueue
-        // test('when request are not completed should throws expected exception', () => {
-        //     for (let i = 0; i < 250; i++) {
-        //         statistics.add(createNonCompletedRequest());
-        //     }
-        //     expect(() => statistics.getPercentileLatencySuccessfulRequests(intervalEnd)).toThrow(NotEnoughStatsException);
-        // });
-
-        // TODO: Si son viejas o no va en el test de intervalQueue
-        // test('when requests are old should throws expected exception', () => {
-        //     for (let i = 0; i < 250; i++) {
-        //         statistics.add(createOldRequest());
-        //     }
-        //     expect(() => statistics.getPercentileLatencySuccessfulRequests(intervalEnd)).toThrow(NotEnoughStatsException);
-        // });
-
         test('when latency should return expected value', () => {
-            // Latencies = [5, 5, .., 5]
-            // p90 = 5
-            // TODO: Esta comprobación va para el test de percentile
-            // const latencies = Array(250).fill(createCompletedRequest(latency));
             const latency = 5;
             const latencies = Array(maxRequests).fill(latency);
 
@@ -105,17 +81,6 @@ describe('Statistics tests', () => {
             spy.mockRestore();
         });
 
-        // TODO: Esta comprobación va para el test de percentile
-        // test('when latencies ramp up should return the correct percentile p90', () => {
-        //     // Latencies = [0, 1, 2, .., 249]
-        //     // p90 = 224.1
-        //     for (let i = 0; i < 250; i++) {
-        //         statistics.add(createCompletedRequest(i));
-        //     }
-        //     const result = statistics.getPercentileLatencySuccessfulRequests();
-
-        //     expect(Math.round(result * 10) / 10).toBe(224.1);
-        // });
     })
 
     describe('Test getThroughputForInterval', () => {
@@ -134,30 +99,6 @@ describe('Statistics tests', () => {
             expect(statistics.getSuccessfulThroughput()).toBe(requests);
             expect(intervalQueue.getLaunchedRequests).toHaveBeenCalledTimes(1);
         });
-
-        // TODO: Este test va para el intervalQueue
-        // test('when requests are completed outside the interval should return expected throughputs', () => {
-        //     statistics.add(createOldRequest());
-        //     statistics.add(createOldRequest());
-        //     statistics.add(createOldRequest());
-        //     expect(statistics.getSuccessfulThroughput(intervalEnd)).toBe(0);
-        // });
-
-        // TODO: Este test va para el intervalQueue
-        // test('when requests are completed within the interval should return expected throughputs', () => {
-        //     statistics.add(createCompletedRequest(5));
-        //     statistics.add(createCompletedRequest(5));
-        //     statistics.add(createCompletedRequest(5));
-        //     expect(statistics.getSuccessfulThroughput(intervalEnd)).toBe(3);
-        // });
-
-        // TODO: Este test va para el intervalQueue
-        // test('when requests are completed should return only completed within interval', () => {
-        //     statistics.add(createCompletedRequest(5));
-        //     statistics.add(createOldRequest());
-        //     statistics.add(createCompletedRequest(5));
-        //     expect(statistics.getSuccessfulThroughput(intervalEnd)).toBe(2);
-        // });
     })
 
     describe('Test getLowestLatencyForInterval', () => {
@@ -212,31 +153,15 @@ describe('Statistics tests', () => {
         });
 
         test('when exists only one value should calculate expected cumulative priority', () => {
-            // intervalQueue.getPriorities.mockReturnValueOnce(expectedPriorities);
-
             const result = statistics.calculateCumulativePriorityDistribution(threshold);
 
             expect(result).toBe(expectedResult);
-
-            // expect(intervalQueue.getPriorities).toHaveBeenCalledTimes(1);
-            // expect(spy).toHaveBeenNthCalledWith(1, expectedPriorities, expectedPercentile);
         });
 
         test('when exists values should return expected cumulative priority', () => {
-            // const max = 3;
-            // const middle = 2;
-            // const min = 1;
-
-            // const values = [middle, max, min];
-            // const expectedPriorities = createExpectedPriorities(values);
-            // values.forEach(value => statistics.add(createPriorityRequest(value)));
-
             const result = statistics.calculateCumulativePriorityDistribution(threshold);
 
             expect(result).toBe(expectedResult);
-
-            // expect(intervalQueue.getPriorities).toHaveBeenCalledTimes(1);
-            // expect(spy).toHaveBeenNthCalledWith(1, expectedPriorities, expectedPercentile);
         })
 
 

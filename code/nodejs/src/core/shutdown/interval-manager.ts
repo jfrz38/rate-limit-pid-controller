@@ -6,7 +6,7 @@ class IntervalManagerImpl {
   }
 
   addAll(intervals: NodeJS.Timeout[]): void {
-    intervals?.forEach(interval => this.add(interval))
+    intervals?.forEach(interval => this.add(interval));
   }
 
   clearAll(): void {

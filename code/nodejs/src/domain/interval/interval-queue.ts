@@ -20,7 +20,7 @@ export class IntervalQueue {
     public getCompletedRequests(): Request[] {
         return this.queue.filter((request: Request) => {
             const time = request.getEventByType(Event.COMPLETED);
-            if (!time) return false;
+            if (!time) {return false;}
             return this.requestInterval.isTimeInInterval(time);
         });
     }
@@ -39,13 +39,13 @@ export class IntervalQueue {
             (request: Request) =>
                 request.hasEventCompletedAndLaunched() &&
                 this.requestInterval.isTimeInInterval(request.getEventByType(Event.LAUNCHED)!)
-        )
+        );
     }
 
     public getLaunchedRequests(): Request[] {
         return this.queue.filter((request: Request) => {
             const time = request.getEventByType(Event.LAUNCHED);
-            if (!time) return false;
+            if (!time) {return false;}
             return this.requestInterval.isTimeInInterval(time);
         });
     }
