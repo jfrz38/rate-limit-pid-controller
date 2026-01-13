@@ -1,3 +1,4 @@
+import EventEmitter from 'events';
 import { Executor } from '../../src/application/executor';
 import { Scheduler } from '../../src/application/scheduler';
 import { Event } from '../../src/domain/events';
@@ -17,20 +18,49 @@ describe('Scheduler', () => {
     let scheduler: Scheduler;
     let queue: jest.Mocked<PriorityQueue>;
     let executor: jest.Mocked<Executor>;
+    let emitter: jest.Mocked<EventEmitter>;
 
     beforeEach(() => {
         jest.clearAllMocks();
 
+        emitter = {
+            on: jest.fn(),
+            emit: jest.fn(),
+            removeAllListeners: jest.fn()
+        } as unknown as jest.Mocked<EventEmitter>
+
         queue = {
-            poll: jest.fn()
-        } as unknown as jest.Mocked<PriorityQueue>;
-        executor = {} as unknown as jest.Mocked<Executor>;
+            on: jest.fn().mockImplementation((ev, cb) => emitter.on(ev, cb)),
+            emit: jest.fn().mockImplementation((ev, ...args) => emitter.emit(ev, ...args)),
+            poll: jest.fn(),
+            removeAllListeners: jest.fn().mockImplementation((ev) => emitter.removeAllListeners(ev)),
+            length: 0
+        } as any as jest.Mocked<PriorityQueue>;
+
+        executor = {
+            concurrency: 10,
+            add: jest.fn()
+        } as unknown as jest.Mocked<Executor>;
 
         scheduler = new Scheduler(queue, executor);
     });
 
     afterEach(() => {
         jest.clearAllMocks();
+    });
+
+    describe('Initialization & Events', () => {
+        test('should start listening to requestAdded on start()', () => {
+            const addListenerSpy = jest.spyOn(queue, 'on');
+            scheduler.start();
+            expect(addListenerSpy).toHaveBeenCalledWith('requestAdded', expect.any(Function));
+        });
+
+        test('should remove listeners on terminate()', () => {
+            const removeSpy = jest.spyOn(queue, 'removeAllListeners');
+            scheduler.terminate();
+            expect(removeSpy).toHaveBeenCalledWith('requestAdded');
+        });
     });
 
     describe('Initialization', () => {
@@ -41,7 +71,8 @@ describe('Scheduler', () => {
 
             const scheduler = new Scheduler(queue, executor);
 
-            expect(scheduler.maxConcurrentRequests).toBe(defaultConcurrentRequest);
+            const concurrentRequests = (scheduler as any)._maxConcurrentRequests;
+            expect(concurrentRequests).toBe(defaultConcurrentRequest);
         });
 
         test('should initialize with provided maxConcurrentRequests', () => {
@@ -51,7 +82,8 @@ describe('Scheduler', () => {
 
             const scheduler = new Scheduler(queue, executor);
 
-            expect(scheduler.maxConcurrentRequests).toBe(initialConcurrentRequest);
+            const concurrentRequests = (scheduler as any)._maxConcurrentRequests;
+            expect(concurrentRequests).toBe(initialConcurrentRequest);
         });
 
         test('should update maxConcurrentRequests and executor concurrency', () => {
@@ -59,30 +91,26 @@ describe('Scheduler', () => {
 
             scheduler.updateMaxConcurrentRequests(newConcurrentRequests);
 
-            expect(scheduler.maxConcurrentRequests).toBe(newConcurrentRequests);
+            const concurrentRequests = (scheduler as any)._maxConcurrentRequests;
+            expect(concurrentRequests).toBe(newConcurrentRequests);
         });
     });
 
-    describe('Start', () => {
-        /**
-         * Because the loop is infinite, tests need a way to regain control to stop it.
-         * Even when testing scenarios where `canProcess()` is true, the test should
-         * force `canProcess()` to return false at least once, so the loop enters
-         * the `else` branch and yields control.
-         * As a result, the first iteration counts as one call, and the second iteration
-         * after yielding counts as another, so we expect two calls instead of one.
-         */
-        test('should not process any request if is not running', () => {
-            (scheduler as any).isRunning = false;
-            const canProcessSpy = jest.spyOn(scheduler as any, 'canProcess');
-            const processRequestSpy = jest.spyOn(scheduler as any, 'processRequest');
+    describe('Start', () => {   
+        test('should not process requests if start has not been called (not listening)', () => {
+            // 1. Preparamos una request en la cola
+            const request = { status: Event.CREATED } as any;
+            (queue as any).length = 1;
+            queue.poll.mockReturnValue(request);
 
-            scheduler.start();
+            // 2. NO llamamos a scheduler.start()
+            
+            // 3. Emitimos el evento de "nueva request"
+            (queue as any).emit('requestAdded');
 
-            expect(canProcessSpy).not.toHaveBeenCalled();
-            expect(processRequestSpy).not.toHaveBeenCalled();
-            expect(queue.poll).not.toHaveBeenCalled();
-
+            // 4. Verificamos que NO se ha enviado al executor
+            expect(executor.add).not.toHaveBeenCalled();
+            expect(request.status).not.toBe(Event.LAUNCHED);
         });
 
         test('should not process any request if is running but cannot process', () => {
@@ -107,21 +135,7 @@ describe('Scheduler', () => {
             (scheduler as any).isRunning = false;
             jest.advanceTimersByTime(20);
 
-            expect(canProcessSpy).toHaveBeenCalledTimes(2);
-            expect(queue.poll).toHaveBeenCalledTimes(1);
-            expect(processRequestSpy).not.toHaveBeenCalled();
-        });
-
-        test('should catch error and continue if exists any throw', () => {
-            const canProcessSpy = jest.spyOn(scheduler as any, 'canProcess').mockReturnValueOnce(true).mockReturnValue(false);
-            (queue.poll as jest.Mock).mockImplementation(() => { throw new Error('error'); });
-            const processRequestSpy = jest.spyOn(scheduler as any, 'processRequest');
-
-            scheduler.start();
-            jest.advanceTimersByTime(20);
-            (scheduler as any).isRunning = false;
-
-            expect(canProcessSpy).toHaveBeenCalledTimes(2);
+            expect(canProcessSpy).toHaveBeenCalledTimes(1);
             expect(queue.poll).toHaveBeenCalledTimes(1);
             expect(processRequestSpy).not.toHaveBeenCalled();
         });
@@ -225,23 +239,86 @@ describe('Scheduler', () => {
         });
     });
 
-    describe('Stop', () => {
-        test('when process is running should stop', () => {
-            (scheduler as any).isRunning = true;
+    describe('Scheduling Logic', () => {
+        test('should drain multiple requests when requestAdded is emitted', () => {
+            (queue as any).length = 2;
+            queue.poll
+                .mockReturnValueOnce({ status: Event.CREATED } as any)
+                .mockReturnValueOnce({ status: Event.CREATED } as any)
+                .mockReturnValue(null);
 
-            scheduler.terminate();
+            scheduler.start();
+            (queue as any).emit('requestAdded');
 
-            const isRunning = (scheduler as any).isRunning
-            expect(isRunning).toBe(false);
+            expect(executor.add).toHaveBeenCalledTimes(2);
+            expect(scheduler.processingRequests).toBe(2);
         });
 
-        test('when process is stopped should stay stopped', () => {
-            (scheduler as any).isRunning = false;
+        test('should respect maxConcurrentRequests limit', () => {
+            (scheduler as any)._maxConcurrentRequests = 1;
+            (queue as any).length = 5;
+            queue.poll.mockReturnValue({ status: Event.CREATED } as any);
 
-            scheduler.terminate();
+            (scheduler as any).schedule();
 
-            const isRunning = (scheduler as any).isRunning
-            expect(isRunning).toBe(false);
+            expect(executor.add).toHaveBeenCalledTimes(1);
+            expect(scheduler.processingRequests).toBe(1);
         });
     });
+
+    describe('Lifecycle & Flow Control', () => {
+
+        test('should start processing immediately if requests are already in queue when start() is called', () => {
+            const request = { status: Event.CREATED } as any;
+            (queue as any).length = 1;
+            queue.poll.mockReturnValue(request);
+            const scheduleSpy = jest.spyOn(scheduler as any, 'schedule');
+
+            scheduler.start();
+
+            expect(scheduleSpy).toHaveBeenCalled();
+            expect(executor.add).toHaveBeenCalled();
+        });
+
+        test('should stop reacting to new requests after terminate() is called', () => {
+            scheduler.start();
+            scheduler.terminate();
+
+            // Simulamos que la cola emite un evento DESPUÉS de terminar
+            (queue as any).emit('requestAdded');
+
+            // No debería haber llamado a poll ni a executor porque quitamos el listener
+            expect(queue.poll).not.toHaveBeenCalled();
+        });
+
+        test('should handle empty queue during schedule() gracefully (break loop)', () => {
+            (queue as any).length = 5; // Parece que hay items...
+            queue.poll.mockReturnValue(null); // ...pero poll devuelve nada (race condition)
+
+            (scheduler as any).schedule();
+
+            expect(executor.add).not.toHaveBeenCalled();
+        });
+
+        test('should log error and continue if a task fails', () => {
+            const request = {
+                task: jest.fn().mockRejectedValue(new Error('Async Error')),
+                status: Event.CREATED,
+                priority: 1
+            } as any;
+
+            (queue as any).length = 1;
+            queue.poll.mockReturnValue(request);
+
+            executor.add.mockImplementation(async (taskFn: any) => {
+                await taskFn();
+                expect(request.status).toBe(Event.FAILED);
+                expect(scheduler.processingRequests).toBe(0);
+                // done();
+            });
+
+            (scheduler as any).schedule();
+        });
+    });
+
 });

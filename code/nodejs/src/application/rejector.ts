@@ -4,8 +4,8 @@ import { Event } from "../domain/events";
 import { RejectedRequestException } from "../domain/exceptions/rejected-request.exception";
 import { PriorityQueue } from "../domain/priority-queue/priority-queue";
 import { Request } from "../domain/request";
+import { Statistics } from "../domain/statistics/statistics";
 import { PidController } from "./pid-controller";
-import { Statistics } from "./statistics";
 
 export class Rejector {
 
@@ -18,7 +18,7 @@ export class Rejector {
         private readonly priorityQueue: PriorityQueue,
         private readonly statistics: Statistics,
         private readonly pidController: PidController,
-        initialThreshold: number,
+        private initialThreshold: number,
         pidControllerInterval: number
     ) {
         this.threshold = initialThreshold;
@@ -26,7 +26,7 @@ export class Rejector {
         this.startThresholdCheck(pidControllerInterval);
     }
 
-    process(request: Request): void {
+    public process(request: Request): void {
         this.statistics.add(request);
 
         if (request.priority > this.threshold) {
@@ -38,23 +38,38 @@ export class Rejector {
         request.status = Event.QUEUED;
     }
 
-    updateThreshold(newThreshold: number): void {
+    public updateThreshold(newThreshold: number): void {
         this.logger.info(`Threshold modified from ${this.threshold} to: ${newThreshold}`)
         this.threshold = newThreshold;
     }
 
-    startThresholdCheck(interval: number): void {
-        const id = setInterval(() => {
-            if (this.isServiceOverloaded()) {
-                const newThreshold = this.getPriorityThreshold();
-                if (newThreshold !== this.threshold) {
-                    this.updateThreshold(newThreshold);
-                }
-            }
-        }, interval);
+    // startThresholdCheck(interval: number): void {
+    //     const id = setInterval(() => {
+    //         if (this.isServiceOverloaded()) {
+    //             const newThreshold = this.getPriorityThreshold();
+    //             if (newThreshold !== this.threshold) {
+    //                 this.updateThreshold(newThreshold);
+    //             }
+    //         }
+    //     }, interval);
 
-        intervalManager.add(id);
-    }
+    //     intervalManager.add(id);
+    // }
+
+    public startThresholdCheck(interval: number): void {
+    const timer = setInterval(() => {
+        if (this.isServiceOverloaded()) {
+            const newThreshold = this.getPriorityThreshold();
+            if (newThreshold !== this.threshold) {
+                this.updateThreshold(newThreshold);
+            }
+        } else if (this.threshold !== this.initialThreshold) {
+            this.updateThreshold(this.initialThreshold);
+        }
+    }, interval);
+
+    intervalManager.add(timer);
+}
 
     private isServiceOverloaded(): boolean {
         return this.priorityQueue.getTimeSinceLastEmpty() > this.MAX_QUEUE_EMPTY_TIME;

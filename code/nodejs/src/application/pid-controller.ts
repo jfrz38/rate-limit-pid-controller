@@ -32,6 +32,8 @@ export class PidController {
       this.currentThreshold = this.MIN_THRESHOLD;
     }
 
+    this.priorityQueue.resetCounters();
+
     return this.currentThreshold;
   }
 
@@ -39,6 +41,7 @@ export class PidController {
     const inRequests = this.priorityQueue.entryRequests;
     const outRequests = this.priorityQueue.exitRequests;
     const maxInflights = this.scheduler.maxConcurrentRequests;
+    
     const freeInflights = maxInflights - this.scheduler.processingRequests;
     const outPrime = outRequests === 0 ? maxInflights : outRequests;
 

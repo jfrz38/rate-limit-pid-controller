@@ -14,6 +14,7 @@ describe("PidController", () => {
         priorityQueue = {
             entryRequests: 0,
             exitRequests: 0,
+            resetCounters: jest.fn(),
         } as unknown as jest.Mocked<PriorityQueue>;
 
         controller = new PidController(
@@ -21,7 +22,6 @@ describe("PidController", () => {
             priorityQueue,
             DefaultOptions.values.pid
         );
-
     });
 
     test("increases threshold when overloaded", () => {
@@ -32,6 +32,7 @@ describe("PidController", () => {
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBeGreaterThan(0);
+        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(1);
     });
 
     test("decreases threshold when not overloaded", () => {
@@ -42,6 +43,7 @@ describe("PidController", () => {
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBe(0);
+        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(1);
     });
 
     test("increases threshold on second calculation when still overloaded", () => {
@@ -57,7 +59,9 @@ describe("PidController", () => {
         (priorityQueue as any).exitRequests = 10;
 
         const newThreshold = controller.updateThreshold();
+
         expect(newThreshold).toBeGreaterThan(threshold);
+        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(2);
     });
 
     test("decreases threshold on second calculation when not overloaded", () => {
@@ -73,7 +77,9 @@ describe("PidController", () => {
         (priorityQueue as any).exitRequests = 40;
 
         const newThreshold = controller.updateThreshold();
+
         expect(newThreshold).toBeLessThan(threshold);
+        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(2);
     });
 
     test("increases threshold above limit should set as maximum threshold", () => {
@@ -88,6 +94,7 @@ describe("PidController", () => {
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBe(maximumThreshold);
+        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(1);
     });
 
     test("decreases threshold under limit should set as minimum threshold", () => {
@@ -102,5 +109,52 @@ describe("PidController", () => {
 
         const newThreshold = controller.updateThreshold();
         expect(newThreshold).toBe(minimumThreshold);
+        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(1);
+    });
+
+    test("should reset priority queue counters after updating threshold", () => {
+        controller.updateThreshold();
+        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(1);
+    });
+
+    test("should handle zero exit requests without returning NaN", () => {
+        (scheduler as any).maxConcurrentRequests = 10;
+        (scheduler as any).processingRequests = 10;
+        (priorityQueue as any).entryRequests = 10;
+        (priorityQueue as any).exitRequests = 0;
+
+        const newThreshold = controller.updateThreshold();
+
+        expect(isNaN(newThreshold)).toBe(false);
+        expect(isFinite(newThreshold)).toBe(true);
+    });
+
+    test("should decrease threshold when entry rate is low but scheduler has free capacity", () => {
+        (controller as any).currentThreshold = 50;
+
+        (scheduler as any).maxConcurrentRequests = 100;
+        (scheduler as any).processingRequests = 20;
+        (priorityQueue as any).entryRequests = 10;
+        (priorityQueue as any).exitRequests = 5;
+
+        const newThreshold = controller.updateThreshold();
+
+        expect(newThreshold).toBeLessThan(50);
+    });
+
+    test("should increase threshold more aggressively when error is larger", () => {
+        (scheduler as any).maxConcurrentRequests = 100;
+        (scheduler as any).processingRequests = 100;
+        (priorityQueue as any).exitRequests = 10;
+
+        (priorityQueue as any).entryRequests = 110;
+        const jumpSmall = controller.updateThreshold();
+
+        (controller as any).currentThreshold = 0;
+
+        (priorityQueue as any).entryRequests = 500;
+        const jumpLarge = controller.updateThreshold();
+
+        expect(jumpLarge).toBeGreaterThan(jumpSmall);
     });
 });

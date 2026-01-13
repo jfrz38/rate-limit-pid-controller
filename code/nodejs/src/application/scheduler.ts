@@ -7,7 +7,6 @@ import { Executor } from "./executor";
 export class Scheduler {
     private _maxConcurrentRequests: number;
     private _processingRequests: number = 0;
-    private isRunning: boolean = true;
 
     private logger = getLogger();
 
@@ -19,29 +18,24 @@ export class Scheduler {
     }
 
     start() {
-        const loop = async () => {
-            while (this.isRunning) {
-                try {
-                    if (this.canProcess()) {
-                        const request = this.queue.poll();
-                        if (!request) {
-                            continue;
-                        }
-                        this.processRequest(request);
-                    } else {
-                        await new Promise((res) => setTimeout(res, 10));
-                    }
-                } catch (error) {
-                    this.logger.error(`Error processing request ${error}`);
-                }
-            }
-        };
-        loop();
+        this.queue.on('requestAdded', () => this.schedule());
+        this.schedule();
     }
 
-    private canProcess() {
-        return this.queue.length > 0 &&
-            this._processingRequests < this._maxConcurrentRequests;
+    private schedule() {
+        while (this.canProcess()) {
+            const request = this.queue.poll();
+            if (!request) break;
+
+            this.processRequest(request);
+        }
+    }
+
+    private canProcess(): boolean {
+        return (
+            this.queue.length > 0 &&
+            this._processingRequests < this._maxConcurrentRequests
+        );
     }
 
     private processRequest(request: Request) {
@@ -58,6 +52,7 @@ export class Scheduler {
                 this.logger.error(`Error processing request ${error}`);
             } finally {
                 this._processingRequests--;
+                setImmediate(() => this.schedule());
             }
         });
     }
@@ -66,6 +61,7 @@ export class Scheduler {
         this._maxConcurrentRequests = max;
         this.executor.concurrency = max;
         this.logger.info(`Max concurrent requests updated to: ${max}`);
+        this.schedule();
     }
 
     get maxConcurrentRequests(): number {
@@ -77,6 +73,6 @@ export class Scheduler {
     }
 
     terminate() {
-        this.isRunning = false;
+        this.queue.removeAllListeners('requestAdded');
     }
 }

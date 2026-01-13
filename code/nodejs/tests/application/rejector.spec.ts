@@ -1,12 +1,12 @@
 import { PidController } from "../../src/application/pid-controller";
 import { Rejector } from "../../src/application/rejector";
-import { Statistics } from "../../src/application/statistics";
 import { DefaultOptions } from "../../src/default-parameters";
 import { Event } from "../../src/domain/events";
 import { RejectedRequestException } from "../../src/domain/exceptions/rejected-request.exception";
 import { Priority } from "../../src/domain/priority";
 import { PriorityQueue } from "../../src/domain/priority-queue/priority-queue";
 import { Request } from "../../src/domain/request";
+import { Statistics } from "../../src/domain/statistics/statistics";
 
 jest.useFakeTimers();
 jest.mock("../../src/core/shutdown/interval-manager");
@@ -74,6 +74,15 @@ describe('Rejector', () => {
             expect(priorityQueue.add).not.toHaveBeenCalled();
             expect((request as any).status).toBe(Event.REJECTED);
         });
+
+        test('when priority is exactly equal to threshold should accept request', () => {
+            const exactValue = 100;
+            (rejector as any).threshold = exactValue;
+            const request = { priority: exactValue, status: undefined } as any;
+
+            expect(() => rejector.process(request)).not.toThrow();
+            expect(request.status).toBe(Event.QUEUED);
+        });
     });
 
     describe('updateThreshold', () => {
@@ -111,6 +120,28 @@ describe('Rejector', () => {
 
             expect(spyUpdate).not.toHaveBeenCalled();
         });
+
+        test('should not call updateThreshold if the new calculated threshold is identical to the current one', () => {
+            const spyUpdate = jest.spyOn(rejector, 'updateThreshold');
+            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(20); // Simula sobrecarga
+
+            const current = (rejector as any).threshold;
+            statistics.calculateCumulativePriorityDistribution.mockReturnValue(current);
+
+            jest.advanceTimersByTime(initialInterval);
+
+            expect(spyUpdate).not.toHaveBeenCalled();
+        });
+
+        test('should reset threshold to initial value when service is no longer overloaded', () => {
+            (rejector as any).threshold = 10;
+
+            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(0);
+
+            jest.advanceTimersByTime(initialInterval);
+
+            expect((rejector as any).threshold).toBe(initialThreshold);
+        });
     });
 
     describe('private methods', () => {
@@ -126,6 +157,14 @@ describe('Rejector', () => {
             expect(pidController.updateThreshold).toHaveBeenCalledTimes(1);
             expect(statistics.calculateCumulativePriorityDistribution).toHaveBeenNthCalledWith(1, 321);
             expect(result).toBe(777);
+        });
+    });
+
+    describe('Lifecycle', () => {
+        test('should register the interval in the intervalManager upon initialization', () => {
+            const { intervalManager } = require("../../src/core/shutdown/interval-manager");
+
+            expect(intervalManager.add).toHaveBeenCalled();
         });
     });
 
