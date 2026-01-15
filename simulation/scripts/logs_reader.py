@@ -36,8 +36,15 @@ threshold_modified = []
 evicted_requests = []
 target_latencies = []
 
+def safe_json(line):
+    try:
+        return json.loads(line)
+    except json.JSONDecodeError:
+        return None
+
+
 lines = log_data.split("\n")
-object_data = [json.loads(line) for line in lines if line.strip()]
+object_data = [obj for line in lines if line.strip() and (obj := safe_json(line)) is not None]
 for line in object_data:
     timestamp = line["time"]
     message = line["msg"]
