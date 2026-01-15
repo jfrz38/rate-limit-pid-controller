@@ -1,15 +1,16 @@
 {
-  "name": "rate-limit-pid-controller",
-  "version": "0.1.0",
+  "name": "@jfrz38/rate-limit-pid-controller",
+  "version": "0.0.1",
   "description": "Rate Limiter built for Express usage based on Uber's Cinnamon",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "module": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "tsc",
+    "build:clean": "npm run clean && npm run build",
     "start": "ts-node src/index.ts",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build",
