@@ -25,7 +25,9 @@ export class Scheduler {
     private schedule() {
         while (this.canProcess()) {
             const request = this.queue.poll();
-            if (!request) {break;}
+            if (!request) {
+                break;
+            }
 
             this.processRequest(request);
         }
