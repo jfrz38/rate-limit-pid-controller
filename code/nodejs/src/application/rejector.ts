@@ -44,19 +44,17 @@ export class Rejector {
     }
 
     public startThresholdCheck(interval: number): void {
-    const timer = setInterval(() => {
-        if (this.isServiceOverloaded()) {
-            const newThreshold = this.getPriorityThreshold();
-            if (newThreshold !== this.threshold) {
-                this.updateThreshold(newThreshold);
+        const timer = setInterval(() => {
+            if (this.isServiceOverloaded()) {
+                const newThreshold = this.getPriorityThreshold();
+                if (newThreshold !== this.threshold) {
+                    this.updateThreshold(newThreshold);
+                }
             }
-        } else if (this.threshold !== this.initialThreshold) {
-            this.updateThreshold(this.initialThreshold);
-        }
-    }, interval);
+        }, interval);
 
-    intervalManager.add(timer);
-}
+        intervalManager.add(timer);
+    }
 
     private isServiceOverloaded(): boolean {
         return this.priorityQueue.getTimeSinceLastEmpty() > this.MAX_QUEUE_EMPTY_TIME;

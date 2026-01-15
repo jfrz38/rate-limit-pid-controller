@@ -133,14 +133,14 @@ describe('Rejector', () => {
             expect(spyUpdate).not.toHaveBeenCalled();
         });
 
-        test('should reset threshold to initial value when service is no longer overloaded', () => {
+        test('should not reset threshold automatically to initial value when service is no longer overloaded', () => {
             (rejector as any).threshold = 10;
 
             priorityQueue.getTimeSinceLastEmpty.mockReturnValue(0);
 
             jest.advanceTimersByTime(initialInterval);
 
-            expect((rejector as any).threshold).toBe(initialThreshold);
+            expect((rejector as any).threshold).not.toBe(initialThreshold);
         });
     });
 
