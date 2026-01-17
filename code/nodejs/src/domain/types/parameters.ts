@@ -23,4 +23,25 @@ export type RequiredParameters = {
     statistics: Statistics
 }
 
-export type Parameters = Partial<RequiredParameters>;
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends object
+    ? DeepPartial<T[K]>
+    : T[K];
+};
+
+export type Parameters = DeepPartial<RequiredParameters>;
+
+export function deepMerge<T>(base: T, override?: DeepPartial<T>): T {
+  if (!override) { return base; }
+
+  const result: any = { ...base };
+  for (const key in override) {
+    const value = override[key];
+    if (value === undefined) { continue; }
+    result[key] =
+      typeof value === 'object' && value !== null
+        ? deepMerge((base as any)[key], value)
+        : value;
+  }
+  return result;
+}
