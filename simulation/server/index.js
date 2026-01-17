@@ -5,10 +5,10 @@ const app = express();
 
 const pidController = new PidControllerRateLimit({
     threshold: {
-        initial: 0
+        initial: 300
     },
     capacity: {
-        maxConcurrentRequests: 2,
+        maxConcurrentRequests: 4,
     },
     log: { level: 'debug' }
 });

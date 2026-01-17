@@ -7,7 +7,15 @@ export class RunScenario {
   private readonly controller: PidControllerRateLimit;
 
   constructor() {
-    this.controller = new PidControllerRateLimit({ log: { level: 'debug' } });
+    this.controller = new PidControllerRateLimit({
+      capacity: {
+        maxConcurrentRequests: 2
+      },
+      pid:{
+        interval: 1000        
+      },
+      log: { level: 'debug' }
+    });
   }
 
   async run(scenarios: string[]): Promise<void> {
@@ -38,9 +46,7 @@ export class RunScenario {
 
       try {
         this.controller.run(await this.createRequest(executionTime), priority);
-      } catch (e) {
-        console.log(`{"time": ${Date.now()}, "worker": ${workerId}, "msg": "${e}"}`);
-      }
+      } catch (e) { }
 
       await this.sleep(sleepTime);
     }
