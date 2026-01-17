@@ -30,6 +30,4 @@ export class TrafficControlMiddleware implements NestMiddleware {
         await this.pidController.run(task, priority);
     }
 }
-
-
 ```
