@@ -1,11 +1,12 @@
 import * as os from 'os';
 import { DefaultOptions } from '../src/default-parameters';
 import { LogLevel } from '../src/domain/types/log-level';
+import { deepMerge } from '../src/domain/types/parameters';
 
 describe('DefaultOptions', () => {
 
     describe('values', () => {
-        it('should return the full set of default values', () => {
+        test('should return the full set of default values', () => {
             const defaults = DefaultOptions.values;
 
             expect(defaults.threshold.initial).toBe(768);
@@ -14,7 +15,7 @@ describe('DefaultOptions', () => {
             expect(defaults.log.level).toBe('warn');
         });
 
-        it('should be immutable (static check)', () => {
+        test('should be immutable (static check)', () => {
             const defaults1 = DefaultOptions.values;
             const defaults2 = DefaultOptions.values;
 
@@ -23,13 +24,13 @@ describe('DefaultOptions', () => {
     });
 
     describe('getRequiredOptions', () => {
-        it('should return default values when no options are provided', () => {
+        test('should return default values when no options are provided', () => {
             const options = DefaultOptions.getRequiredOptions({});
 
             expect(options).toEqual(DefaultOptions.values);
         });
 
-        it('should override top-level properties correctly', () => {
+        test('should override top-level properties correctly', () => {
             const newLogLevel = 'error' as LogLevel;
             const overrides = {
                 log: { level: newLogLevel }
@@ -40,7 +41,7 @@ describe('DefaultOptions', () => {
             expect(options.threshold.initial).toBe(DefaultOptions.values.threshold.initial);
         });
 
-        it('should perform a deep merge on nested objects', () => {
+        test('should perform a deep merge on nested objects', () => {
             const newKP = 0.5;
             const overrides = {
                 pid: {
@@ -54,7 +55,7 @@ describe('DefaultOptions', () => {
             expect(options.pid.interval).toBe(DefaultOptions.values.pid.interval);
         });
 
-        it('should override deeply nested properties (statistics)', () => {
+        test('should override deeply nested properties (statistics)', () => {
             const newMinIntervalTime = 30;
             const overrides = {
                 statistics: {
@@ -70,7 +71,7 @@ describe('DefaultOptions', () => {
             expect(options.statistics.maxRequests).toBe(DefaultOptions.values.statistics.maxRequests);
         });
 
-        it('should ignore undefined values in overrides', () => {
+        test('should ignore undefined values in overrides', () => {
             const overrides = {
                 threshold: {
                     initial: undefined
@@ -81,10 +82,27 @@ describe('DefaultOptions', () => {
             expect(options.threshold.initial).toBe(DefaultOptions.values.threshold.initial);
         });
 
-        it('should handle completely new structures or nulls gracefully via deepMerge', () => {
+        test('should handle completely new structures or nulls gracefully via deepMerge', () => {
             const options = DefaultOptions.getRequiredOptions({ timeout: {} });
 
             expect(options.timeout.priorityQueue.value).toBe(DefaultOptions.values.timeout.priorityQueue.value);
+        });
+    });
+
+    describe('Deep merge', () => {
+        test('should return base when override is undefined', () => {
+            const base = { a: 1 };
+            const result = deepMerge(base, undefined as any);
+
+            expect(result).toBe(base);
+            expect(result).toEqual({ a: 1 });
+        });
+
+        test('should return base when override is null', () => {
+            const base = { a: 1 };
+            const result = deepMerge(base, null as any);
+
+            expect(result).toBe(base);
         });
     });
 });

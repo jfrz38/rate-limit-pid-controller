@@ -28,7 +28,7 @@ describe('Statistics tests', () => {
     });
 
     afterEach(() => {
-        jest.restoreAllMocks(); 
+        jest.restoreAllMocks();
     });
 
     describe('Test add', () => {
@@ -132,6 +132,12 @@ describe('Statistics tests', () => {
             intervalQueue.getLatencies.mockReturnValueOnce([10, 10, 10]);
             expect(statistics.getLowestLatencyForInterval()).toBe(10);
         });
+
+        test('getLowestLatencyForInterval should use default value 0 if needed', () => {
+            intervalQueue.getLatencies.mockReturnValueOnce([undefined as any]);
+
+            expect(statistics.getLowestLatencyForInterval()).toBe(0);
+        });
     });
 
     describe('Test calculateCumulativePriorityDistribution', () => {
@@ -198,10 +204,13 @@ describe('Statistics tests', () => {
             const validRequests = [req1, req2, ...Array(maxRequests - 2).fill(req1)];
 
             intervalQueue.getCompletedRequests.mockReturnValueOnce(validRequests);
+            const spy = jest.spyOn(MathUtils, 'average');
 
             const result = statistics.getAverageProcessingTime();
 
             expect(result).toBe(120);
+            expect(spy).toHaveBeenCalledWith(expect.arrayContaining([100, 200]));
+            spy.mockRestore();
         });
 
         function createRequestWithEvents(createdDate: number, completedDate: number): Request {
