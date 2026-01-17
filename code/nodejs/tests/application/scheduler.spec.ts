@@ -71,7 +71,7 @@ describe('Scheduler', () => {
 
             const scheduler = new Scheduler(queue, executor);
 
-            const concurrentRequests = (scheduler as any)._maxConcurrentRequests;
+            const concurrentRequests = scheduler.maxConcurrentRequests;
             expect(concurrentRequests).toBe(defaultConcurrentRequest);
         });
 
@@ -82,7 +82,7 @@ describe('Scheduler', () => {
 
             const scheduler = new Scheduler(queue, executor);
 
-            const concurrentRequests = (scheduler as any)._maxConcurrentRequests;
+            const concurrentRequests = scheduler.maxConcurrentRequests;
             expect(concurrentRequests).toBe(initialConcurrentRequest);
         });
 
@@ -91,7 +91,7 @@ describe('Scheduler', () => {
 
             scheduler.updateMaxConcurrentRequests(newConcurrentRequests);
 
-            const concurrentRequests = (scheduler as any)._maxConcurrentRequests;
+            const concurrentRequests = scheduler.maxConcurrentRequests;
             expect(concurrentRequests).toBe(newConcurrentRequests);
         });
     });
