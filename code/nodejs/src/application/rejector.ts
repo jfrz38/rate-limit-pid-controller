@@ -18,7 +18,7 @@ export class Rejector {
         private readonly priorityQueue: PriorityQueue,
         private readonly statistics: Statistics,
         private readonly pidController: PidController,
-        private initialThreshold: number,
+        readonly initialThreshold: number,
         pidControllerInterval: number
     ) {
         this.threshold = initialThreshold;
@@ -31,6 +31,7 @@ export class Rejector {
 
         if (request.priority > this.threshold) {
             request.status = Event.REJECTED;
+            this.logger.info(`Rejected request. Priority ${request.priority}/${this.threshold}`);
             throw new RejectedRequestException(request.priority, this.threshold);
         }
 
