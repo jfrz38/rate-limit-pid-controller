@@ -25,9 +25,6 @@ export class TimeoutHandler {
         return this._timeout;
     }
 
-    public isExpired(request: Request): boolean {
-        return (Date.now() - request.createdAt) > this.timeout;
-    }
 
     private initializeUpdateQueueTimeout() {
         const id = setInterval(() => this.updateQueueTimeout(), 1000);
