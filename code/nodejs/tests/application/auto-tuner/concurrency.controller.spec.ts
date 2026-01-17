@@ -91,6 +91,17 @@ describe('ConcurrencyController', () => {
       expect(scheduler.updateMaxConcurrentRequests).not.toHaveBeenCalledTimes(1);
     });
 
+    test('should not update inflightLimit if any error is thrown', () => {
+      statistics.getPercentileLatencySuccessfulRequests.mockImplementation(() => {
+        throw new Error('other error');
+      });
+
+      controller.update();
+
+      expect(statistics.getPercentileLatencySuccessfulRequests).toHaveBeenCalledTimes(1);
+      expect(scheduler.updateMaxConcurrentRequests).not.toHaveBeenCalledTimes(1);
+    });
+
     test('should calculate new limit, apply it and save to history', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
       statistics.getSuccessfulThroughput.mockReturnValue(20);
