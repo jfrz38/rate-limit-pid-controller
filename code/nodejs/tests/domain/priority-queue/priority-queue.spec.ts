@@ -22,20 +22,25 @@ describe('PriorityQueue', () => {
     let logger = jest.fn();
 
     beforeEach(() => {
+        jest.clearAllMocks();
+        jest.clearAllTimers();
+        jest.useFakeTimers();
+        jest.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+
+        jest.restoreAllMocks();
 
         timeoutHandler = {
-            timeout: 300,
-            isExpired: jest.fn().mockReturnValue(false)
-        } as any;
-
-        // Real implementation to test add, poll and remove requests
-        heap = new Heap(RequestPriorityComparator.compare());
+            timeout: 300
+        } as any as jest.Mocked<TimeoutHandler>;
 
         (getLogger as jest.Mock).mockReturnValue({
             info: logger,
             warn: jest.fn(),
         });
 
+
+        // Real implementation to test add, poll and remove requests
+        heap = new Heap(RequestPriorityComparator.compare());
         queue = new PriorityQueue(heap, timeoutHandler);
     });
 
@@ -198,4 +203,74 @@ describe('PriorityQueue', () => {
     function createRequest(priority: number): Request {
         return new Request(() => null, new Priority(priority));
     }
+
+    test('branch true: should remove request and log eviction if still in queue when timeout fires', () => {
+        const request = createRequest(10);
+
+        jest.spyOn(heap, 'indexOf').mockReturnValue(0);
+        const removeSpy = jest.spyOn(heap, 'remove');
+
+        queue.add(request);
+
+        jest.advanceTimersByTime(timeoutHandler.timeout);
+
+        expect(removeSpy).toHaveBeenCalledWith(request);
+        expect(request.status).toBe(Event.EVICTED);
+        expect(logger).toHaveBeenCalledWith(expect.stringContaining('Evicted request'));
+
+        removeSpy.mockRestore();
+    });
+
+    test('branch false: should do nothing if request is already gone when timeout fires', () => {
+        const request = createRequest(10);
+
+        queue.add(request);
+
+        jest.spyOn(heap, 'indexOf').mockReturnValue(-1);
+        const removeSpy = jest.spyOn(heap, 'remove');
+
+        logger.mockClear();
+
+        jest.advanceTimersByTime(timeoutHandler.timeout);
+
+        expect(removeSpy).not.toHaveBeenCalled();
+        expect(logger).not.toHaveBeenCalled();
+        expect(request.status).not.toBe(Event.EVICTED);
+
+        removeSpy.mockRestore();
+    });
+
+    test('clearTimer should clear timeout and delete from map if timer exists', () => {
+        const request = createRequest(0);
+
+        const spyClearTimeout = jest.spyOn(global, 'clearTimeout');
+
+        queue.add(request);
+
+        const timersMap = (queue as any).timers;
+        expect(timersMap.has(request)).toBe(true);
+        const timerId = timersMap.get(request);
+
+        queue.poll();
+
+        expect(spyClearTimeout).toHaveBeenCalledWith(timerId);
+        expect(timersMap.has(request)).toBe(false);
+
+        spyClearTimeout.mockRestore();
+    });
+
+    test('clearTimer should do nothing if timer does not exist for the request', () => {
+        const request = createRequest(0);
+        const spyClearTimeout = jest.spyOn(global, 'clearTimeout');
+
+        queue.add(request);
+        const timersMap = (queue as any).timers;
+        timersMap.delete(request);
+
+        queue.poll();
+
+        expect(spyClearTimeout).not.toHaveBeenCalled();
+
+        spyClearTimeout.mockRestore();
+    });
 });

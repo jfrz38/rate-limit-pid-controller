@@ -1,4 +1,5 @@
 import { getLogger } from "../../core/logging/logger";
+import { NotEnoughStatsException } from "../../domain/exceptions/not-enough-stats.exception";
 import { Statistics } from "../../domain/statistics/statistics";
 import { Scheduler } from "../scheduler";
 import { ControllerHistory } from "./controller-history";
@@ -29,15 +30,17 @@ export class ConcurrencyController {
         let aggregatedLatency: number;
         try {
             aggregatedLatency = this.statistics.getPercentileLatencySuccessfulRequests();
-        } catch {
-            this.logger.info('Not enough stats to update inflight concurrent requests');
+        } catch (error) {
+            if (error instanceof NotEnoughStatsException) {
+                this.logger.info('Not enough stats to update inflight concurrent requests');
+            }
             return;
         }
 
         const currentThroughput = this.statistics.getSuccessfulThroughput();
-        
+
         this.history.push(this.inflightLimit, currentThroughput);
-        
+
         const newLimit = this.calculateNewLimit(aggregatedLatency);
         this.applyNewLimit(newLimit);
     }

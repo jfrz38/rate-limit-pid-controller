@@ -1,4 +1,4 @@
-import { Parameters, RequiredParameters } from "./domain/types/parameters";
+import { Parameters, RequiredParameters, deepMerge } from "./domain/types/parameters";
 
 export class DefaultOptions {
     private static readonly DEFAULT_VALUES: RequiredParameters = {
@@ -40,6 +40,7 @@ export class DefaultOptions {
     }
 
     static getRequiredOptions(options: Parameters): RequiredParameters {
-        return { ...DefaultOptions.DEFAULT_VALUES, ...options };
+        return deepMerge(DefaultOptions.DEFAULT_VALUES, options);
     }
+
 }

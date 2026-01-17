@@ -5,6 +5,7 @@ import { Scheduler } from "../../../src/application/scheduler";
 import { DefaultOptions } from "../../../src/default-parameters";
 import { Statistics } from "../../../src/domain/statistics/statistics";
 import { ControllerHistory } from '../../../src/application/auto-tuner/controller-history';
+import { NotEnoughStatsException } from '../../../src/domain/exceptions/not-enough-stats.exception';
 
 jest.mock("../../../src/core/logging/logger", () => ({
   getLogger: jest.fn().mockReturnValue({
@@ -81,7 +82,18 @@ describe('ConcurrencyController', () => {
   describe('Test when update', () => {
     test('should not update inflightLimit if not enough stats', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockImplementation(() => {
-        throw new Error('Not enough stats');
+        throw new NotEnoughStatsException('Not enough stats');
+      });
+
+      controller.update();
+
+      expect(statistics.getPercentileLatencySuccessfulRequests).toHaveBeenCalledTimes(1);
+      expect(scheduler.updateMaxConcurrentRequests).not.toHaveBeenCalledTimes(1);
+    });
+
+    test('should not update inflightLimit if any error is thrown', () => {
+      statistics.getPercentileLatencySuccessfulRequests.mockImplementation(() => {
+        throw new Error('other error');
       });
 
       controller.update();

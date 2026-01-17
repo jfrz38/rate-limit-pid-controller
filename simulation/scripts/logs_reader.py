@@ -2,138 +2,115 @@ from pathlib import Path
 from datetime import datetime
 import re, json
 import matplotlib.pyplot as plt
-from datetime import datetime
 
-base_folder = Path(__file__).resolve().parent
-logs_folder = base_folder / "nodejs/results/logs"
-images_folder = base_folder / "nodejs/results/result.png"
+base = Path(__file__).resolve().parent
+logs_folder = base / "nodejs/results/logs"
+out_image = base / "nodejs/results/result.png"
 
 date_format = "%Y-%m-%dT%H-%M-%S.%fZ"
-log_file = max(
-    logs_folder.glob("*.log"),
-    key=lambda f: datetime.strptime(f.stem, date_format)
-)
+log_file = max(logs_folder.glob("*.log"), key=lambda f: datetime.strptime(f.stem, date_format))
 
-with open(log_file, "r", encoding="utf-8") as f:
-    log_data = f.read()
+R = {
+    "completed": r"Completed request with priority (\d+)",
+    "rejected": r"Rejected request. Priority (\d+)/(\d+)",
+    "evicted": r"Evicted request with priority (\d+)",
+    "threshold_mod": r"Threshold modified from (\d+) to: (\d+)",
+    "threshold_init": r"Initial threshold: (\d+)",
+}
 
-completed_request_regex = r"Completed request with priority (\d+)"
-max_concurrent_request_regex = r"Max concurrent requests updated to: (\d+)"
-new_inflight_limit_regex = r"New inflightLimit:  (\d+)"
-updating_timeout_regex = r"Updating timeout from (\d+) to (\d+)"
-rejected_request_regex = r"Request rejected due to low priority: Priority: (\d+) over threshold: (\d+)"
-threshold_modified_regex = r"Threshold modified from (\d+) to: (\d+)"
-initial_threshold_regex = r"Initial threshold: (\d+)"
-evicted_request_regex = r"Evicted request with priority (\d+)"
-target_latency_regex = r"New targetLatency: (\d+)"
+json_extract = re.compile(r'(\{.*\})')
 
-completed_requests = []
-max_concurrent_requests = []
-new_inflights_limit = []
-updating_timeouts = []
-rejected_requests = []
-threshold_modified = []
-evicted_requests = []
-target_latencies = []
+def parse_line(line):
+    try:
+        return json.loads(line)
+    except:
+        match = json_extract.search(line)
+        if match:
+            try:
+                data = json.loads(match.group(1))
+                data["msg"] = line
+                return data
+            except: return None
+    return None
 
-lines = log_data.split("\n")
-object_data = [json.loads(line) for line in lines if line.strip()]
-for line in object_data:
-    timestamp = line["time"]
-    message = line["msg"]
+completed, rejected, evicted, threshold, all_data = [], [], [], [], []
 
-    m = re.search(completed_request_regex, message)
-    if m: 
-        priority = int(m.group(1));
-        completed_requests.append({"timestamp": timestamp, "priority": priority})
+with open(log_file, encoding="utf-8") as f:
+    for raw in f:
+        obj = parse_line(raw)
+        if not obj: continue
+        all_data.append(obj)
 
-    m = re.search(max_concurrent_request_regex, message)
-    if m: 
-        concurrent_requests = int(m.group(1))
-        max_concurrent_requests.append({"timestamp": timestamp, "current_value": concurrent_requests})
+if not all_data:
+    print("No data found")
+    exit()
 
-    m = re.search(new_inflight_limit_regex, message)
-    if m: 
-        inflight_limit = int(m.group(1))
-        new_inflights_limit.append({"timestamp": timestamp, "inflight_limit": inflight_limit})
+start_ts = all_data[0]["time"]
+def rel_t(ts): return (ts - start_ts) / 1000.0
+end_ts = all_data[-1]["time"]
 
-    m = re.search(updating_timeout_regex, message)
-    if m: 
-        old_timeout = int(m.group(1))
-        new_timeout = int(m.group(2))
-        updating_timeouts.append({"timestamp": timestamp, "old_timeout": old_timeout, "new_timeout": new_timeout})
+for obj in all_data:
+    ts = rel_t(obj["time"])
+    msg = obj["msg"]
 
-    m = re.search(rejected_request_regex, message)
-    if m: 
-        current_priority = int(m.group(1))
-        current_threshold = int(m.group(2))
-        rejected_requests.append({ "timestamp": timestamp, "priority": current_priority })
-        threshold_modified.append({"timestamp": timestamp, "threshold": current_threshold})
-
-    m = re.search(threshold_modified_regex, message)
-    if m:
-        last_threshold = int(m.group(1))
-        new_threshold = int(m.group(1))
-        threshold_modified.append({"timestamp": timestamp, "last_threshold": last_threshold, "threshold": new_threshold})
-
-    m = re.search(initial_threshold_regex, message)
-    if m:
-        threshold = int(m.group(1))
-        threshold_modified.insert(0, {"timestamp": timestamp, "threshold": threshold})
+    if m := re.search(R["completed"], msg):
+        completed.append((ts, int(m.group(1))))
     
-    m = re.search(evicted_request_regex, message)
-    if m:
-        priority = int(m.group(1))
-        evicted_requests.append({"timestamp": timestamp, "priority": priority})
+    if m := re.search(R["rejected"], msg):
+        rejected.append((ts, int(m.group(1))))
+        threshold.append((ts, int(m.group(2))))
+        
+    if m := re.search(R["evicted"], msg):
+        evicted.append((ts, int(m.group(1))))
+        
+    if m := re.search(R["threshold_mod"], msg):
+        threshold.append((ts, int(m.group(2))))
+        
+    if m := re.search(R["threshold_init"], msg):
+        threshold.insert(0, (ts, int(m.group(1))))
 
-    m = re.search(target_latency_regex, message)
-    if m:
-        target_latency = (m.group(1))
-        target_latencies.append({"timestamp": timestamp, "target_latency": target_latency})
+def get_t(seq): return [t for t, _ in seq]
+def get_v(seq): return [v for _, v in seq]
 
-rejected_requests_timestamps = [datetime.fromtimestamp(d["timestamp"]/1000) for d in rejected_requests]
-rejected_requests_values = [d["priority"] for d in rejected_requests]  # first_value
-completed_requests_timestamps = [datetime.fromtimestamp(d["timestamp"]/1000) for d in completed_requests]
-completed_requests_values = [d["priority"] for d in completed_requests]
-threshold_modified_timestamps = [datetime.fromtimestamp(d["timestamp"]/1000) for d in threshold_modified]
-threshold_modified_values = [d["threshold"] for d in threshold_modified]
-evicted_requests_timestamps = [datetime.fromtimestamp(d["timestamp"]/1000) for d in evicted_requests]
-evicted_requests_values = [d["priority"] for d in evicted_requests]
-target_latency_timestamps = [datetime.fromtimestamp(d["timestamp"]/1000) for d in target_latencies]
-target_latency_values = [d["target_latency"] for d in target_latencies]
+plt.style.use("seaborn-v0_8-muted")
+fig, ax = plt.subplots(figsize=(14, 7))
 
-latest_timestamp = max(
-    t for t in [
-        rejected_requests_timestamps[-1] if rejected_requests_timestamps else None,
-        completed_requests_timestamps[-1] if completed_requests_timestamps else None,
-        threshold_modified_timestamps[-1] if threshold_modified_timestamps else None,
-        evicted_requests_timestamps[-1] if evicted_requests_timestamps else None,
-        target_latency_timestamps[-1] if target_latency_timestamps else None,
-    ]
-    if t is not None
-)
-latest_threshold = threshold_modified_values[-1]
-threshold_modified_timestamps.append(latest_timestamp)
-threshold_modified_values.append(latest_threshold)
+if threshold:
+    threshold.sort() 
+    t_ts = get_t(threshold)
+    t_vs = get_v(threshold)
+    t_ts.append(rel_t(all_data[-1]["time"]))
+    t_vs.append(t_vs[-1])
+    
+    ax.step(t_ts, t_vs, where="post", lw=2, color="#2c3e50", label="Threshold", zorder=3)
+    ax.fill_between(t_ts, t_vs, step="post", alpha=0.1, color="#2c3e50")
 
-plt.figure(figsize=(10,5))
-plt.scatter(rejected_requests_timestamps, rejected_requests_values, color="red", label="Rejected")
-plt.scatter(completed_requests_timestamps, completed_requests_values, color="green", label="Completed")
-plt.scatter(evicted_requests_timestamps, evicted_requests_values, color="yellow", label="Evicted")
-plt.plot(threshold_modified_timestamps, threshold_modified_values, color="blue", label="Threshold")
-# plt.plot(target_latency_timestamps, target_latency_values, color="purple", label="Target latency")
+if completed:
+    ax.scatter(get_t(completed), get_v(completed),
+               s=25, alpha=0.5, color="#27ae60", label="Completed", zorder=4)
 
+if rejected:
+    ax.scatter(get_t(rejected), get_v(rejected),
+               s=50, marker="x", color="#e74c3c", label="Rejected", zorder=5)
 
-plt.xlabel("Time")
-plt.ylabel("Priority")
-plt.title("Rejected by priority")
-plt.xticks(rotation=45)
+if evicted:
+    ax.scatter(get_t(evicted), get_v(evicted),
+               s=40, marker="^", color="#f1c40f", label="Evicted", zorder=4)
+
+ax.set_xlabel("Seconds since start", fontweight="bold")
+ax.set_ylabel("Priority / Threshold", fontweight="bold")
+ax.set_title(f"PID Traffic Control Analysis\nFile: {log_file.name}", pad=20)
+
+ax.grid(True, which="both", linestyle="--", alpha=0.5)
+ax.set_ylim(0, None)
+
+ax.legend(loc='upper center', 
+          bbox_to_anchor=(0.5, -0.15), 
+          ncol=4, 
+          frameon=True, 
+          shadow=True,
+          borderaxespad=0.)
+
 plt.tight_layout()
-
-max_threshold = max(threshold_modified_values)
-
-if max_threshold != None:
-    plt.yticks(range(0, max_threshold + 100, 100)) 
-
-plt.savefig(images_folder, dpi=300)
+plt.savefig(out_image, dpi=300, bbox_inches="tight")
 plt.show()

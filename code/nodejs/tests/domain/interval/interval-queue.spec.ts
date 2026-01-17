@@ -97,8 +97,8 @@ describe('IntervalQueue tests', () => {
             const req = {
                 hasEventCompletedAndLaunched: () => true,
                 getEventByType: jest.fn((type) => {
-                    if (type === Event.LAUNCHED) {return 100;}
-                    if (type === Event.COMPLETED) {return 150;}
+                    if (type === Event.LAUNCHED) { return 100; }
+                    if (type === Event.COMPLETED) { return 150; }
                     return null;
                 })
             } as any;
@@ -117,6 +117,47 @@ describe('IntervalQueue tests', () => {
             intervalQueue.add({ priority: 20 } as any);
 
             expect(intervalQueue.getPriorities()).toEqual([10, 20]);
+        });
+    });
+
+    describe('Launched Requests', () => {
+        test('getLaunchedRequests should return only requests launched within the interval', () => {
+            const reqIn = createMockRequest(200, Event.LAUNCHED);
+
+            const reqOut = createMockRequest(800, Event.LAUNCHED);
+
+            const reqNoEvent = {
+                getEventByType: jest.fn().mockReturnValue(null),
+                priority: 1
+            } as any;
+
+            intervalQueue.add(reqIn);
+            intervalQueue.add(reqOut);
+            intervalQueue.add(reqNoEvent);
+
+            requestInterval.isTimeInInterval.mockImplementation((time) => time === 200);
+
+            const result = intervalQueue.getLaunchedRequests();
+
+            expect(result).toHaveLength(1);
+            expect(result[0]).toBe(reqIn);
+
+            expect(requestInterval.isTimeInInterval).toHaveBeenCalledWith(200);
+            expect(requestInterval.isTimeInInterval).toHaveBeenCalledWith(800);
+        });
+
+        test('getLaunchedRequests should return an empty array if no requests have been launched', () => {
+            const reqNotLaunched = {
+                getEventByType: jest.fn().mockReturnValue(null),
+                priority: 1
+            } as any;
+
+            intervalQueue.add(reqNotLaunched);
+
+            const result = intervalQueue.getLaunchedRequests();
+
+            expect(result).toEqual([]);
+            expect(requestInterval.isTimeInInterval).not.toHaveBeenCalled();
         });
     });
 

@@ -18,7 +18,7 @@ export class Rejector {
         private readonly priorityQueue: PriorityQueue,
         private readonly statistics: Statistics,
         private readonly pidController: PidController,
-        private initialThreshold: number,
+        readonly initialThreshold: number,
         pidControllerInterval: number
     ) {
         this.threshold = initialThreshold;
@@ -31,6 +31,7 @@ export class Rejector {
 
         if (request.priority > this.threshold) {
             request.status = Event.REJECTED;
+            this.logger.info(`Rejected request. Priority ${request.priority}/${this.threshold}`);
             throw new RejectedRequestException(request.priority, this.threshold);
         }
 
@@ -44,19 +45,17 @@ export class Rejector {
     }
 
     public startThresholdCheck(interval: number): void {
-    const timer = setInterval(() => {
-        if (this.isServiceOverloaded()) {
-            const newThreshold = this.getPriorityThreshold();
-            if (newThreshold !== this.threshold) {
-                this.updateThreshold(newThreshold);
+        const timer = setInterval(() => {
+            if (this.isServiceOverloaded()) {
+                const newThreshold = this.getPriorityThreshold();
+                if (newThreshold !== this.threshold) {
+                    this.updateThreshold(newThreshold);
+                }
             }
-        } else if (this.threshold !== this.initialThreshold) {
-            this.updateThreshold(this.initialThreshold);
-        }
-    }, interval);
+        }, interval);
 
-    intervalManager.add(timer);
-}
+        intervalManager.add(timer);
+    }
 
     private isServiceOverloaded(): boolean {
         return this.priorityQueue.getTimeSinceLastEmpty() > this.MAX_QUEUE_EMPTY_TIME;

@@ -32,13 +32,8 @@ export class PriorityQueue extends EventEmitter {
     public poll(): Request | null {
         while (this.queue.length > 0) {
             const request = this.queue.pop()!;
-            this.clearTimer(request);
 
-            if (this.timeoutHandler.isExpired(request)) {
-                request.status = Event.EVICTED;
-                this._exitRequests++;
-                continue;
-            }
+            this.clearTimer(request);
 
             this._exitRequests++;
             this.setLastTimeEmpty();
@@ -74,7 +69,9 @@ export class PriorityQueue extends EventEmitter {
     }
 
     getTimeSinceLastEmpty(): number {
-        if (this.isEmpty()) {return 0;}
+        if (this.queue.isEmpty()) {
+            return 0;
+        }
         return (Date.now() - this.lastTimeEmpty) / 1000;
     }
 

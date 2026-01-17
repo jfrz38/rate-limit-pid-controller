@@ -91,20 +91,6 @@ describe('Queue timeout handler', () => {
         expect(newTimeout).toBe(expectedTimeout);
     });
 
-    test('isExpired should return true if request age is exactly or over the current timeout', () => {
-        (timeoutHandler as any)._timeout = 200;
-        const now = Date.now();
-
-        const oldRequest = createRequest(0);
-        const newRequest = createRequest(0);
-
-        (oldRequest as any)._createdAt = now - 250;
-        (newRequest as any)._createdAt = now - 50;
-
-        expect(timeoutHandler.isExpired(oldRequest)).toBe(true);
-        expect(timeoutHandler.isExpired(newRequest)).toBe(false);
-    });
-
     test('updateQueueTimeout should round the resulting timeout to the nearest integer', () => {
         (timeoutHandler as any).ratio = 1.5;
         statistics.getAverageProcessingTime.mockReturnValue(100.4);

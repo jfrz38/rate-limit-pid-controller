@@ -10,6 +10,8 @@ export function initLogger(level: LogLevel | undefined): void {
 }
 
 export function getLogger(): Logger {
-    if (!logger) {throw new Error('Logger not initialized');}
+    if (!logger) {
+        throw new Error('Logger not initialized');
+    }
     return logger;
 }
