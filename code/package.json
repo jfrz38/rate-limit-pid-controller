@@ -5,11 +5,13 @@
   "description": "Monorepo for PID-based rate limiting controller and its framework adapters.",
   "main": "index.js",
   "scripts": {
-    "install:all": "pnpm install",
+    "install:all": "pnpm -r install",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "test:coverage": "pnpm -r test:coverage",
     "clean": "pnpm -r exec rm -rf dist node_modules",
+    "lint": "pnpm -r lint",
+    "lint:src": "pnpm -r lint:src",
     "lint:fix": "pnpm -r lint:fix"
   },
   "author": "José F. Ruiz",
