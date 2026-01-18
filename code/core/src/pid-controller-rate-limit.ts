@@ -68,7 +68,7 @@ export class PidControllerRateLimit {
         );
     }
 
-    run(task: Function, priority: number): void {
+    run(task: Function, priority: number | undefined): void {
         const request: Request = new Request(task, new Priority(priority));
         this.rejector.process(request);
     }
