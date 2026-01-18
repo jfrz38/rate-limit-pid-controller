@@ -1,8 +1,8 @@
-import { vi, describe, expect, beforeEach, Mock, Mocked } from 'vitest';
+import { beforeEach, describe, expect, Mock, Mocked, vi } from 'vitest';
 
+import { Event } from '../../src/domain/events';
 import { Priority } from '../../src/domain/priority';
 import { Request } from '../../src/domain/request';
-import { Event } from '../../src/domain/events';
 
 const RANDOM_UUID_MOCK = 'uuid';
 vi.mock('crypto', () => ({
@@ -26,22 +26,22 @@ describe('Request', () => {
             expect(request.task).toBe(task);
             expect(request.priority).toBe(priority.value);
             expect(request['_status']).toBe(Event.CREATED);
-            expect(request.getEventLog().has(Event.CREATED)).toBe(true);
+            expect((request as any).eventLog.has(Event.CREATED)).toBe(true);
         });
     });
 
     describe('status getter & setter', () => {
         test('should update status and add entry to eventLog', () => {
             const request = new Request(task, priority);
-            const now = Date.now();
+            const now = performance.now();
 
-            vi.useFakeTimers().setSystemTime(now);
+            const spy = vi.spyOn(performance, 'now').mockReturnValue(now);
 
             request.status = Event.LAUNCHED;
             expect(request['_status']).toBe(Event.LAUNCHED);
-            expect(request.getEventLog().get(Event.LAUNCHED)).toEqual(now);
+            expect((request as any).eventLog.get(Event.LAUNCHED)).toEqual(now);
 
-            vi.useRealTimers();
+            spy.mockRestore();
         });
 
         test('when request is created should return expected status', () => {
@@ -64,13 +64,15 @@ describe('Request', () => {
 
         test('createdAt should be immutable after instantiation', () => {
             const startTime = 1000;
-            vi.useFakeTimers().setSystemTime(startTime);
+            const spy = vi.spyOn(performance, 'now').mockReturnValue(startTime);
             const request = new Request(task, priority);
-
-            vi.advanceTimersByTime(5000);
+            
+            vi.spyOn(performance, 'now').mockReturnValue(startTime + 5000);
             request.status = Event.LAUNCHED;
-
+            
             expect(request.createdAt).toBe(startTime);
+            
+            spy.mockRestore();
         });
 
     });
@@ -95,16 +97,18 @@ describe('Request', () => {
             expect(request.hasEventCompletedAndLaunched()).toBe(true);
         });
 
-        test('getEventByType should return the correct Date', () => {
+        test('getEventTimestamp should return the correct Date', () => {
             const request = new Request(task, priority);
-            const now = Date.now();
-            vi.useFakeTimers().setSystemTime(now);
-
+            const now = performance.now();
+            
+            const spy = vi.spyOn(performance, 'now').mockReturnValue(now);
+            
             request.status = Event.LAUNCHED;
-            expect(request.getEventByType(Event.LAUNCHED)).toEqual(now);
-            expect(request.getEventByType(Event.COMPLETED)).toBeUndefined();
-
-            vi.useRealTimers();
+            
+            expect(request.getEventTimestamp(Event.LAUNCHED)).toEqual(now);
+            expect(request.getEventTimestamp(Event.COMPLETED)).toBeUndefined();
+            
+            spy.mockRestore();
         });
 
         test('eventLog should store the latest timestamp if the same status is set twice', () => {
@@ -112,13 +116,17 @@ describe('Request', () => {
             const request = new Request(task, priority);
 
             vi.setSystemTime(1000);
+            const firstSpy = vi.spyOn(performance, 'now').mockReturnValue(1000);
             request.status = Event.LAUNCHED;
-
+            
+            const secondSpy = vi.spyOn(performance, 'now').mockReturnValue(2000);
             vi.setSystemTime(2000);
             request.status = Event.LAUNCHED;
+            
+            expect(request.getEventTimestamp(Event.LAUNCHED)).toBe(2000);
 
-            expect(request.getEventByType(Event.LAUNCHED)).toBe(2000);
-            vi.useRealTimers();
+            firstSpy.mockRestore();
+            secondSpy.mockRestore();
         });
 
         test('should maintain a history of all status changes', () => {
@@ -127,7 +135,7 @@ describe('Request', () => {
             request.status = Event.LAUNCHED;
             request.status = Event.COMPLETED;
 
-            const log = request.getEventLog();
+            const log = (request as any).eventLog;
             expect(log.has(Event.CREATED)).toBe(true);
             expect(log.has(Event.QUEUED)).toBe(true);
             expect(log.has(Event.LAUNCHED)).toBe(true);

@@ -1,4 +1,4 @@
-import { vi, describe, expect, beforeEach, MockInstance, Mocked } from 'vitest';
+import { beforeEach, describe, expect, Mocked, MockInstance, vi } from 'vitest';
 
 import { DefaultOptions } from '../../../src/default-parameters';
 import { Event } from '../../../src/domain/events';
@@ -149,7 +149,7 @@ describe('Statistics tests', () => {
         const expectedPriorities = [1];
         // let spy: MockInstance<number, [values: number[], percentile: number], any>;
         let spy: MockInstance<(values: number[], percentile: number) => number>;
-        
+
         beforeEach(() => {
             intervalQueue.getPriorities.mockReturnValueOnce(expectedPriorities);
             spy = vi.spyOn(MathUtils, 'percentile').mockReturnValue(expectedResult);
@@ -221,7 +221,7 @@ describe('Statistics tests', () => {
             const created = new Date(createdDate);
             const completed = new Date(completedDate);
             request.hasEventCreatedAndCompleted = vi.fn().mockReturnValue(true);
-            request.getEventByType = vi.fn()
+            request.getEventTimestamp = vi.fn()
                 .mockImplementation((type: Event) => type === Event.CREATED ? created : completed);
             return request;
         }

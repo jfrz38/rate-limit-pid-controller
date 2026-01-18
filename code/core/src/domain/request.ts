@@ -15,7 +15,7 @@ export class Request {
         this.id = randomUUID();
         this.task = task;
         this.status = this._status = Event.CREATED;
-        this._createdAt = Date.now();
+        this._createdAt = performance.now();
     }
 
     get status() {
@@ -32,12 +32,7 @@ export class Request {
 
     set status(newStatus: Event) {
         this._status = newStatus;
-        this.eventLog.set(newStatus, Date.now());
-
-    }
-
-    getEventLog(): Map<Event, number> {
-        return this.eventLog;
+        this.eventLog.set(newStatus, performance.now());
     }
 
     hasEventCreatedAndCompleted(): boolean {
@@ -48,7 +43,7 @@ export class Request {
         return this.eventLog.has(Event.COMPLETED) && this.eventLog.has(Event.LAUNCHED);
     }
 
-    getEventByType(event: Event): number | undefined {
+    getEventTimestamp(event: Event): number | undefined {
         return this.eventLog.get(event);
     }
 

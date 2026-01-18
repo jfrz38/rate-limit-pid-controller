@@ -81,7 +81,7 @@ describe('IntervalQueue tests', () => {
         test('getCompletedRequests should return only requests completed within the interval', () => {
             const reqIn = createMockRequest(100, Event.COMPLETED);
             const reqOut = createMockRequest(500, Event.COMPLETED);
-            const reqNoEvent = { getEventByType: () => null } as any;
+            const reqNoEvent = { getEventTimestamp: () => null } as any;
 
             intervalQueue.add(reqIn);
             intervalQueue.add(reqOut);
@@ -98,7 +98,7 @@ describe('IntervalQueue tests', () => {
         test('getLatencies should calculate diff between completed and launched for successful requests', () => {
             const req = {
                 hasEventCompletedAndLaunched: () => true,
-                getEventByType: vi.fn((type) => {
+                getEventTimestamp: vi.fn((type) => {
                     if (type === Event.LAUNCHED) { return 100; }
                     if (type === Event.COMPLETED) { return 150; }
                     return null;
@@ -129,7 +129,7 @@ describe('IntervalQueue tests', () => {
             const reqOut = createMockRequest(800, Event.LAUNCHED);
 
             const reqNoEvent = {
-                getEventByType: vi.fn().mockReturnValue(null),
+                getEventTimestamp: vi.fn().mockReturnValue(null),
                 priority: 1
             } as any;
 
@@ -150,7 +150,7 @@ describe('IntervalQueue tests', () => {
 
         test('getLaunchedRequests should return an empty array if no requests have been launched', () => {
             const reqNotLaunched = {
-                getEventByType: vi.fn().mockReturnValue(null),
+                getEventTimestamp: vi.fn().mockReturnValue(null),
                 priority: 1
             } as any;
 
@@ -165,7 +165,7 @@ describe('IntervalQueue tests', () => {
 
     function createMockRequest(time: number, eventType: Event): Request {
         return {
-            getEventByType: vi.fn((type) => (type === eventType ? time : null)),
+            getEventTimestamp: vi.fn((type) => (type === eventType ? time : null)),
             priority: 1
         } as any;
     }

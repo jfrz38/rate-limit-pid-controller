@@ -35,8 +35,8 @@ describe('RequestInterval tests', () => {
             expect(requestInterval.isTimeInInterval(tooRecent, referenceTime)).toBe(false);
         });
 
-        test('should use Date.now() as default reference when second argument is missing', () => {
-            const now = Date.now();
+        test('should use performance.now() as default reference when second argument is missing', () => {
+            const now = performance.now();
             const timeInWindow = now - (MIN_INTERVAL + 5) * 1000;
 
             expect(requestInterval.isTimeInInterval(timeInWindow)).toBe(true);

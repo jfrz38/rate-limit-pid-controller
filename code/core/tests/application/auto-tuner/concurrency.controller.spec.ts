@@ -8,10 +8,12 @@ import { DefaultOptions } from "../../../src/default-parameters";
 import { Statistics } from "../../../src/domain/statistics/statistics";
 import { ControllerHistory } from '../../../src/application/auto-tuner/controller-history';
 import { NotEnoughStatsException } from '../../../src/domain/exceptions/not-enough-stats.exception';
+import { warn } from 'console';
 
 vi.mock("../../../src/core/logging/logger", () => ({
   getLogger: vi.fn().mockReturnValue({
-    info: vi.fn()
+    info: vi.fn(),
+    warn: vi.fn()
   }),
 }));
 
@@ -214,6 +216,28 @@ describe('ConcurrencyController', () => {
 
       expect(scheduler.updateMaxConcurrentRequests).not.toHaveBeenCalled();
       expect(controller['inflightLimit']).toBe(limit);
+    });
+
+    test('when apply new limit if new value is Infinite should not update limit', () => {
+      const initialLimit = 1;
+      const newLimit = Infinity;
+
+      controller['inflightLimit'] = initialLimit;
+      (controller as any).applyNewLimit(newLimit);
+
+      expect(scheduler.updateMaxConcurrentRequests).not.toHaveBeenCalled();
+      expect(controller['inflightLimit']).toBe(initialLimit);
+    });
+
+    test('when apply new limit if new value is NaN should not update limit', () => {
+      const initialLimit = 1;
+      const newLimit = NaN;
+
+      controller['inflightLimit'] = initialLimit;
+      (controller as any).applyNewLimit(newLimit);
+
+      expect(scheduler.updateMaxConcurrentRequests).not.toHaveBeenCalled();
+      expect(controller['inflightLimit']).toBe(initialLimit);
     });
   });
 
