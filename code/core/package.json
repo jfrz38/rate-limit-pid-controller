@@ -14,7 +14,7 @@
     "build": "tsc",
     "build:clean": "npm run clean && npm run build",
     "start": "ts-node src/index.ts",
-    "clean": "rm -rf dist",
+    "clean": "rimraf dist",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:coverage": "vitest --coverage",
