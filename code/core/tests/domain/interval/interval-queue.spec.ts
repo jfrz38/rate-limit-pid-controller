@@ -1,3 +1,5 @@
+import { vi, describe, expect, beforeEach, Mocked } from 'vitest';
+
 import { DefaultOptions } from "../../../src/default-parameters";
 import { IntervalQueue } from "../../../src/domain/interval/interval-queue";
 import { RequestInterval } from "../../../src/domain/interval/request-interval";
@@ -6,23 +8,23 @@ import { Event } from "../../../src/domain/events";
 
 describe('IntervalQueue tests', () => {
     let intervalQueue: IntervalQueue;
-    let requestInterval: jest.Mocked<RequestInterval>;
+    let requestInterval: Mocked<RequestInterval>;
     const MAX_REQUESTS = 5;
 
     beforeEach(() => {
         requestInterval = {
-            getIntervalTime: jest.fn(),
-            isTimeInInterval: jest.fn(),
-            getInitialTime: jest.fn()
-        } as unknown as jest.Mocked<RequestInterval>;
+            getIntervalTime: vi.fn(),
+            isTimeInInterval: vi.fn(),
+            getInitialTime: vi.fn()
+        } as unknown as Mocked<RequestInterval>;
 
         intervalQueue = new IntervalQueue(requestInterval, DefaultOptions.values.statistics.maxRequests);
     });
 
     describe('Test add', () => {
         test('when add request and is full should remove first request and add new one', () => {
-            const request = {} as unknown as jest.Mocked<Request>;
-            const queuedRequest = {} as unknown as jest.Mocked<Request>;
+            const request = {} as unknown as Mocked<Request>;
+            const queuedRequest = {} as unknown as Mocked<Request>;
 
             (intervalQueue as any).maxRequests = 1;
             (intervalQueue as any).queue = [queuedRequest];
@@ -37,8 +39,8 @@ describe('IntervalQueue tests', () => {
         });
 
         test('when add request and is not full should add without remove any request', () => {
-            const request = {} as unknown as jest.Mocked<Request>;
-            const queuedRequest = {} as unknown as jest.Mocked<Request>;
+            const request = {} as unknown as Mocked<Request>;
+            const queuedRequest = {} as unknown as Mocked<Request>;
 
             (intervalQueue as any).maxRequests = 2;
             (intervalQueue as any).queue = [queuedRequest];
@@ -96,7 +98,7 @@ describe('IntervalQueue tests', () => {
         test('getLatencies should calculate diff between completed and launched for successful requests', () => {
             const req = {
                 hasEventCompletedAndLaunched: () => true,
-                getEventByType: jest.fn((type) => {
+                getEventByType: vi.fn((type) => {
                     if (type === Event.LAUNCHED) { return 100; }
                     if (type === Event.COMPLETED) { return 150; }
                     return null;
@@ -127,7 +129,7 @@ describe('IntervalQueue tests', () => {
             const reqOut = createMockRequest(800, Event.LAUNCHED);
 
             const reqNoEvent = {
-                getEventByType: jest.fn().mockReturnValue(null),
+                getEventByType: vi.fn().mockReturnValue(null),
                 priority: 1
             } as any;
 
@@ -148,7 +150,7 @@ describe('IntervalQueue tests', () => {
 
         test('getLaunchedRequests should return an empty array if no requests have been launched', () => {
             const reqNotLaunched = {
-                getEventByType: jest.fn().mockReturnValue(null),
+                getEventByType: vi.fn().mockReturnValue(null),
                 priority: 1
             } as any;
 
@@ -163,7 +165,7 @@ describe('IntervalQueue tests', () => {
 
     function createMockRequest(time: number, eventType: Event): Request {
         return {
-            getEventByType: jest.fn((type) => (type === eventType ? time : null)),
+            getEventByType: vi.fn((type) => (type === eventType ? time : null)),
             priority: 1
         } as any;
     }

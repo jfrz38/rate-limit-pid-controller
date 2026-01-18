@@ -1,3 +1,5 @@
+import { vi, describe, expect, beforeEach, Mocked } from 'vitest';
+
 import { PidController } from "../../src/application/pid-controller";
 import { Rejector } from "../../src/application/rejector";
 import { DefaultOptions } from "../../src/default-parameters";
@@ -8,19 +10,19 @@ import { PriorityQueue } from "../../src/domain/priority-queue/priority-queue";
 import { Request } from "../../src/domain/request";
 import { Statistics } from "../../src/domain/statistics/statistics";
 
-jest.useFakeTimers();
-jest.mock("../../src/core/shutdown/interval-manager");
-jest.mock("../../src/core/logging/logger", () => ({
-    getLogger: jest.fn().mockReturnValue({
-        info: jest.fn()
+vi.useFakeTimers();
+vi.mock("../../src/core/shutdown/interval-manager");
+vi.mock("../../src/core/logging/logger", () => ({
+    getLogger: vi.fn().mockReturnValue({
+        info: vi.fn()
     }),
 }));
 
 describe('Rejector', () => {
-    let priorityQueue: jest.Mocked<PriorityQueue>;
-    let statistics: jest.Mocked<Statistics>;
-    let pidController: jest.Mocked<PidController>;
-    let request: jest.Mocked<Request>;
+    let priorityQueue: Mocked<PriorityQueue>;
+    let statistics: Mocked<Statistics>;
+    let pidController: Mocked<PidController>;
+    let request: Mocked<Request>;
     let rejector: Rejector;
 
     const initialThreshold = DefaultOptions.values.threshold.initial;
@@ -28,20 +30,20 @@ describe('Rejector', () => {
 
     beforeEach(() => {
         priorityQueue = {
-            add: jest.fn(),
-            getTimeSinceLastEmpty: jest.fn().mockReturnValue(0),
-        } as unknown as jest.Mocked<PriorityQueue>;
+            add: vi.fn(),
+            getTimeSinceLastEmpty: vi.fn().mockReturnValue(0),
+        } as unknown as Mocked<PriorityQueue>;
 
         statistics = {
-            add: jest.fn(),
-            calculateCumulativePriorityDistribution: jest.fn().mockReturnValue(100),
-        } as unknown as jest.Mocked<Statistics>;
+            add: vi.fn(),
+            calculateCumulativePriorityDistribution: vi.fn().mockReturnValue(100),
+        } as unknown as Mocked<Statistics>;
 
         pidController = {
-            updateThreshold: jest.fn().mockReturnValue(123),
-        } as unknown as jest.Mocked<PidController>;
+            updateThreshold: vi.fn().mockReturnValue(123),
+        } as unknown as Mocked<PidController>;
 
-        request = {} as unknown as jest.Mocked<Request>;
+        request = {} as unknown as Mocked<Request>;
 
         rejector = new Rejector(priorityQueue, statistics, pidController, initialThreshold, initialInterval);
     });
@@ -50,7 +52,7 @@ describe('Rejector', () => {
         test('when request priority is lower than threshold should add request to statistics', () => {
             request = {
                 priority: 10
-            } as unknown as jest.Mocked<Request>;
+            } as unknown as Mocked<Request>;
 
             setThreshold(500);
 
@@ -65,7 +67,7 @@ describe('Rejector', () => {
         test('when request priority is higher than threshold should reject request and throw exception', () => {
             request = {
                 priority: 999
-            } as unknown as jest.Mocked<Request>;
+            } as unknown as Mocked<Request>;
 
             setThreshold(1);
 
@@ -99,36 +101,36 @@ describe('Rejector', () => {
 
     describe('startThresholdCheck', () => {
         test('should call updateThreshold if overloaded and threshold changes', () => {
-            const spyUpdate = jest.spyOn(rejector, 'updateThreshold');
+            const spyUpdate = vi.spyOn(rejector, 'updateThreshold');
             priorityQueue.getTimeSinceLastEmpty.mockReturnValue(20);
             statistics.calculateCumulativePriorityDistribution.mockReturnValue(555);
             pidController.updateThreshold.mockReturnValue(123);
 
             rejector.startThresholdCheck(1000);
 
-            jest.advanceTimersByTime(1000);
+            vi.advanceTimersByTime(1000);
 
             expect(spyUpdate).toHaveBeenNthCalledWith(1, 555);
         });
 
         test('should not update if not overloaded', () => {
-            const spyUpdate = jest.spyOn(rejector, 'updateThreshold');
+            const spyUpdate = vi.spyOn(rejector, 'updateThreshold');
             priorityQueue.getTimeSinceLastEmpty.mockReturnValue(0);
 
             rejector.startThresholdCheck(1000);
-            jest.advanceTimersByTime(1000);
+            vi.advanceTimersByTime(1000);
 
             expect(spyUpdate).not.toHaveBeenCalled();
         });
 
         test('should not call updateThreshold if the new calculated threshold is identical to the current one', () => {
-            const spyUpdate = jest.spyOn(rejector, 'updateThreshold');
+            const spyUpdate = vi.spyOn(rejector, 'updateThreshold');
             priorityQueue.getTimeSinceLastEmpty.mockReturnValue(20);
 
             const current = (rejector as any).threshold;
             statistics.calculateCumulativePriorityDistribution.mockReturnValue(current);
 
-            jest.advanceTimersByTime(initialInterval);
+            vi.advanceTimersByTime(initialInterval);
 
             expect(spyUpdate).not.toHaveBeenCalled();
         });
@@ -138,7 +140,7 @@ describe('Rejector', () => {
 
             priorityQueue.getTimeSinceLastEmpty.mockReturnValue(0);
 
-            jest.advanceTimersByTime(initialInterval);
+            vi.advanceTimersByTime(initialInterval);
 
             expect((rejector as any).threshold).not.toBe(initialThreshold);
         });
@@ -161,8 +163,8 @@ describe('Rejector', () => {
     });
 
     describe('Lifecycle', () => {
-        test('should register the interval in the intervalManager upon initialization', () => {
-            const { intervalManager } = require("../../src/core/shutdown/interval-manager");
+        test('should register the interval in the intervalManager upon initialization', async () => {
+            const { intervalManager } = await import("../../src/core/shutdown/interval-manager");
 
             expect(intervalManager.add).toHaveBeenCalled();
         });

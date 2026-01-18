@@ -1,3 +1,5 @@
+import { vi, describe, expect, beforeEach, MockInstance, Mocked } from 'vitest';
+
 import { DefaultOptions } from '../../../src/default-parameters';
 import { Event } from '../../../src/domain/events';
 import { NotEnoughStatsException } from '../../../src/domain/exceptions/not-enough-stats.exception';
@@ -8,17 +10,17 @@ import { Statistics } from '../../../src/domain/statistics/statistics';
 
 describe('Statistics tests', () => {
     let statistics: Statistics;
-    let intervalQueue: jest.Mocked<IntervalQueue>;
+    let intervalQueue: Mocked<IntervalQueue>;
     const maxRequests = 5;
 
     beforeEach(() => {
         intervalQueue = {
-            getCompletedRequests: jest.fn(),
-            getLatencies: jest.fn(),
-            getLaunchedRequests: jest.fn(),
-            getPriorities: jest.fn(),
-            add: jest.fn(),
-        } as unknown as jest.Mocked<IntervalQueue>;
+            getCompletedRequests: vi.fn(),
+            getLatencies: vi.fn(),
+            getLaunchedRequests: vi.fn(),
+            getPriorities: vi.fn(),
+            add: vi.fn(),
+        } as unknown as Mocked<IntervalQueue>;
 
         const defaultStatsOptions = DefaultOptions.values.statistics;
         defaultStatsOptions.minRequestsForStats = maxRequests;
@@ -28,12 +30,12 @@ describe('Statistics tests', () => {
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     describe('Test add', () => {
         test('when add request should call expected method', () => {
-            const request = {} as unknown as jest.Mocked<Request>;
+            const request = {} as unknown as Mocked<Request>;
 
             statistics.add(request);
 
@@ -47,7 +49,7 @@ describe('Statistics tests', () => {
             const latencies = Array(maxRequests - 1).fill(1);
 
             intervalQueue.getLatencies.mockReturnValueOnce(latencies);
-            const spy = jest.spyOn(MathUtils, 'percentile').mockReturnValue(1);
+            const spy = vi.spyOn(MathUtils, 'percentile').mockReturnValue(1);
 
             expect(() => statistics.getPercentileLatencySuccessfulRequests()).toThrow(NotEnoughStatsException);
 
@@ -58,7 +60,7 @@ describe('Statistics tests', () => {
         test('calculateCumulativePriorityDistribution should use inverse percentile', () => {
             const priorities = [1, 2, 3, 4, 5];
             intervalQueue.getPriorities.mockReturnValueOnce(priorities);
-            const spy = jest.spyOn(MathUtils, 'percentile');
+            const spy = vi.spyOn(MathUtils, 'percentile');
 
             statistics.calculateCumulativePriorityDistribution(20);
 
@@ -71,7 +73,7 @@ describe('Statistics tests', () => {
             const latencies = Array(maxRequests).fill(latency);
 
             intervalQueue.getLatencies.mockReturnValueOnce(latencies);
-            const spy = jest.spyOn(MathUtils, 'percentile').mockReturnValue(latency);
+            const spy = vi.spyOn(MathUtils, 'percentile').mockReturnValue(latency);
 
             expect(statistics.getPercentileLatencySuccessfulRequests()).toBe(latency);
 
@@ -145,11 +147,12 @@ describe('Statistics tests', () => {
         const threshold = 10;
         const expectedPercentile = 100 - threshold;
         const expectedPriorities = [1];
-        let spy: jest.SpyInstance<number, [values: number[], percentile: number], any>;
-
+        // let spy: MockInstance<number, [values: number[], percentile: number], any>;
+        let spy: MockInstance<(values: number[], percentile: number) => number>;
+        
         beforeEach(() => {
             intervalQueue.getPriorities.mockReturnValueOnce(expectedPriorities);
-            spy = jest.spyOn(MathUtils, 'percentile').mockReturnValue(expectedResult);
+            spy = vi.spyOn(MathUtils, 'percentile').mockReturnValue(expectedResult);
         });
 
         afterEach(() => {
@@ -187,7 +190,7 @@ describe('Statistics tests', () => {
             const expectedAverage = 10;
             const validRequest = Array(maxRequests).fill(createRequestWithEvents(0, 10));
 
-            const spy = jest.spyOn(MathUtils, 'average').mockReturnValue(expectedAverage);
+            const spy = vi.spyOn(MathUtils, 'average').mockReturnValue(expectedAverage);
 
             intervalQueue.getCompletedRequests.mockReturnValueOnce(validRequest);
 
@@ -204,7 +207,7 @@ describe('Statistics tests', () => {
             const validRequests = [req1, req2, ...Array(maxRequests - 2).fill(req1)];
 
             intervalQueue.getCompletedRequests.mockReturnValueOnce(validRequests);
-            const spy = jest.spyOn(MathUtils, 'average');
+            const spy = vi.spyOn(MathUtils, 'average');
 
             const result = statistics.getAverageProcessingTime();
 
@@ -214,11 +217,11 @@ describe('Statistics tests', () => {
         });
 
         function createRequestWithEvents(createdDate: number, completedDate: number): Request {
-            const request = {} as unknown as jest.Mocked<Request>;
+            const request = {} as unknown as Mocked<Request>;
             const created = new Date(createdDate);
             const completed = new Date(completedDate);
-            request.hasEventCreatedAndCompleted = jest.fn().mockReturnValue(true);
-            request.getEventByType = jest.fn()
+            request.hasEventCreatedAndCompleted = vi.fn().mockReturnValue(true);
+            request.getEventByType = vi.fn()
                 .mockImplementation((type: Event) => type === Event.CREATED ? created : completed);
             return request;
         }

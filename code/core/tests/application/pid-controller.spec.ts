@@ -1,21 +1,23 @@
+import { vi, describe, expect, beforeEach, Mocked } from 'vitest';
+
 import { PidController } from "../../src/application/pid-controller";
 import { Scheduler } from "../../src/application/scheduler";
 import { DefaultOptions } from "../../src/default-parameters";
 import { PriorityQueue } from "../../src/domain/priority-queue/priority-queue";
 
 describe("PidController", () => {
-    let scheduler: jest.Mocked<Scheduler>;
-    let priorityQueue: jest.Mocked<PriorityQueue>;
+    let scheduler: Mocked<Scheduler>;
+    let priorityQueue: Mocked<PriorityQueue>;
     let controller: PidController;
 
     beforeEach(() => {
-        scheduler = {} as unknown as jest.Mocked<Scheduler>;
+        scheduler = {} as unknown as Mocked<Scheduler>;
 
         priorityQueue = {
             entryRequests: 0,
             exitRequests: 0,
-            resetCounters: jest.fn(),
-        } as unknown as jest.Mocked<PriorityQueue>;
+            resetCounters: vi.fn(),
+        } as unknown as Mocked<PriorityQueue>;
 
         controller = new PidController(
             scheduler,

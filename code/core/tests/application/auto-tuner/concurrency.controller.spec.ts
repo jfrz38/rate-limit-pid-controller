@@ -1,3 +1,5 @@
+import { vi, describe, expect, beforeEach, MockInstance, Mocked } from 'vitest';
+
 import os from 'os';
 import { ConcurrencyController } from "../../../src/application/auto-tuner/concurrency.controller";
 import { LatencyController } from "../../../src/application/auto-tuner/latency.controller";
@@ -7,42 +9,42 @@ import { Statistics } from "../../../src/domain/statistics/statistics";
 import { ControllerHistory } from '../../../src/application/auto-tuner/controller-history';
 import { NotEnoughStatsException } from '../../../src/domain/exceptions/not-enough-stats.exception';
 
-jest.mock("../../../src/core/logging/logger", () => ({
-  getLogger: jest.fn().mockReturnValue({
-    info: jest.fn()
+vi.mock("../../../src/core/logging/logger", () => ({
+  getLogger: vi.fn().mockReturnValue({
+    info: vi.fn()
   }),
 }));
 
 describe('ConcurrencyController', () => {
-  let scheduler: jest.Mocked<Scheduler>;
-  let statistics: jest.Mocked<Statistics>;
-  let latencyController: jest.Mocked<LatencyController>;
+  let scheduler: Mocked<Scheduler>;
+  let statistics: Mocked<Statistics>;
+  let latencyController: Mocked<LatencyController>;
   let controller: ConcurrencyController;
   let history: ControllerHistory;
-  let cpuSpy: jest.SpyInstance;
+  let cpuSpy: MockInstance;
   const mockedCpus = 4;
 
   const cores = DefaultOptions.values.capacity.cores;
 
   beforeEach(() => {
-    cpuSpy = jest.spyOn(os, 'cpus').mockImplementation(() => new Array(mockedCpus));
-    scheduler = { updateMaxConcurrentRequests: jest.fn() } as unknown as jest.Mocked<Scheduler>;
+    cpuSpy = vi.spyOn(os, 'cpus').mockImplementation(() => new Array(mockedCpus));
+    scheduler = { updateMaxConcurrentRequests: vi.fn() } as unknown as Mocked<Scheduler>;
     statistics = {
-      getPercentileLatencySuccessfulRequests: jest.fn(),
-      getThroughputForInterval: jest.fn(),
-      getSuccessfulThroughput: jest.fn(),
-    } as unknown as jest.Mocked<Statistics>;
+      getPercentileLatencySuccessfulRequests: vi.fn(),
+      getThroughputForInterval: vi.fn(),
+      getSuccessfulThroughput: vi.fn(),
+    } as unknown as Mocked<Statistics>;
 
     latencyController = {
       targetLatency: 100
-    } as jest.Mocked<LatencyController>;
+    } as Mocked<LatencyController>;
 
     history = {
-      push: jest.fn(),
+      push: vi.fn(),
       intervalThroughputs: [],
       maxInflights: [],
       length: 0
-    } as unknown as jest.Mocked<ControllerHistory>;
+    } as unknown as Mocked<ControllerHistory>;
 
     controller = new ConcurrencyController(
       scheduler,
@@ -55,7 +57,7 @@ describe('ConcurrencyController', () => {
 
   afterEach(() => {
     cpuSpy.mockRestore();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Test initialization', () => {
@@ -140,7 +142,7 @@ describe('ConcurrencyController', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(250);
       statistics.getSuccessfulThroughput.mockReturnValue(20);
 
-      const spy = jest.spyOn(controller as any, 'applyNewLimit');
+      const spy = vi.spyOn(controller as any, 'applyNewLimit');
 
       controller.update();
 

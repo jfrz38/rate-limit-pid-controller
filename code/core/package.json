@@ -16,13 +16,13 @@
     "start": "ts-node src/index.ts",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
-    "test:leak": "jest --detectOpenHandles",
+    "test": "vitest run",
+    "test:coverage": "vitest --coverage",
+    "test:leak": "vitest --detectOpenHandles",
     "local": "ts-node src/index.local.ts",
     "lint": "eslint src",
     "lint:src": "eslint src",
-    "lint:fix": "eslint --fix"
+    "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix"
   },
   "repository": {
     "type": "git",

@@ -1,32 +1,34 @@
+import { vi, describe, expect, beforeEach, Mock, Mocked } from 'vitest';
+
 import { Scheduler } from "../../../src/application/scheduler";
 import { IntervalManager } from "../../../src/core/shutdown/interval-manager";
 import { ShutdownManager } from "../../../src/core/shutdown/shutdown-manager";
 
 describe('Shutdown Manager', () => {
 
-    let scheduler: jest.Mocked<Scheduler>;
-    let intervalManager: jest.Mocked<IntervalManager>;
+    let scheduler: Mocked<Scheduler>;
+    let intervalManager: Mocked<IntervalManager>;
     let shutdownManager: ShutdownManager;
 
     beforeEach(() => {
         scheduler = {
-            terminate: jest.fn()
-        } as unknown as jest.Mocked<Scheduler>;
+            terminate: vi.fn()
+        } as unknown as Mocked<Scheduler>;
         intervalManager = {
-            clearAll: jest.fn()
-        } as unknown as jest.Mocked<IntervalManager>;
+            clearAll: vi.fn()
+        } as unknown as Mocked<IntervalManager>;
 
         shutdownManager = new ShutdownManager(scheduler, intervalManager);
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
         process.removeAllListeners('SIGINT');
         process.removeAllListeners('SIGTERM');
     });
 
     test('should call scheduler terminate and interval manager clearAll when shutdown is called', () => {
-        const exit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
         shutdownManager.shutdown();
 
@@ -36,7 +38,7 @@ describe('Shutdown Manager', () => {
     });
 
     test('when SIGINT is called should shutdown program', () => {
-        const exit = jest.spyOn(shutdownManager, 'shutdown').mockImplementation(() => undefined);
+        const exit = vi.spyOn(shutdownManager, 'shutdown').mockImplementation(() => undefined);
 
         process.emit('SIGINT');
 
@@ -44,7 +46,7 @@ describe('Shutdown Manager', () => {
     });
 
     test('when SIGTERM is called should shutdown program', () => {
-        const exit = jest.spyOn(shutdownManager, 'shutdown').mockImplementation(() => undefined);
+        const exit = vi.spyOn(shutdownManager, 'shutdown').mockImplementation(() => undefined);
 
         process.emit('SIGTERM');
 

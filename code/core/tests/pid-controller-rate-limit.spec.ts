@@ -1,3 +1,5 @@
+import { vi, describe, expect, beforeEach, Mock } from 'vitest';
+
 import { AutoTuner } from "../src/application/auto-tuner/auto-tuner";
 import { ConcurrencyController } from "../src/application/auto-tuner/concurrency.controller";
 import { LatencyController } from "../src/application/auto-tuner/latency.controller";
@@ -16,37 +18,37 @@ import { Statistics } from "../src/domain/statistics/statistics";
 import { PidControllerRateLimit } from "../src/pid-controller-rate-limit";
 import { ControllerHistory } from "../src/application/auto-tuner/controller-history";
 
-jest.mock("../src/domain/statistics/statistics");
-jest.mock("../src/domain/priority-queue/priority-queue");
-jest.mock("../src/application/scheduler");
-jest.mock("../src/application/pid-controller");
-jest.mock("../src/application/rejector");
-jest.mock("../src/application/auto-tuner/auto-tuner");
-jest.mock("../src/application/auto-tuner/concurrency.controller");
-jest.mock("../src/application/auto-tuner/latency.controller");
-jest.mock("../src/domain/request");
-jest.mock("../src/domain/priority");
-jest.mock('../src/application/executor', () => {
+vi.mock("../src/domain/statistics/statistics");
+vi.mock("../src/domain/priority-queue/priority-queue");
+vi.mock("../src/application/scheduler");
+vi.mock("../src/application/pid-controller");
+vi.mock("../src/application/rejector");
+vi.mock("../src/application/auto-tuner/auto-tuner");
+vi.mock("../src/application/auto-tuner/concurrency.controller");
+vi.mock("../src/application/auto-tuner/latency.controller");
+vi.mock("../src/domain/request");
+vi.mock("../src/domain/priority");
+vi.mock('../src/application/executor', () => {
     return {
-        Executor: jest.fn()
+        Executor: vi.fn()
     };
 });
-jest.mock("../src/domain/request");
-jest.mock("../src/domain/priority-queue/heap");
-jest.mock("../src/domain/priority-queue/comparator");
-jest.mock("../src/core/shutdown/shutdown-manager");
-jest.mock("../src/core/shutdown/interval-manager");
-jest.mock("../src/domain/priority-queue/timeout-handler");
-jest.mock("../src/application/auto-tuner/controller-history");
+vi.mock("../src/domain/request");
+vi.mock("../src/domain/priority-queue/heap");
+vi.mock("../src/domain/priority-queue/comparator");
+vi.mock("../src/core/shutdown/shutdown-manager");
+vi.mock("../src/core/shutdown/interval-manager");
+vi.mock("../src/domain/priority-queue/timeout-handler");
+vi.mock("../src/application/auto-tuner/controller-history");
 
 describe('PidControllerRateLimit (mocked)', () => {
-    let task: jest.Mock;
+    let task: Mock;
 
     let controller: PidControllerRateLimit;
 
     beforeEach(() => {
-        jest.resetModules();
-        jest.clearAllMocks();
+        vi.resetModules();
+        vi.clearAllMocks();
         controller = new PidControllerRateLimit();
     });
 
@@ -71,7 +73,7 @@ describe('PidControllerRateLimit (mocked)', () => {
     });
 
     test('when run should call expected functions', () => {
-        task = jest.fn();
+        task = vi.fn();
         const priority: number = 3;
         controller.run(task, priority);
 

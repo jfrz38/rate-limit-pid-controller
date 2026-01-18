@@ -1,36 +1,38 @@
+import { vi, describe, expect, beforeEach, Mocked } from 'vitest';
+
 import { ControllerHistory } from "../../../src/application/auto-tuner/controller-history";
 import { LatencyController } from "../../../src/application/auto-tuner/latency.controller";
 import { MathUtils } from "../../../src/domain/math/math-utils";
 import { Statistics } from "../../../src/domain/statistics/statistics";
 
-jest.mock("../../../src/core/logging/logger", () => ({
-  getLogger: jest.fn().mockReturnValue({
-    info: jest.fn()
+vi.mock("../../../src/core/logging/logger", () => ({
+  getLogger: vi.fn().mockReturnValue({
+    info: vi.fn()
   }),
 }));
 
 describe('LatencyController', () => {
-  let statistics: jest.Mocked<Statistics>;
+  let statistics: Mocked<Statistics>;
   let latencyController: LatencyController;
   let history: ControllerHistory;
 
   beforeEach(() => {
     statistics = {
-      getLowestLatencyForInterval: jest.fn(),
-    } as unknown as jest.Mocked<Statistics>;
+      getLowestLatencyForInterval: vi.fn(),
+    } as unknown as Mocked<Statistics>;
 
     history = {
       maxInflights: [],
       intervalThroughputs: [],
       length: 0,
-      push: jest.fn()
-    } as unknown as jest.Mocked<ControllerHistory>;
+      push: vi.fn()
+    } as unknown as Mocked<ControllerHistory>;
 
     latencyController = new LatencyController(statistics, history);
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('should initialize with default targetLatency = 100', () => {
@@ -53,7 +55,7 @@ describe('LatencyController', () => {
     history.maxInflights = [10, 11, 12];
     history.intervalThroughputs = [100, 110, 120];
 
-    jest.spyOn(MathUtils, 'covariance').mockReturnValue(5);
+    vi.spyOn(MathUtils, 'covariance').mockReturnValue(5);
 
     latencyController.update();
 
@@ -66,7 +68,7 @@ describe('LatencyController', () => {
 
     (history as any).length = 15;
     
-    jest.spyOn(MathUtils, 'covariance').mockReturnValue(0);
+    vi.spyOn(MathUtils, 'covariance').mockReturnValue(0);
 
     const previousTarget = latencyController.targetLatency;
     latencyController.update();
@@ -82,7 +84,7 @@ describe('LatencyController', () => {
     expect(latencyController.targetLatency).toBe(80);
 
     (history as any).length = 15;
-    jest.spyOn(MathUtils, 'covariance').mockReturnValue(-3);
+    vi.spyOn(MathUtils, 'covariance').mockReturnValue(-3);
 
     latencyController.update();
 
@@ -96,7 +98,7 @@ describe('LatencyController', () => {
     (latencyController as any).maxInflights = Array(10).fill(1);
     (latencyController as any).intervalThroughputs = Array(10).fill(2);
 
-    jest.spyOn(MathUtils, 'covariance').mockReturnValue(0);
+    vi.spyOn(MathUtils, 'covariance').mockReturnValue(0);
 
     latencyController.update();
 

@@ -1,3 +1,5 @@
+import { describe, expect, beforeEach } from 'vitest';
+
 import { Priority } from "../../../src/domain/priority";
 import { RequestPriorityComparator } from "../../../src/domain/priority-queue/comparator";
 import { Heap } from "../../../src/domain/priority-queue/heap";
