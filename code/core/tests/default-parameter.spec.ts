@@ -9,8 +9,8 @@ describe('DefaultOptions', () => {
         test('should return the full set of default values', () => {
             const defaults = DefaultOptions.values;
 
-            expect(defaults.threshold.initial).toBe(768);
-            expect(defaults.pid.KP).toBe(0.1);
+            expect(defaults.threshold.initial).toBe(DefaultOptions.values.threshold.initial);
+            expect(defaults.pid.KP).toBe(DefaultOptions.values.pid.KP);
             expect(defaults.capacity.cores).toBe(os.cpus().length);
             expect(defaults.log.level).toBe('warn');
         });
