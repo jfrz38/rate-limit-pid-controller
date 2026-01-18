@@ -78,7 +78,6 @@ describe('PidControllerRateLimit (mocked)', () => {
         controller.run(task, priority);
 
         const rejector = (controller as any).rejector;
-        const statistics = (controller as any).statistics;
 
         expect(Request).toHaveBeenCalledWith(task, expect.any(Priority));
         expect(Priority).toHaveBeenCalledWith(priority);

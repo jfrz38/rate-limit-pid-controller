@@ -6,7 +6,7 @@ import { Executor } from "./application/executor";
 import { PidController } from "./application/pid-controller";
 import { Rejector } from "./application/rejector";
 import { Scheduler } from "./application/scheduler";
-import { initLogger } from "./core/logging/logger";
+import { getLogger, initLogger } from "./core/logging/logger";
 import { intervalManager } from "./core/shutdown/interval-manager";
 import { ShutdownManager } from "./core/shutdown/shutdown-manager";
 import { DefaultOptions } from "./default-parameters";
@@ -57,6 +57,11 @@ export class PidControllerRateLimit {
         this.shutdownManager = new ShutdownManager(this.scheduler, intervalManager);
 
         this.init();
+
+        getLogger().info({
+            event: 'CONTROLLER_INIT',
+            metadata: this.parameters
+        }, 'PID Controller is now active.');
     }
 
     private init(): void {
