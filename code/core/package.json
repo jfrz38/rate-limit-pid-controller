@@ -4,9 +4,9 @@
   "license": "MIT",
   "version": "0.0.1",
   "description": "Rate Limiter built based on Uber's Cinnamon architecture",
-  "main": "dist/src/index.js",
-  "module": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "main": "./dist/src/index.js",
+  "module": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "files": [
     "dist"
   ],
@@ -20,9 +20,9 @@
     "test:coverage": "jest --coverage",
     "test:leak": "jest --detectOpenHandles",
     "local": "ts-node src/index.local.ts",
+    "lint": "eslint src",
     "lint:src": "eslint src",
     "lint:fix": "eslint --fix"
-
   },
   "repository": {
     "type": "git",

@@ -9,7 +9,7 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "clean": "pnpm -r exec rm -rf dist node_modules",
-    "lint": "pnpm -r lint"
+    "lint:fix": "pnpm -r lint:fix"
   },
   "author": "José F. Ruiz",
   "license": "ISC",

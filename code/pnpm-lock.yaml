@@ -39,6 +39,18 @@ importers:
         specifier: 8.52.0
         version: 8.52.0(eslint@9.39.2)(typescript@5.9.2)
 
+  adapters/express:
+    dependencies:
+      '@jfrz38/pid-controller-core':
+        specifier: workspace:*
+        version: link:../../core
+
+  adapters/nestjs:
+    dependencies:
+      '@jfrz38/pid-controller-core':
+        specifier: workspace:*
+        version: link:../../core
+
   core:
     dependencies:
       heap-js:
