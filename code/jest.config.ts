@@ -7,7 +7,13 @@ const config: Config = {
     '^.+\\.tsx?$': ['ts-jest', {}]
   },
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
-  testPathIgnorePatterns: ['/node_modules/', '/dist/']
+  testPathIgnorePatterns: [
+    '/node_modules/', 
+    '/dist/',
+    '<rootDir>/dist/',
+    '<rootDir>/.*/dist/',
+    '<rootDir>/node_modules/',
+    '<rootDir>/.*/node_modules/']
 };
 
 export default config;

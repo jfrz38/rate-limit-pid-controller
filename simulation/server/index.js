@@ -1,5 +1,5 @@
 const express = require('express');
-const { PidControllerRateLimit } = require('../../code/nodejs/dist/src/pid-controller-rate-limit');
+const { PidControllerRateLimit } = require('../../code/core/dist/src/pid-controller-rate-limit');
 
 const app = express();
 

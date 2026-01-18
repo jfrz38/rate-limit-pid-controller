@@ -1,0 +1,4 @@
+{
+  "jest.rootPath": "code",
+  "jest.runMode": "on-demand"
+}

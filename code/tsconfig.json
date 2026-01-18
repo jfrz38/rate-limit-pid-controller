@@ -8,8 +8,16 @@
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "composite": true
   },
-  "include": ["src", "tests/**/*"],
-  "exclude": ["node_modules", "/dist", "/src/index.local.ts"]
+  "files": [],
+  "references": [
+    {
+      "path": "./core"
+    },
+    {
+      "path": "./adapters/nestjs"
+    }
+  ]
 }

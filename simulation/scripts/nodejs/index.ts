@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { PidControllerRateLimit } from '../../../code/nodejs/src/pid-controller-rate-limit';
+import { PidControllerRateLimit } from '../../../code/core/src/pid-controller-rate-limit';
 
 export class RunScenario {
   private scenariosDirectory = path.join(__dirname, '../../scenarios/generated');

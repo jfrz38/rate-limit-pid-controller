@@ -1,0 +1,29 @@
+{
+  "name": "rate-limit-pid-controller",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Monorepo for PID-based rate limiting controller and its framework adapters.",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "pnpm install",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r exec rm -rf dist node_modules",
+    "lint:fix": "pnpm -r lint:fix"
+  },
+  "author": "José F. Ruiz",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.3",
+  "devDependencies": {
+    "@types/jest": "30.0.0",
+    "@types/node": "24.3.1",
+    "@typescript-eslint/eslint-plugin": "8.53.0",
+    "@typescript-eslint/parser": "8.53.0",
+    "typescript-eslint": "8.52.0",
+    "eslint": "9.39.2",
+    "jest": "30.1.3",
+    "ts-jest": "29.4.2",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.2"
+  }
+}
