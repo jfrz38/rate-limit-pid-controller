@@ -27,10 +27,11 @@
     "start": "ts-node src/index.ts",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
+    "test": "vitest run",
+    "test:coverage": "vitest --coverage",
+    "test:leak": "vitest --detectOpenHandles",
     "lint:src": "eslint src",
-    "lint:fix": "eslint --fix"
+    "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix"
   },
   "type": "commonjs",
   "keywords": [],
