@@ -147,7 +147,6 @@ describe('Statistics tests', () => {
         const threshold = 10;
         const expectedPercentile = 100 - threshold;
         const expectedPriorities = [1];
-        // let spy: MockInstance<number, [values: number[], percentile: number], any>;
         let spy: MockInstance<(values: number[], percentile: number) => number>;
 
         beforeEach(() => {

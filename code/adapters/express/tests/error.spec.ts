@@ -1,4 +1,4 @@
-import { pidControllerErrorHandler } from '../src/error'; // Ajusta la ruta
+import { pidControllerErrorHandler } from '../src/error';
 import { RejectedRequestException } from "@jfrz38/pid-controller-core";
 import { Request, Response, NextFunction } from 'express';
 
