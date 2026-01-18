@@ -20,12 +20,30 @@ const createPidControllerMiddleware = (
     controller: PidControllerRateLimit,
     options: PidControllerMiddlewareOptions | undefined
 ) => {
-    return async (req: Request, _: Response, next: NextFunction) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
         const priority = getPriority(req, options);
         try {
-            await controller.run(async () => {
-                next();
+            await controller.run(() => {
+                return new Promise<void>((resolve, reject) => {
+                    const cleanup = () => {
+                        res.removeListener('finish', onFinish);
+                        res.removeListener('close', onClose);
+                        res.removeListener('error', onError);
+                    };
+                    const onFinish = () => { cleanup(); resolve(); };
+                    const onClose = () => { cleanup(); resolve(); };
+                    const onError = (err: any) => { cleanup(); reject(err); };
 
+                    res.once('finish', onFinish);
+                    res.once('close', onClose);
+                    res.once('error', onError);
+
+                    try {
+                        next();
+                    } catch (err) {
+                        reject(err);
+                    }
+                });
             }, priority);
         } catch (error) {
             next(error);
