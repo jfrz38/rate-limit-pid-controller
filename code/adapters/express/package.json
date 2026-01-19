@@ -1,5 +1,5 @@
 {
-  "name": "@jfrz38/express-pid-controller",
+  "name": "@jfrz38/pid-controller-express",
   "author": "José F. Ruiz <jrz899@inlumine.ual.es>",
   "license": "MIT",
   "version": "0.0.1",
@@ -8,28 +8,48 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@jfrz38/pid-controller-core": "workspace:*"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jfrz38/rate-limit-pid-controller.git",
-    "directory": "code/adapters/express"
+  "peerDependencies": {
+    "express": "^4.0.0",
+    "@jfrz38/pid-controller-core": "^0.0.1"
   },
   "scripts": {
     "build": "tsc",
     "build:clean": "npm run clean && npm run build",
     "start": "ts-node src/index.ts",
-    "clean": "rm -rf dist",
+    "clean": "rimraf dist",
     "prepublishOnly": "npm run build",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
+    "test": "vitest run",
+    "test:coverage": "vitest --coverage",
+    "test:leak": "vitest --detectOpenHandles",
+    "lint": "eslint src",
     "lint:src": "eslint src",
-    "lint:fix": "eslint --fix"
+    "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix"
   },
   "type": "commonjs",
-  "keywords": [],
-  "packageManager": "pnpm@10.12.3"
+  "keywords": [
+    "express",
+    "pid-controller",
+    "rate-limit",
+    "resilience",
+    "middleware",
+    "backpressure"
+  ],
+  "packageManager": "pnpm@10.12.3",
+  "devDependencies": {
+    "@types/express": "4.17.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jfrz38/rate-limit-pid-controller.git",
+    "directory": "code/adapters/express"
+  }
 }

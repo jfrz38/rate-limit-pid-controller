@@ -1,17 +1,19 @@
+import { vi, describe, expect, beforeEach } from 'vitest';
+
 import { intervalManager } from "../../../src/core/shutdown/interval-manager";
 
 describe('Interval Manager', () => {
 
     beforeEach(() => {
-        jest.useFakeTimers();
-        jest.spyOn(global, 'clearInterval');
+        vi.useFakeTimers();
+        vi.spyOn(global, 'clearInterval');
         (intervalManager as any).intervals = new Set<NodeJS.Timeout>();
     });
 
     afterEach(() => {
-        jest.useRealTimers();
-        jest.restoreAllMocks();
-        jest.clearAllMocks();
+        vi.useRealTimers();
+        vi.restoreAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Add', () => {

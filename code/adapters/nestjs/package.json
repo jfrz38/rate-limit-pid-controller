@@ -1,5 +1,5 @@
 {
-  "name": "@jfrz38/nestjs-pid-controller",
+  "name": "@jfrz38/pid-controller-nestjs",
   "author": "José F. Ruiz <jrz899@inlumine.ual.es>",
   "license": "MIT",
   "version": "0.0.1",
@@ -22,12 +22,14 @@
     "build": "tsc",
     "build:clean": "npm run clean && npm run build",
     "start": "ts-node src/index.ts",
-    "clean": "rm -rf dist",
+    "clean": "rimraf dist",
     "prepublishOnly": "npm run build",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
+    "test": "vitest run",
+    "test:coverage": "vitest --coverage",
+    "test:leak": "vitest --detectOpenHandles",
+    "lint": "eslint src",
     "lint:src": "eslint src",
-    "lint:fix": "eslint --fix"
+    "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix"
   },
   "type": "commonjs",
   "keywords": [],

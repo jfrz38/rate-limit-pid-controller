@@ -1,3 +1,5 @@
+import { vi, describe, expect, beforeEach, Mock, Mocked } from 'vitest';
+
 import EventEmitter from 'events';
 import { Executor } from '../../src/application/executor';
 import { Scheduler } from '../../src/application/scheduler';
@@ -5,59 +7,59 @@ import { Event } from '../../src/domain/events';
 import { PriorityQueue } from '../../src/domain/priority-queue/priority-queue';
 import { Request } from '../../src/domain/request';
 
-jest.mock("../../src/core/logging/logger", () => ({
-    getLogger: jest.fn().mockReturnValue({
-        info: jest.fn(),
-        error: jest.fn()
+vi.mock("../../src/core/logging/logger", () => ({
+    getLogger: vi.fn().mockReturnValue({
+        info: vi.fn(),
+        error: vi.fn()
     }),
 }));
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
 describe('Scheduler', () => {
     let scheduler: Scheduler;
-    let queue: jest.Mocked<PriorityQueue>;
-    let executor: jest.Mocked<Executor>;
-    let emitter: jest.Mocked<EventEmitter>;
+    let queue: Mocked<PriorityQueue>;
+    let executor: Mocked<Executor>;
+    let emitter: Mocked<EventEmitter>;
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
 
         emitter = {
-            on: jest.fn(),
-            emit: jest.fn(),
-            removeAllListeners: jest.fn()
-        } as unknown as jest.Mocked<EventEmitter>;
+            on: vi.fn(),
+            emit: vi.fn(),
+            removeAllListeners: vi.fn()
+        } as unknown as Mocked<EventEmitter>;
 
         queue = {
-            on: jest.fn().mockImplementation((ev, cb) => emitter.on(ev, cb)),
-            emit: jest.fn().mockImplementation((ev, ...args) => emitter.emit(ev, ...args)),
-            poll: jest.fn(),
-            removeAllListeners: jest.fn().mockImplementation((ev) => emitter.removeAllListeners(ev)),
+            on: vi.fn().mockImplementation((ev, cb) => emitter.on(ev, cb)),
+            emit: vi.fn().mockImplementation((ev, ...args) => emitter.emit(ev, ...args)),
+            poll: vi.fn(),
+            removeAllListeners: vi.fn().mockImplementation((ev) => emitter.removeAllListeners(ev)),
             length: 0
-        } as any as jest.Mocked<PriorityQueue>;
+        } as any as Mocked<PriorityQueue>;
 
         executor = {
             concurrency: 10,
-            add: jest.fn()
-        } as unknown as jest.Mocked<Executor>;
+            add: vi.fn()
+        } as unknown as Mocked<Executor>;
 
         scheduler = new Scheduler(queue, executor);
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Initialization & Events', () => {
         test('should start listening to requestAdded on start()', () => {
-            const addListenerSpy = jest.spyOn(queue, 'on');
+            const addListenerSpy = vi.spyOn(queue, 'on');
             scheduler.start();
             expect(addListenerSpy).toHaveBeenCalledWith('requestAdded', expect.any(Function));
         });
 
         test('should remove listeners on terminate()', () => {
-            const removeSpy = jest.spyOn(queue, 'removeAllListeners');
+            const removeSpy = vi.spyOn(queue, 'removeAllListeners');
             scheduler.terminate();
             expect(removeSpy).toHaveBeenCalledWith('requestAdded');
         });
@@ -109,11 +111,11 @@ describe('Scheduler', () => {
         });
 
         test('should not process any request if is running but cannot process', () => {
-            const canProcessSpy = jest.spyOn(scheduler as any, 'canProcess').mockReturnValue(false);
-            const processRequestSpy = jest.spyOn(scheduler as any, 'processRequest');
+            const canProcessSpy = vi.spyOn(scheduler as any, 'canProcess').mockReturnValue(false);
+            const processRequestSpy = vi.spyOn(scheduler as any, 'processRequest');
 
             scheduler.start();
-            jest.advanceTimersByTime(20);
+            vi.advanceTimersByTime(20);
             (scheduler as any).isRunning = false;
 
             expect(canProcessSpy).toHaveBeenCalledTimes(1);
@@ -122,13 +124,13 @@ describe('Scheduler', () => {
         });
 
         test('should not process any request if is running but not exists', () => {
-            const canProcessSpy = jest.spyOn(scheduler as any, 'canProcess').mockReturnValueOnce(true).mockReturnValue(false);
-            (queue.poll as jest.Mock).mockReturnValue(undefined);
-            const processRequestSpy = jest.spyOn(scheduler as any, 'processRequest');
+            const canProcessSpy = vi.spyOn(scheduler as any, 'canProcess').mockReturnValueOnce(true).mockReturnValue(false);
+            (queue.poll as Mock).mockReturnValue(undefined);
+            const processRequestSpy = vi.spyOn(scheduler as any, 'processRequest');
 
             scheduler.start();
             (scheduler as any).isRunning = false;
-            jest.advanceTimersByTime(20);
+            vi.advanceTimersByTime(20);
 
             expect(canProcessSpy).toHaveBeenCalledTimes(1);
             expect(queue.poll).toHaveBeenCalledTimes(1);
@@ -136,13 +138,13 @@ describe('Scheduler', () => {
         });
 
         test('should process a request if exists and is running', () => {
-            const canProcessSpy = jest.spyOn(scheduler as any, 'canProcess').mockReturnValueOnce(true).mockReturnValue(false);
-            const request = {} as unknown as jest.Mocked<Request>;
-            (queue.poll as jest.Mock).mockReturnValue(request);
-            const processRequestSpy = jest.spyOn(scheduler as any, 'processRequest').mockImplementation(() => { });
+            const canProcessSpy = vi.spyOn(scheduler as any, 'canProcess').mockReturnValueOnce(true).mockReturnValue(false);
+            const request = {} as unknown as Mocked<Request>;
+            (queue.poll as Mock).mockReturnValue(request);
+            const processRequestSpy = vi.spyOn(scheduler as any, 'processRequest').mockImplementation(() => { });
 
             scheduler.start();
-            jest.advanceTimersByTime(20);
+            vi.advanceTimersByTime(20);
             (scheduler as any).isRunning = false;
 
             expect(canProcessSpy).toHaveBeenCalledTimes(2);
@@ -154,20 +156,20 @@ describe('Scheduler', () => {
     describe('Processing', () => {
 
         test('should add a request when exists', async () => {
-            const taskMock = jest.fn().mockResolvedValue(undefined);
+            const taskMock = vi.fn().mockResolvedValue(undefined);
             const request = { task: taskMock, status: Event.CREATED };
 
-            executor.add = jest.fn();
+            executor.add = vi.fn();
             await (scheduler as any).processRequest(request);
 
             expect(executor.add).toHaveBeenCalledTimes(1);
         });
 
         test('should mark request as COMPLETED on success', async () => {
-            const taskMock = jest.fn().mockResolvedValue(undefined);
+            const taskMock = vi.fn().mockResolvedValue(undefined);
             const request = { task: taskMock, status: Event.CREATED };
 
-            executor.add = jest.fn(async (fn: () => Promise<any>) => await fn()) as unknown as typeof executor.add;
+            executor.add = vi.fn(async (fn: () => Promise<any>) => await fn()) as unknown as typeof executor.add;
 
             await (scheduler as any).processRequest(request);
 
@@ -178,10 +180,10 @@ describe('Scheduler', () => {
         });
 
         test('should mark request as FAILED on error', async () => {
-            const taskMock = jest.fn().mockRejectedValue(new Error('fail'));
+            const taskMock = vi.fn().mockRejectedValue(new Error('fail'));
             const request = { task: taskMock, status: Event.CREATED };
 
-            executor.add = jest.fn(async (fn: () => Promise<any>) => await fn()) as unknown as typeof executor.add;
+            executor.add = vi.fn(async (fn: () => Promise<any>) => await fn()) as unknown as typeof executor.add;
 
             await (scheduler as any).processRequest(request);
 
@@ -267,7 +269,7 @@ describe('Scheduler', () => {
             const request = { status: Event.CREATED } as any;
             (queue as any).length = 1;
             queue.poll.mockReturnValue(request);
-            const scheduleSpy = jest.spyOn(scheduler as any, 'schedule');
+            const scheduleSpy = vi.spyOn(scheduler as any, 'schedule');
 
             scheduler.start();
 
@@ -295,7 +297,7 @@ describe('Scheduler', () => {
 
         test('should log error and continue if a task fails', () => {
             const request = {
-                task: jest.fn().mockRejectedValue(new Error('Async Error')),
+                task: vi.fn().mockRejectedValue(new Error('Async Error')),
                 status: Event.CREATED,
                 priority: 1
             } as any;

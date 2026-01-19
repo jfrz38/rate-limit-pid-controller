@@ -1,25 +1,34 @@
-import { getLogger, initLogger } from "../../../src/core/logging/logger";
+import { vi, describe, expect, beforeEach } from 'vitest';
+
 import { LogLevel } from "../../../src/domain/types/log-level";
 
 describe('Logger', () => {
-    let logger: any;
+    let logger: typeof import("../../../src/core/logging/logger");
 
-    beforeEach(() => {
-        jest.resetModules();
+    beforeEach(async () => {
+        vi.resetModules();
+        vi.clearAllMocks();
 
-        jest.mock('pino', () => jest.fn(() => ({
-            info: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            debug: jest.fn(),
-        })));
+        vi.doMock('pino', () => {
+            const mock = vi.fn((options) => ({
+                info: vi.fn(),
+                error: vi.fn(),
+                warn: vi.fn(),
+                debug: vi.fn(),
+                level: options.level
+            }));
+            return {
+                default: mock,
+                pino: mock
+            };
+        });
 
-        logger = require('../../../src/core/logging/logger');
+        logger = await import('../../../src/core/logging/logger');
     });
 
     describe('initLogger', () => {
-        test('should initialize logger only once', () => {
-            const mockPino = require('pino');
+        test('should initialize logger only once', async () => {
+            const mockPino = (await import('pino')).default;
 
             logger.initLogger('info');
             logger.initLogger('debug');
@@ -33,14 +42,19 @@ describe('Logger', () => {
             expect(() => logger.getLogger()).toThrow('Logger not initialized');
         });
 
-        test('when is initialized should return the expected logger', () => {
-            const logLevel: LogLevel = 'debug';
+        test.each<LogLevel>([
+            'trace',
+            'debug',
+            'info',
+            'warn',
+            'error',
+            'fatal',
+        ])('should return the expected logger for level: %s', (level) => {
+            logger.initLogger(level);
 
-            initLogger(logLevel);
+            const result = logger.getLogger();
 
-            const result = getLogger();
-
-            expect(result.level).toBe(logLevel);
+            expect(result.level).toBe(level);
         });
     });
 });

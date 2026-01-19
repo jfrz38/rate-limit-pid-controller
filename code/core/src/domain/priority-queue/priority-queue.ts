@@ -8,7 +8,7 @@ import { TimeoutHandler } from './timeout-handler';
 export class PriorityQueue extends EventEmitter {
     private readonly timers = new Map<Request, NodeJS.Timeout>();
 
-    private lastTimeEmpty = Date.now();
+    private lastTimeEmpty = performance.now();
 
     private _entryRequests: number = 0;
     private _exitRequests: number = 0;
@@ -64,7 +64,7 @@ export class PriorityQueue extends EventEmitter {
 
     private setLastTimeEmpty(): void {
         if (this.queue.isEmpty()) {
-            this.lastTimeEmpty = Date.now();
+            this.lastTimeEmpty = performance.now();
         }
     }
 
@@ -72,7 +72,7 @@ export class PriorityQueue extends EventEmitter {
         if (this.queue.isEmpty()) {
             return 0;
         }
-        return (Date.now() - this.lastTimeEmpty) / 1000;
+        return (performance.now() - this.lastTimeEmpty) / 1000;
     }
 
     get entryRequests(): number {

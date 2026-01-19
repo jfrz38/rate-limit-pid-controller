@@ -66,6 +66,11 @@ export class ConcurrencyController {
     }
 
     private applyNewLimit(newLimit: number): void {
+        if (!Number.isFinite(newLimit)) {
+            this.logger.warn(`Ignored unstable new limit ${newLimit}`);
+            return;
+        }
+
         if (newLimit !== this.inflightLimit) {
             this.inflightLimit = newLimit;
             this.scheduler.updateMaxConcurrentRequests(this.inflightLimit);

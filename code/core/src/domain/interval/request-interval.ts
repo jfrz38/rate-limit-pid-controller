@@ -9,7 +9,7 @@ export class RequestInterval {
         return highTime - lowTime;
     }
 
-    public isTimeInInterval(time: number, referenceTime: number = Date.now()): boolean {
+    public isTimeInInterval(time: number, referenceTime: number = performance.now()): boolean {
         const { start, end } = this.getWindowRange(referenceTime);
 
         return time >= start && time <= end;

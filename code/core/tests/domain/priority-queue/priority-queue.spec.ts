@@ -1,3 +1,5 @@
+import { vi, describe, expect, beforeEach, Mock, Mocked } from 'vitest';
+
 import { getLogger } from "../../../src/core/logging/logger";
 import { Event } from "../../../src/domain/events";
 import { Priority } from "../../../src/domain/priority";
@@ -7,35 +9,35 @@ import { PriorityQueue } from "../../../src/domain/priority-queue/priority-queue
 import { TimeoutHandler } from "../../../src/domain/priority-queue/timeout-handler";
 import { Request } from "../../../src/domain/request";
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
-jest.mock("../../../src/core/logging/logger", () => ({
-    getLogger: jest.fn().mockReturnValue({
-        info: jest.fn()
+vi.mock("../../../src/core/logging/logger", () => ({
+    getLogger: vi.fn().mockReturnValue({
+        info: vi.fn()
     }),
 }));
 
 describe('PriorityQueue', () => {
     let heap: Heap;
     let queue: PriorityQueue;
-    let timeoutHandler: jest.Mocked<TimeoutHandler>;
-    let logger = jest.fn();
+    let timeoutHandler: Mocked<TimeoutHandler>;
+    let logger = vi.fn();
 
     beforeEach(() => {
-        jest.clearAllMocks();
-        jest.clearAllTimers();
-        jest.useFakeTimers();
-        jest.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+        vi.clearAllMocks();
+        vi.clearAllTimers();
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
 
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
 
         timeoutHandler = {
             timeout: 300
-        } as any as jest.Mocked<TimeoutHandler>;
+        } as any as Mocked<TimeoutHandler>;
 
-        (getLogger as jest.Mock).mockReturnValue({
+        (getLogger as Mock).mockReturnValue({
             info: logger,
-            warn: jest.fn(),
+            warn: vi.fn(),
         });
 
 
@@ -60,7 +62,7 @@ describe('PriorityQueue', () => {
 
         queue.add(request);
 
-        jest.advanceTimersByTime(timeout + 100);
+        vi.advanceTimersByTime(timeout + 100);
 
         expect(queue.poll()).toBeNull();
     });
@@ -77,7 +79,7 @@ describe('PriorityQueue', () => {
 
         expect(queue.poll()).toBe(firstRequest);
 
-        jest.advanceTimersByTime(timeout + 100);
+        vi.advanceTimersByTime(timeout + 100);
 
         expect(queue.poll()).toBeNull();
     });
@@ -98,7 +100,7 @@ describe('PriorityQueue', () => {
         expect(queue.entryRequests).toBe(2);
         expect(queue.exitRequests).toBe(1);
 
-        jest.advanceTimersByTime(200);  // time to get evict on second request
+        vi.advanceTimersByTime(200);  // time to get evict on second request
         expect(queue.entryRequests).toBe(2);
         expect(queue.exitRequests).toBe(1);
     });
@@ -115,7 +117,7 @@ describe('PriorityQueue', () => {
 
         queue.add(request);
 
-        jest.advanceTimersByTime(1200);
+        vi.advanceTimersByTime(1200);
 
         expect(queue.getTimeSinceLastEmpty()).toBeGreaterThanOrEqual(1);
     });
@@ -135,7 +137,7 @@ describe('PriorityQueue', () => {
         (timeoutHandler as any).timeout = timeout;
         queue.add(request);
 
-        jest.advanceTimersByTime(timeout + 100);
+        vi.advanceTimersByTime(timeout + 100);
 
         expect(request.status).toBe(Event.EVICTED);
     });
@@ -153,7 +155,7 @@ describe('PriorityQueue', () => {
     });
 
     test('should emit requestAdded event when a request is added', () => {
-        const spy = jest.fn();
+        const spy = vi.fn();
         queue.on('requestAdded', spy);
 
         queue.add(createRequest(0));
@@ -165,7 +167,7 @@ describe('PriorityQueue', () => {
         const request = createRequest(0);
         queue.add(request);
 
-        jest.advanceTimersByTime(timeoutHandler.timeout + 1);
+        vi.advanceTimersByTime(timeoutHandler.timeout + 1);
 
         const result = queue.poll();
 
@@ -188,16 +190,16 @@ describe('PriorityQueue', () => {
     });
 
     test('should clear timeout when request is polled', () => {
-        jest.clearAllTimers();
+        vi.clearAllTimers();
 
         const request = createRequest(0);
         queue.add(request);
 
-        expect(jest.getTimerCount()).toBe(1);
+        expect(vi.getTimerCount()).toBe(1);
 
         queue.poll();
 
-        expect(jest.getTimerCount()).toBe(0);
+        expect(vi.getTimerCount()).toBe(0);
     });
 
     function createRequest(priority: number): Request {
@@ -207,12 +209,12 @@ describe('PriorityQueue', () => {
     test('branch true: should remove request and log eviction if still in queue when timeout fires', () => {
         const request = createRequest(10);
 
-        jest.spyOn(heap, 'indexOf').mockReturnValue(0);
-        const removeSpy = jest.spyOn(heap, 'remove');
+        vi.spyOn(heap, 'indexOf').mockReturnValue(0);
+        const removeSpy = vi.spyOn(heap, 'remove');
 
         queue.add(request);
 
-        jest.advanceTimersByTime(timeoutHandler.timeout);
+        vi.advanceTimersByTime(timeoutHandler.timeout);
 
         expect(removeSpy).toHaveBeenCalledWith(request);
         expect(request.status).toBe(Event.EVICTED);
@@ -226,12 +228,12 @@ describe('PriorityQueue', () => {
 
         queue.add(request);
 
-        jest.spyOn(heap, 'indexOf').mockReturnValue(-1);
-        const removeSpy = jest.spyOn(heap, 'remove');
+        vi.spyOn(heap, 'indexOf').mockReturnValue(-1);
+        const removeSpy = vi.spyOn(heap, 'remove');
 
         logger.mockClear();
 
-        jest.advanceTimersByTime(timeoutHandler.timeout);
+        vi.advanceTimersByTime(timeoutHandler.timeout);
 
         expect(removeSpy).not.toHaveBeenCalled();
         expect(logger).not.toHaveBeenCalled();
@@ -243,7 +245,7 @@ describe('PriorityQueue', () => {
     test('clearTimer should clear timeout and delete from map if timer exists', () => {
         const request = createRequest(0);
 
-        const spyClearTimeout = jest.spyOn(global, 'clearTimeout');
+        const spyClearTimeout = vi.spyOn(global, 'clearTimeout');
 
         queue.add(request);
 
@@ -261,7 +263,7 @@ describe('PriorityQueue', () => {
 
     test('clearTimer should do nothing if timer does not exist for the request', () => {
         const request = createRequest(0);
-        const spyClearTimeout = jest.spyOn(global, 'clearTimeout');
+        const spyClearTimeout = vi.spyOn(global, 'clearTimeout');
 
         queue.add(request);
         const timersMap = (queue as any).timers;

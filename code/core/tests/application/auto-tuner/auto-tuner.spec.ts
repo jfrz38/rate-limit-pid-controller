@@ -1,43 +1,45 @@
+import { vi, describe, expect, beforeEach, Mock, Mocked } from 'vitest';
+
 import { AutoTuner } from "../../../src/application/auto-tuner/auto-tuner";
 import { ConcurrencyController } from "../../../src/application/auto-tuner/concurrency.controller";
 import { LatencyController } from "../../../src/application/auto-tuner/latency.controller";
 
-jest.mock("../../../src/core/shutdown/interval-manager");
+vi.mock("../../../src/core/shutdown/interval-manager");
 
 describe('AutoTuner tests', () => {
-  let concurrencyController: jest.Mocked<ConcurrencyController>;
-  let latencyController: jest.Mocked<LatencyController>;
+  let concurrencyController: Mocked<ConcurrencyController>;
+  let latencyController: Mocked<LatencyController>;
   let autoTuner: AutoTuner;
 
   beforeEach(() => {
     concurrencyController = {
-      update: jest.fn(),
-    } as unknown as jest.Mocked<ConcurrencyController>;
+      update: vi.fn(),
+    } as unknown as Mocked<ConcurrencyController>;
 
     latencyController = {
-      update: jest.fn(),
-      getTargetLatency: jest.fn(),
-    } as unknown as jest.Mocked<LatencyController>;
+      update: vi.fn(),
+      getTargetLatency: vi.fn(),
+    } as unknown as Mocked<LatencyController>;
 
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     autoTuner = new AutoTuner(concurrencyController, latencyController);
   });
 
   afterEach(() => {
-    jest.clearAllTimers();
+    vi.clearAllTimers();
   });
 
   test('should call update on both controllers according to intervals', () => {
-    jest.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(2000);
     expect(concurrencyController.update).toHaveBeenCalledTimes(1);
     expect(latencyController.update).toHaveBeenCalledTimes(0);
 
-    jest.advanceTimersByTime(8000);
+    vi.advanceTimersByTime(8000);
     expect(concurrencyController.update).toHaveBeenCalledTimes(5);
     expect(latencyController.update).toHaveBeenCalledTimes(1);
 
-    jest.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(2000);
     expect(concurrencyController.update).toHaveBeenCalledTimes(6);
     expect(latencyController.update).toHaveBeenCalledTimes(1);
   });

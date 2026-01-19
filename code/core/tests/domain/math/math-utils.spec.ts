@@ -1,3 +1,5 @@
+import { describe, expect } from 'vitest';
+
 import { MathUtils } from "../../../src/domain/math/math-utils";
 
 describe('Math utils tests', () => {

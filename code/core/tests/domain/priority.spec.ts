@@ -1,15 +1,17 @@
+import { vi, describe, expect, beforeEach, Mock, Mocked } from 'vitest';
+
 import { Priority } from "../../src/domain/priority";
 
 describe('Priority', () => {
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     describe('constructor', () => {
 
         test('should use default priority and random cohort if none provided', () => {
-            const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5); // 0.5 * 128 = 64
+            const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5); // 0.5 * 128 = 64
 
             const priority = new Priority();
             expect(priority.value).toBe(5 * 128 + 64);
@@ -18,7 +20,7 @@ describe('Priority', () => {
         });
 
         test('should set value correctly when priority is given', () => {
-            const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.2); // 0.2 * 128 ≈ 25
+            const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.2); // 0.2 * 128 ≈ 25
             const priority = new Priority(2);
             expect(priority.value).toBe(2 * 128 + 25);
 
@@ -31,13 +33,13 @@ describe('Priority', () => {
         });
 
         test('should handle lower boundary values of Math.random', () => {
-            jest.spyOn(Math, 'random').mockReturnValue(0);
+            vi.spyOn(Math, 'random').mockReturnValue(0);
             expect(new Priority(5).value % 128).toBe(0);
         });
 
         test('should handle higher boundary values of Math.random', () => {
 
-            jest.spyOn(Math, 'random').mockReturnValue(0.999999);
+            vi.spyOn(Math, 'random').mockReturnValue(0.999999);
             expect(new Priority(5).value % 128).toBe(127);
         });
 

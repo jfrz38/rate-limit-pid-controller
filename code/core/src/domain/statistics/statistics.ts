@@ -31,8 +31,8 @@ export class Statistics {
     }
 
     const durations = validRequests.map(request => {
-      const completed = request.getEventByType(Event.COMPLETED)!;
-      const created = request.getEventByType(Event.CREATED)!;
+      const completed = request.getEventTimestamp(Event.COMPLETED)!;
+      const created = request.getEventTimestamp(Event.CREATED)!;
       return completed - created;
     });
 

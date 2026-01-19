@@ -1,3 +1,5 @@
+import { vi, describe, expect, beforeEach, Mock, Mocked } from 'vitest';
+
 import { getLogger } from "../../../src/core/logging/logger";
 import { DefaultOptions } from "../../../src/default-parameters";
 import { NotEnoughStatsException } from "../../../src/domain/exceptions/not-enough-stats.exception";
@@ -7,30 +9,30 @@ import { Timeout } from "../../../src/domain/types/timeout";
 import { Request } from "../../../src/domain/request";
 import { Priority } from "../../../src/domain/priority";
 
-jest.mock("../../../src/core/shutdown/interval-manager");
-jest.mock("../../../src/core/logging/logger", () => ({
-    getLogger: jest.fn().mockReturnValue({
-        info: jest.fn()
+vi.mock("../../../src/core/shutdown/interval-manager");
+vi.mock("../../../src/core/logging/logger", () => ({
+    getLogger: vi.fn().mockReturnValue({
+        info: vi.fn()
     }),
 }));
 
 describe('Queue timeout handler', () => {
-    let statistics: jest.Mocked<Statistics>;
+    let statistics: Mocked<Statistics>;
     let timeoutHandler: TimeoutHandler;
-    let logger = jest.fn();
+    let logger = vi.fn();
 
-    const timeoutParameters = DefaultOptions.values.timeout as unknown as jest.Mocked<Timeout>;
+    const timeoutParameters = DefaultOptions.values.timeout as unknown as Mocked<Timeout>;
 
     beforeEach(() => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
 
         statistics = {
-            getAverageProcessingTime: jest.fn(),
-        } as unknown as jest.Mocked<Statistics>;
+            getAverageProcessingTime: vi.fn(),
+        } as unknown as Mocked<Statistics>;
 
-        (getLogger as jest.Mock).mockReturnValue({
+        (getLogger as Mock).mockReturnValue({
             info: logger,
-            warn: jest.fn(),
+            warn: vi.fn(),
         });
 
         timeoutHandler = new TimeoutHandler(statistics, timeoutParameters);
@@ -101,16 +103,16 @@ describe('Queue timeout handler', () => {
     });
 
     test('should update timeout automatically when time passes (integration with setInterval)', () => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         const handler = new TimeoutHandler(statistics, timeoutParameters);
 
         statistics.getAverageProcessingTime.mockReturnValue(500);
         (handler as any).ratio = 1;
 
-        jest.advanceTimersByTime(1000);
+        vi.advanceTimersByTime(1000);
 
         expect(handler.timeout).toBe(500);
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     function createRequest(priority: number): Request {
