@@ -5,8 +5,8 @@
   "version": "0.0.1",
   "description": "Express adapter for the PID rate limiter core",
   "main": "./dist/src/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "module": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "files": [
     "dist",
     "README.md"
@@ -18,7 +18,7 @@
     "@jfrz38/pid-controller-core": "workspace:*"
   },
   "peerDependencies": {
-    "express": "^4.0.0",
+    "express": "^5.0.0 || ^4.0.0",
     "@jfrz38/pid-controller-core": "^0.0.1"
   },
   "scripts": {
