@@ -1,4 +1,4 @@
 export type Threshold = {
-    /** Initial threshold value. Default is 768. */
+    /** Initial threshold value. @default 768 */
     initial: number
 }

@@ -1,6 +1,9 @@
 import { LogLevel } from "./log-level";
 
 export type Log = {
-    /** Log level. Default is 'warn' */
+    /**
+     * Available log level.
+     * @default 'warn'
+     */
     level: LogLevel,
 }
