@@ -4,9 +4,8 @@ import { HttpResponse } from '../../../../src/filter/response/http/http-response
 
 describe('HttpResponse', () => {
     let mockResponse: any;
-    const defaultErrorMessage = 'Too many requests, please try again later.';
-    const customErrorMessage = 'custom';
     const mockException = new RejectedRequestException(0, 0);
+    const defaultErrorMessage = 'Too many requests, please try again later.';
 
     beforeEach(() => {
         mockResponse = {
@@ -17,6 +16,8 @@ describe('HttpResponse', () => {
     });
 
     describe('error message visibility', () => {
+
+        const customErrorMessage = 'custom';
 
         test.each([
             { hideError: false, customMessage: undefined, expectedMessage: mockException.message },
@@ -50,7 +51,7 @@ describe('HttpResponse', () => {
             expect(mockResponse.set).toHaveBeenCalledWith('Retry-After', String(retryAfter));
         });
 
-        test('should use custom code and response body from ResponseError', () => {
+        test('when response boy is provided should use expected values', () => {
             const expectedCode = 500;
             const expectedResponse = { custom: 'data' };
             const responseError = {
@@ -64,5 +65,51 @@ describe('HttpResponse', () => {
             expect(mockResponse.status).toHaveBeenCalledWith(expectedCode);
             expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining(expectedResponse));
         });
+    });
+
+    describe('default values', () => {
+        const defaultError = 'RATE_LIMIT_EXCEEDED';
+
+        test('when no response neither title are provided should return default error in body', () => {
+            const responseError = {};
+
+            const httpResponse = new HttpResponse(mockException, responseError);
+
+            httpResponse.createResponse(mockResponse);
+
+            const sentBody = mockResponse.json.mock.calls[0][0];
+            expect(sentBody.error).toBe(defaultError);
+            expect(sentBody.message).toBe(defaultErrorMessage);
+        });
+
+        test('when response is provided but not title should return provided body', () => {
+            const expectedResponse = { value: 'custom' };
+            const responseError = {
+                response: expectedResponse
+            };
+
+            const httpResponse = new HttpResponse(mockException, responseError);
+
+            httpResponse.createResponse(mockResponse);
+
+            const sentBody = mockResponse.json.mock.calls[0][0];
+            expect(sentBody).toBe(expectedResponse);
+        });
+
+        test('when response and title are provided should return provided body', () => {
+            const expectedResponse = { value: 'custom' };
+            const responseError = {
+                response: expectedResponse,
+                title: 'this title is not used'
+            };
+
+            const httpResponse = new HttpResponse(mockException, responseError);
+
+            httpResponse.createResponse(mockResponse);
+
+            const sentBody = mockResponse.json.mock.calls[0][0];
+            expect(sentBody).toBe(expectedResponse);
+        });
+
     });
 });

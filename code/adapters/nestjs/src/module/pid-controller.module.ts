@@ -4,7 +4,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { PidRoutes } from '../error/routes/pid-routes';
 import { PidExceptionFilter } from '../filter/pid-exception.filter';
 import { PidControllerMiddleware } from '../middleware/pid-controller.middleware';
-import { PidModuleOptions } from '../types/options';
+import { PidModuleOptions } from '../types/pid-module-options';
 
 @Global()
 @Module({})
@@ -42,7 +42,7 @@ export class PidControllerModule {
     const {
       excludeRoutes,
       allowedRoutes
-    } = PidRoutes.generate(this.options?.response?.routes);
+    } = PidRoutes.generate(this.options?.rules?.routes);
 
     consumer
       .apply(PidControllerMiddleware)

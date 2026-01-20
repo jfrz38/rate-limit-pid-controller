@@ -26,7 +26,7 @@ describe('PidExceptionFilter', () => {
         };
 
         mockOptions = {
-            response: {
+            rules: {
                 error: {
                     code: 429,
                     hideError: true,
@@ -67,7 +67,7 @@ describe('PidExceptionFilter', () => {
 
         test('when custom response body is provided should return the configured json body', () => {
             const expectedResponse = { custom: 'body' };
-            mockOptions.response.error.response = expectedResponse;
+            mockOptions.rules.error.response = expectedResponse;
 
             filter.catch(mockException, mockArgumentsHost);
 

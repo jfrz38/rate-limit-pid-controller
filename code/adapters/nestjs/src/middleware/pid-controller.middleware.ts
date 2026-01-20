@@ -1,7 +1,7 @@
 import { PidControllerRateLimit } from '@jfrz38/pid-controller-core';
 import { Inject, Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
-import { PidModuleOptions } from '../types/options';
+import { PidModuleOptions } from '../types/pid-module-options';
 
 @Injectable()
 export class PidControllerMiddleware implements NestMiddleware {

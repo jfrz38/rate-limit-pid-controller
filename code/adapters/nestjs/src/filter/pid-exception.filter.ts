@@ -1,7 +1,7 @@
 import { RejectedRequestException } from '@jfrz38/pid-controller-core';
 import { ArgumentsHost, Catch, ExceptionFilter, Inject } from '@nestjs/common';
 import { Response } from 'express';
-import { PidModuleOptions } from '../types/options';
+import { PidModuleOptions } from '../types/pid-module-options';
 import { HttpResponse } from './response/http/http-response';
 
 @Catch(RejectedRequestException)
@@ -16,6 +16,6 @@ export class PidExceptionFilter implements ExceptionFilter {
 
     const response = host.switchToHttp().getResponse<Response>();
 
-    return new HttpResponse(exception, this.options?.response?.error).createResponse(response);
+    return new HttpResponse(exception, this.options?.rules?.error).createResponse(response);
   }
 }

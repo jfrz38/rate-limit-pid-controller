@@ -1,7 +1,7 @@
 import { ResponseError } from "../../error/response-error";
 
 export abstract class FilterResponse {
-    private static readonly DEFAULT_TITLE = 'ERROR_RATE_LIMIT_EXCEEDED';
+    private static readonly DEFAULT_TITLE = 'RATE_LIMIT_EXCEEDED';
     private static readonly DEFAULT_MESSAGE = 'Too many requests, please try again later.';
 
     protected title: string;

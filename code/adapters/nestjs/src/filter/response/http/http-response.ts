@@ -4,9 +4,9 @@ import { FilterResponse } from "../filter-response";
 
 export class HttpResponse extends FilterResponse {
     private static readonly DEFAULT_CODE = 429;
-    private static readonly DEFAULT_RESPONSE_BODY = (message: string) => {
+    private static readonly DEFAULT_RESPONSE_BODY = (error: string, message: string) => {
         return {
-            error: 'RATE_LIMIT_EXCEEDED',
+            error,
             message
         };
     };
@@ -23,7 +23,7 @@ export class HttpResponse extends FilterResponse {
         super(responseError);
 
         this.code = responseError?.code ?? HttpResponse.DEFAULT_CODE;
-        this.response = responseError?.response ?? HttpResponse.DEFAULT_RESPONSE_BODY(this.message);
+        this.response = responseError?.response ?? HttpResponse.DEFAULT_RESPONSE_BODY(this.title, this.message);
         this.retryAfter = responseError?.retryAfter;
         this.hidePidMessage = responseError?.hideError ?? HttpResponse.DEFAULT_HIDE_PID_MESSAGE;
 
