@@ -10,9 +10,10 @@ export class HttpResponse extends FilterResponse {
             message
         };
     };
-    private static readonly HIDE_PID_MESSAGE = true;
+    private static readonly DEFAULT_HIDE_PID_MESSAGE = true;
 
     private retryAfter: number | undefined;
+    private hidePidMessage: boolean;
     protected code: number;
     protected response: any;
 
@@ -21,10 +22,12 @@ export class HttpResponse extends FilterResponse {
         protected readonly responseError: ResponseError | undefined) {
         super(responseError);
 
-        this.code = responseError?.code || HttpResponse.DEFAULT_CODE;
-        this.response = responseError?.response || HttpResponse.DEFAULT_RESPONSE_BODY(this.message);
+        this.code = responseError?.code ?? HttpResponse.DEFAULT_CODE;
+        this.response = responseError?.response ?? HttpResponse.DEFAULT_RESPONSE_BODY(this.message);
         this.retryAfter = responseError?.retryAfter;
-        if (!HttpResponse.HIDE_PID_MESSAGE) {
+        this.hidePidMessage = responseError?.hideError ?? HttpResponse.DEFAULT_HIDE_PID_MESSAGE;
+
+        if (!this.hidePidMessage) {
             this.response.message = exception.message;
         }
     }
