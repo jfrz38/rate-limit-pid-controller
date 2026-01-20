@@ -1,5 +1,5 @@
-import { Response } from "express";
-import { ErrorContext } from "../../../types/error-context";
+import { RejectedRequestException } from "@jfrz38/pid-controller-core";
+import { ResponseError } from "../../../error/response-error";
 import { FilterResponse } from "../filter-response";
 
 export class HttpResponse extends FilterResponse {
@@ -10,39 +10,33 @@ export class HttpResponse extends FilterResponse {
             message
         };
     };
+    private static readonly HIDE_PID_MESSAGE = true;
 
     private retryAfter: number | undefined;
     protected code: number;
-    protected response: object;
+    protected response: any;
 
-    constructor(protected readonly errorContext: ErrorContext | undefined) {
-        super(errorContext);
+    constructor(
+        readonly exception: RejectedRequestException,
+        protected readonly responseError: ResponseError | undefined) {
+        super(responseError);
 
-        this.code = errorContext?.code || HttpResponse.DEFAULT_CODE;
-        this.response = errorContext?.response || HttpResponse.DEFAULT_RESPONSE_BODY(this.message);
-        this.retryAfter = errorContext?.retryAfter;
+        this.code = responseError?.code || HttpResponse.DEFAULT_CODE;
+        this.response = responseError?.response || HttpResponse.DEFAULT_RESPONSE_BODY(this.message);
+        this.retryAfter = responseError?.retryAfter;
+        if (!HttpResponse.HIDE_PID_MESSAGE) {
+            this.response.message = exception.message;
+        }
     }
 
-    public createResponse(response: Response): Response {
-        this.addHeader(response);
-        return response.status(this.code).json(this.response);
-    }
-
-    private addHeader(response: Response) {
-        if(!this.retryAfter) {
-            return;
+    public createResponse(response: any) {
+        if (this.retryAfter) {
+            response.set('Retry-After', String(this.retryAfter));
         }
 
-        const name = 'Retry-After';
-        const time =  String(this.retryAfter);
-
-        if(typeof response.header === 'function') {
-            response.header(name, time);
-        } else if (typeof response.set === 'function') {
-            response.set(name, time);
-        }
-
-        throw new Error('Unsupported HTTP client');
+        return response
+            .status(this.code)
+            .json(this.response);
     }
 
 }

@@ -1,10 +1,8 @@
 import { Parameters } from "@jfrz38/pid-controller-core";
-import { ErrorContext } from "./error-context";
+import { PidErrorResponse as PidResponse } from "../error/pid-error-response";
 
 export interface PidModuleOptions {
-  config?: Parameters;
-  errorContext?: ErrorContext;
-  priority?: (req: any) => number;
-  excludeRoutes?: string[],
-  forRoutes?: any
+  pidConfig?: Parameters;
+  response?: PidResponse;
+  getPriority?: (req: any) => number;
 }

@@ -1,4 +1,4 @@
-import { ErrorContext } from "../../types/error-context";
+import { ResponseError } from "../../error/response-error";
 
 export abstract class FilterResponse {
     private static readonly DEFAULT_TITLE = 'ERROR_RATE_LIMIT_EXCEEDED';
@@ -9,8 +9,8 @@ export abstract class FilterResponse {
     protected abstract code: string | number | undefined;
     protected abstract response: object | undefined;
 
-    constructor(protected readonly errorContext: ErrorContext | undefined) {
-        this.title = errorContext?.title || FilterResponse.DEFAULT_TITLE;
-        this.message = errorContext?.message || FilterResponse.DEFAULT_MESSAGE;
+    constructor(protected readonly responseError: ResponseError | undefined) {
+        this.title = responseError?.title || FilterResponse.DEFAULT_TITLE;
+        this.message = responseError?.message || FilterResponse.DEFAULT_MESSAGE;
     }
 }
