@@ -17,7 +17,7 @@ const { middleware } = pidControllerMiddleware(
     }
 );
 app.use(middleware);
-app.use(pidControllerErrorHandler())
+app.use(pidControllerErrorHandler({code: 200 }))
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
