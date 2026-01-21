@@ -22,7 +22,7 @@ app.use(pidControllerErrorHandler())
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 app.get('/test', async (req, res) => {
-    const executionTime = Number(req.headers['execution-time']) || 10;
+    const executionTime = Number(req.headers['execution-time']) || 100;
 
     await sleep(executionTime);
 
@@ -35,5 +35,5 @@ app.get('/test', async (req, res) => {
 const PORT = 3000;
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Try: curl -H "x-priority: 4" -H "execution-time: 2000" http://localhost:3000`);
+    console.log(`Try: curl -H "x-priority: 4" -H "execution-time: 2000" http://localhost:3000/test`);
 });
