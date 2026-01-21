@@ -1,6 +1,6 @@
-import { pidControllerErrorHandler } from '../src/error';
 import { RejectedRequestException } from "@jfrz38/pid-controller-core";
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
+import { pidControllerErrorHandler } from '../src/error';
 
 describe('pidControllerErrorHandler', () => {
     let mockRequest: Partial<Request>;
@@ -73,5 +73,28 @@ describe('pidControllerErrorHandler', () => {
 
         expect(mockResponse.set).toHaveBeenCalledWith('Retry-After', '60');
         expect(mockResponse.status).toHaveBeenCalledWith(429);
+    });
+
+    test('should return custom response code if it is provided', () => {
+        const code = 200;
+        const handler = pidControllerErrorHandler({ code });
+
+        const error = new RejectedRequestException(0, 0);
+
+        handler(error, mockRequest as Request, mockResponse as Response, nextFunction);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(code);
+    });
+
+    test('should use the custom body if it is provided', () => {
+        const responseBody = { hello: 'world' };
+        const handler = pidControllerErrorHandler({ responseBody });
+        const error = new RejectedRequestException(0, 0);
+
+        handler(error, mockRequest as Request, mockResponse as Response, nextFunction);
+
+        expect(mockResponse.json).toHaveBeenCalledWith(
+            expect.objectContaining(responseBody)
+        );
     });
 });
