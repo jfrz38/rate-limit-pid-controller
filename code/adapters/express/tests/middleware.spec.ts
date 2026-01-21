@@ -4,6 +4,7 @@ import { PidControllerRateLimit, RejectedRequestException } from "@jfrz38/pid-co
 import { Request, Response, NextFunction } from 'express';
 import { EventEmitter } from 'events';
 
+// TODO: In iss-22 this logic test will be transferred into common library
 vi.mock("@jfrz38/pid-controller-core", () => {
     const MockedController = vi.fn();
 
@@ -241,7 +242,4 @@ describe('pidControllerMiddleware', () => {
 
         expect(nextFunction).toHaveBeenCalledWith(expect.any(Error));
     });
-
-
-
 });
