@@ -1,13 +1,17 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { PidControllerModule } from '../../../../../../../code/adapters/nestjs/dist/src/index';
 import { HttpAdapterHost } from '@nestjs/core';
+import { PidControllerModule } from '@jfrz38/pid-controller-nestjs';
 
 @Module({
   imports: [
     PidControllerModule.forRoot(
       {
         pidConfig: {
+          capacity:{
+            cores: 1,
+            maxConcurrentRequests: 2
+          },
           log: {
             level: 'debug'
           },
@@ -16,7 +20,9 @@ import { HttpAdapterHost } from '@nestjs/core';
             minRequestsForStats: 10
           }
         },
-        getPriority: (req) => req.get('x-priority')
+        priority: {
+          getPriority: (req) => req.get('x-priority')
+        },
       }
     )
   ],

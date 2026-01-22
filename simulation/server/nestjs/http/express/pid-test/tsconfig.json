@@ -16,9 +16,12 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@jfrz38/pid-controller-core": ["../../../../../../code/core/src/index"],
+      "@jfrz38/pid-controller-shared": ["../../../../../../code/adapters/shared/src/index"],
+      "@jfrz38/pid-controller-nestjs": ["../../../../../../code/adapters/nestjs/src/index"]
+    }
   },
-  "exclude": [
-    "../../../../../../code"
-  ]
+  "include": ["src/**/*"]
 }
