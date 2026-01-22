@@ -9,7 +9,8 @@
   },
   "include": [
     "src/**/*",
-    "tests/**/*"
+    "tests/**/*",
+    "../shared/src/filter/error/pid-http-rules.ts"
   ],
   "exclude": [
     "node_modules",
