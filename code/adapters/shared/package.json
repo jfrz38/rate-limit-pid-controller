@@ -1,0 +1,23 @@
+{
+  "name": "@jfrz38/pid-controller-shared",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared components for the PID rate limiter core",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "@jfrz38/pid-controller-core": "workspace:*"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.3",
+  "devDependencies": {
+    "@types/express": "4.17.0",
+    "express": "5.2.1"
+  }
+}
