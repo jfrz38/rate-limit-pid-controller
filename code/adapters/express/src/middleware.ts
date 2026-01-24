@@ -14,6 +14,6 @@ export const pidControllerMiddleware = (options?: PidControllerOptions) => {
 
 const createPidControllerMiddleware = (handler: PidControllerMiddlewareHandler) => {
     return async (req: Request, res: Response, next: NextFunction) => {
-        handler.use(req, res, next);
+        await handler.use(req, res, next);
     };
 };

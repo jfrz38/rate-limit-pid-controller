@@ -19,7 +19,8 @@ export class HttpErrorResponse extends FilterResponse {
 
     constructor(
         readonly exception: RejectedRequestException,
-        protected readonly responseError: ResponseError | undefined) {
+        protected readonly responseError: ResponseError | undefined
+    ) {
         super(responseError);
 
         this.code = responseError?.code ?? HttpErrorResponse.DEFAULT_CODE;
