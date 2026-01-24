@@ -64,7 +64,11 @@ export class Statistics {
 
   public calculateCumulativePriorityDistribution(threshold: number): number {
     const priorities = this.intervalQueue.getPriorities();
-    const percentile = 100 - threshold;
-    return MathUtils.percentile(priorities, percentile);
+
+    if (priorities.length < this.minRequestsForStats) {
+      throw new NotEnoughStatsException();
+    }
+
+    return MathUtils.percentile(priorities, threshold);
   }
 }

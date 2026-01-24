@@ -3,48 +3,97 @@ import { Pid } from "../domain/types/pid";
 import { Scheduler } from "./scheduler";
 
 export class PidController {
-  private readonly MAX_THRESHOLD = 100; // Can't be more than 100% usage
-  private readonly MIN_THRESHOLD = 0;   // Can't be less than 0% usage
-  
+  private readonly MAX_THRESHOLD = 100;  // Percentage (0-100)
+  private readonly MIN_THRESHOLD = 0;    // Percentage (0-100)
+  private readonly MAX_DELTA = 10;       // Maximum change per iteration (in percentage points)
+  private readonly INTEGRAL_DECAY = 0.6; // Decay integral faster during recovery (was 0.8)
+
   private readonly KP: number;
   private readonly KI: number;
+  private readonly KD: number;
 
-  private currentThreshold = 0.0;
+  private currentThreshold: number;
+  private integral = 0.0;
+  private previousError = 0.0;
 
   constructor(
     private readonly scheduler: Scheduler,
     private readonly priorityQueue: PriorityQueue,
-    pid: Pid
+    pid: Pid,
+    initialThreshold: number
   ) {
     this.KP = pid.KP;
     this.KI = pid.KI;
+    this.KD = pid.KD || 0;
+    // TODO: Use default values
+    this.currentThreshold = Math.min(100, Math.max(0, initialThreshold / 768 * 100));
   }
 
   updateThreshold(): number {
     const controlError = this.getControlError();
-    const weightedError = controlError * this.KP + controlError * this.KI;
 
-    this.currentThreshold += weightedError;
+    if (controlError <= 0) {
+      return this.thresholdForSystemUnderused(controlError);
+    }
+
+    return this.thresholdForSystemOverloaded(controlError);
+
+  }
+
+  private getControlError(): number {
+    const processingRequests = this.scheduler.processingRequests;
+    const maxInflights = this.scheduler.maxConcurrentRequests;
+    const totalInFlight = processingRequests + this.priorityQueue.length;
+
+    const error = (totalInFlight - maxInflights) / maxInflights;
+
+    return error;
+  }
+
+  private thresholdForSystemUnderused(controlError: number): number {
+    this.integral *= this.INTEGRAL_DECAY;
+    this.integral += controlError;
+
+    const derivative = controlError - this.previousError;
+    this.previousError = controlError;
+
+    const pidOutput = -((this.KP * controlError) + (this.KI * this.integral) + (this.KD * derivative));
+
+    const delta = Math.max(0, Math.min(this.MAX_DELTA, Math.abs(pidOutput)));
+
+    if (delta > 0) {
+      this.currentThreshold += delta;
+    }
 
     if (this.currentThreshold > this.MAX_THRESHOLD) {
       this.currentThreshold = this.MAX_THRESHOLD;
-    } else if (this.currentThreshold < this.MIN_THRESHOLD) {
-      this.currentThreshold = this.MIN_THRESHOLD;
+      this.integral -= controlError;
     }
-
-    this.priorityQueue.resetCounters();
 
     return this.currentThreshold;
   }
 
-  private getControlError(): number {
-    const inRequests = this.priorityQueue.entryRequests;
-    const outRequests = this.priorityQueue.exitRequests;
-    const maxInflights = this.scheduler.maxConcurrentRequests;
-    
-    const freeInflights = maxInflights - this.scheduler.processingRequests;
-    const outPrime = outRequests === 0 ? maxInflights : outRequests;
+  private thresholdForSystemOverloaded(controlError: number): number {
+    if (controlError < 0.01) {
+      return this.currentThreshold;
+    }
 
-    return (inRequests - (outRequests + freeInflights)) / outPrime;
+    this.integral += controlError;
+
+    const derivative = controlError - this.previousError;
+    this.previousError = controlError;
+
+    const pidOutput = (this.KP * controlError) + (this.KI * this.integral) + (this.KD * derivative);
+
+    const delta = -Math.max(0, Math.min(this.MAX_DELTA, pidOutput));
+
+    this.currentThreshold += delta;
+
+    if (this.currentThreshold < this.MIN_THRESHOLD) {
+      this.currentThreshold = this.MIN_THRESHOLD;
+      this.integral -= controlError;
+    }
+
+    return this.currentThreshold;
   }
 }
