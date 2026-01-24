@@ -27,15 +27,11 @@ export class PidControllerModule {
         },
         {
           provide: APP_FILTER,
-          useFactory: () => {
-            return new PidExceptionFilter(options?.rules?.error);
-          }
+          useFactory: () => new PidExceptionFilter(options?.rules?.error),
         },
         {
           provide: PidControllerMiddlewareHandler,
-          useFactory: (controller: PidControllerRateLimit) => {
-            return new PidControllerMiddlewareHandler(controller, options.priority);
-          },
+          useFactory: (controller: PidControllerRateLimit) => new PidControllerMiddlewareHandler(controller, options.priority),
           inject: ['PID_CONTROLLER', 'PID_CONTROLLER_OPTIONS']
         }
       ],
