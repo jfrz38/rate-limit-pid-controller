@@ -8,6 +8,6 @@ export class PidControllerMiddleware implements NestMiddleware {
   constructor(private readonly handler: PidControllerMiddlewareHandler) { }
 
   async use(req: Request, res: Response, next: NextFunction) {
-    this.handler.use(req, res, next);
+    await this.handler.use(req, res, next);
   }
 }
