@@ -9,9 +9,12 @@ export class DefaultOptions {
             level: 'warn',
         },
         pid: {
-            KP: 0.1,
-            KI: 1.4,
-            interval: 500
+            KP: 0.2,
+            KI: 0.5,
+            KD: 0,
+            interval: 500,
+            delta: Infinity,
+            decayRatio: 0.5
         },
         timeout: {
             priorityQueue: {
@@ -29,7 +32,7 @@ export class DefaultOptions {
             minRequestsForLatencyPercentile: 250,
             latencyPercentile: 90,
             requestInterval: {
-                minIntervalTime: 2,
+                minIntervalTime: 2, 
                 maxIntervalTime: 30
             }
         }
