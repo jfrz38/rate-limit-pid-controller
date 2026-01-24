@@ -46,14 +46,29 @@ export class Rejector {
 
     public startThresholdCheck(interval: number): void {
         const timer = setInterval(() => {
+            const pidPercentage = this.pidController.updateThreshold();
+
             try {
-                this.updateThreshold(this.getPriorityThreshold());
+                // Try to use Statistics if there's recent load
+                const actualThreshold = this.statistics.calculateCumulativePriorityDistribution(pidPercentage);
+                if (actualThreshold !== this.threshold) {
+                    this.updateThreshold(actualThreshold);
+                }
             } catch (e) {
-                return;
+                // No recent data: convert PID percentage directly to priority threshold
+                // This allows gradual recovery during idle periods
+                const directThreshold = Math.round((pidPercentage * 768) / 100);
+                if (directThreshold !== this.threshold) {
+                    this.updateThreshold(directThreshold);
+                }
             }
         }, interval);
 
         intervalManager.add(timer);
+    }
+
+    private isServiceOverloaded(): boolean {
+        return this.priorityQueue.getTimeSinceLastEmpty() > this.MAX_QUEUE_EMPTY_TIME;
     }
 
     private getPriorityThreshold(): number {
