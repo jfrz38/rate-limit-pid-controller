@@ -1,5 +1,4 @@
 import { ResponseError } from "./response-error";
-import { PidRoutesConfig } from "./routes/pid-routes-config";
 
 /**
  * Defines the operational boundaries and HTTP policies for the PID controller.
@@ -12,10 +11,4 @@ export interface PidHttpRules {
    * @see {@link ResponseError}
    */
     error?: ResponseError;
-    /**
-   * Rules to determine which incoming requests should be processed or ignored
-   * by the PID controller based on their path and HTTP method.
-   * @see {@link PidRoutesConfig}
-   */
-    routes?: PidRoutesConfig,
 }

@@ -1,100 +1,61 @@
 import { RejectedRequestException } from "@jfrz38/pid-controller-core";
-import { NextFunction, Request, Response } from 'express';
+import { HttpErrorResponse } from "@jfrz38/pid-controller-shared";
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { pidControllerErrorHandler } from '../src/error';
 
-describe('pidControllerErrorHandler', () => {
-    let mockRequest: Partial<Request>;
-    let mockResponse: Partial<Response>;
-    let nextFunction: NextFunction = vi.fn();
+const mockFormat = vi.fn();
+
+vi.mock("@jfrz38/pid-controller-shared", () => {
+    return {
+        HttpErrorResponse: vi.fn().mockImplementation(function (this: any) {
+            this.format = mockFormat;
+            return this;
+        })
+    };
+});
+
+describe('Express PID Controller Error handler', () => {
+    let mockRequest: any;
+    let mockResponse: any;
+    let nextFunction: any;
 
     beforeEach(() => {
-        mockRequest = {};
-        mockResponse = {
-            status: vi.fn().mockReturnThis(),
-            json: vi.fn().mockReturnThis(),
-            set: vi.fn().mockReturnThis(),
-            headersSent: false,
-        };
         vi.clearAllMocks();
+        mockRequest = {};
+        mockResponse = { headersSent: false };
+        nextFunction = vi.fn();
     });
 
-    test('should call next(error) if the error is not a RejectedRequestException', () => {
+    test('when is RejectedRequestException should call shared', () => {
+        const options = { code: 429 };
+        const handler = pidControllerErrorHandler(options);
+        const error = new RejectedRequestException(10, 5);
+
+        handler(error, mockRequest, mockResponse, nextFunction);
+
+        expect(HttpErrorResponse).toHaveBeenCalledWith(error, options);
+
+        expect(mockFormat).toHaveBeenCalledWith(mockResponse);
+    });
+
+    test('when is not a RejectedRequestException should call next(error) and not call shared', () => {
         const handler = pidControllerErrorHandler();
-        const genericError = new Error('Generic Error');
+        const genericError = new Error('Other error');
 
-        handler(genericError, mockRequest as Request, mockResponse as Response, nextFunction);
+        handler(genericError, mockRequest, mockResponse, nextFunction);
 
+        expect(HttpErrorResponse).not.toHaveBeenCalled();
         expect(nextFunction).toHaveBeenCalledWith(genericError);
-        expect(mockResponse.status).not.toHaveBeenCalled();
     });
 
-    test('should call next(error) if headers have already been sent', () => {
+    test('when headers are sent should should call next(error)', () => {
         const handler = pidControllerErrorHandler();
         const error = new RejectedRequestException(0, 0);
         mockResponse.headersSent = true;
 
-        handler(error, mockRequest as Request, mockResponse as Response, nextFunction);
+        handler(error, mockRequest, mockResponse, nextFunction);
 
+        expect(HttpErrorResponse).not.toHaveBeenCalled();
         expect(nextFunction).toHaveBeenCalledWith(error);
-        expect(mockResponse.status).not.toHaveBeenCalled();
-    });
-
-    test('should return 429 with the default message when no options are provided', () => {
-        const handler = pidControllerErrorHandler();
-        const error = new RejectedRequestException(0, 0);
-
-        handler(error, mockRequest as Request, mockResponse as Response, nextFunction);
-
-        expect(mockResponse.status).toHaveBeenCalledWith(429);
-        expect(mockResponse.json).toHaveBeenCalledWith({
-            error: 'RATE_LIMIT_EXCEEDED',
-            message: 'Too many requests, please try again later.'
-        });
-    });
-
-    test('should use the custom message provided in options', () => {
-        const customMessage = 'Custom limit message';
-        const handler = pidControllerErrorHandler({ message: customMessage });
-        const error = new RejectedRequestException(0, 0);
-
-        handler(error, mockRequest as Request, mockResponse as Response, nextFunction);
-
-        expect(mockResponse.json).toHaveBeenCalledWith(
-            expect.objectContaining({ message: customMessage })
-        );
-    });
-
-    test('should set Retry-After header if provided in options', () => {
-        const retryAfter = 60;
-        const handler = pidControllerErrorHandler({ retryAfter });
-        const error = new RejectedRequestException(0, 0);
-
-        handler(error, mockRequest as Request, mockResponse as Response, nextFunction);
-
-        expect(mockResponse.set).toHaveBeenCalledWith('Retry-After', '60');
-        expect(mockResponse.status).toHaveBeenCalledWith(429);
-    });
-
-    test('should return custom response code if it is provided', () => {
-        const code = 200;
-        const handler = pidControllerErrorHandler({ code });
-
-        const error = new RejectedRequestException(0, 0);
-
-        handler(error, mockRequest as Request, mockResponse as Response, nextFunction);
-
-        expect(mockResponse.status).toHaveBeenCalledWith(code);
-    });
-
-    test('should use the custom body if it is provided', () => {
-        const responseBody = { hello: 'world' };
-        const handler = pidControllerErrorHandler({ responseBody });
-        const error = new RejectedRequestException(0, 0);
-
-        handler(error, mockRequest as Request, mockResponse as Response, nextFunction);
-
-        expect(mockResponse.json).toHaveBeenCalledWith(
-            expect.objectContaining(responseBody)
-        );
     });
 });

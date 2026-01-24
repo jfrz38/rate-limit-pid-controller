@@ -1,21 +1,22 @@
 const express = require('express');
-const { pidControllerMiddleware, pidControllerErrorHandler } = require('../../../code/adapters/express/dist/src/index');
-
-const app = express();
+const { pidControllerMiddleware, pidControllerErrorHandler } = require('@jfrz38/pid-controller-express')
 
 const { middleware } = pidControllerMiddleware(
-    { priority: (req) => Number(req.headers['x-priority']) },
     {
-        log: { level: 'debug' },
-        capacity: {
-            maxConcurrentRequests: 2,
+        priority: {
+            getPriority: (req) => Number(req.headers['x-priority'])
         },
-        statistics: {
-            minRequestsForLatencyPercentile: 10,
-            minRequestsForStats: 10
+        pidConfig: {
+            log: { level: 'debug' },
+            statistics: {
+                minRequestsForLatencyPercentile: 10,
+                minRequestsForStats: 10
+            }
         }
     }
 );
+
+const app = express();
 app.use(middleware);
 app.use(pidControllerErrorHandler())
 

@@ -1,4 +1,4 @@
-import { ResponseError } from "../../error/response-error";
+import { ResponseError } from "./error/response-error";
 
 export abstract class FilterResponse {
     private static readonly DEFAULT_TITLE = 'RATE_LIMIT_EXCEEDED';

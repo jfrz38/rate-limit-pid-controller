@@ -1,13 +1,12 @@
 import { RejectedRequestException } from '@jfrz38/pid-controller-core';
-import { ArgumentsHost, Catch, ExceptionFilter, Inject } from '@nestjs/common';
+import { HttpErrorResponse, ResponseError } from '@jfrz38/pid-controller-shared';
+import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { Response } from 'express';
-import { PidModuleOptions } from '../types/pid-module-options';
-import { HttpResponse } from './response/http/http-response';
 
 @Catch(RejectedRequestException)
 export class PidExceptionFilter implements ExceptionFilter {
 
-  constructor(@Inject('PID_CONTROLLER_OPTIONS') private options: PidModuleOptions) { }
+  constructor(private error?: ResponseError) { }
 
   catch(exception: RejectedRequestException, host: ArgumentsHost) {
     if (host.getType() !== 'http') {
@@ -16,6 +15,6 @@ export class PidExceptionFilter implements ExceptionFilter {
 
     const response = host.switchToHttp().getResponse<Response>();
 
-    return new HttpResponse(exception, this.options?.rules?.error).createResponse(response);
+    return new HttpErrorResponse(exception, this.error).format(response);
   }
 }

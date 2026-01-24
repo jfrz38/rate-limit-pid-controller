@@ -12,13 +12,15 @@
     "composite": true,
     "types": ["vitest/globals"]
   },
-  "files": [],
   "references": [
     {
       "path": "./core"
     },
     {
       "path": "./adapters/nestjs"
+    },
+    {
+      "path": "./adapters/express"
     }
   ]
 }

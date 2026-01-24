@@ -1,17 +1,18 @@
 import { PidControllerRateLimit } from '@jfrz38/pid-controller-core';
+import { PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
 import { DynamicModule, Global, Inject, MiddlewareConsumer, Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { PidRoutes } from '../error/routes/pid-routes';
 import { PidExceptionFilter } from '../filter/pid-exception.filter';
 import { PidControllerMiddleware } from '../middleware/pid-controller.middleware';
-import { PidModuleOptions } from '../types/pid-module-options';
+import { NestPidModuleOptions } from '../types/nest-pid-module-options';
 
 @Global()
 @Module({})
 export class PidControllerModule {
-  private options: PidModuleOptions;
+  private options: NestPidModuleOptions;
 
-  static forRoot(options: PidModuleOptions): DynamicModule {
+  static forRoot(options: NestPidModuleOptions): DynamicModule {
     return {
       module: PidControllerModule,
       imports: [],
@@ -26,15 +27,23 @@ export class PidControllerModule {
         },
         {
           provide: APP_FILTER,
-          useClass: PidExceptionFilter,
+          useFactory: () => {
+            return new PidExceptionFilter(options?.rules?.error);
+          }
         },
-        PidControllerMiddleware
+        {
+          provide: PidControllerMiddlewareHandler,
+          useFactory: (controller: PidControllerRateLimit) => {
+            return new PidControllerMiddlewareHandler(controller, options.priority);
+          },
+          inject: ['PID_CONTROLLER', 'PID_CONTROLLER_OPTIONS']
+        }
       ],
       exports: ['PID_CONTROLLER', 'PID_CONTROLLER_OPTIONS'],
     };
   }
 
-  constructor(@Inject('PID_CONTROLLER_OPTIONS') options: PidModuleOptions) {
+  constructor(@Inject('PID_CONTROLLER_OPTIONS') options: NestPidModuleOptions) {
     this.options = options;
   }
 
