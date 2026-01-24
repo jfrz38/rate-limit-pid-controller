@@ -1,36 +1,39 @@
+import { mean, quantileSeq, variance, subtract } from 'mathjs';
+
 export class MathUtils {
+
+  // TODO: Use variance
+
   static covariance(x: number[], y: number[], sample = false): number {
-    if (x.length !== y.length) {throw new Error("Vectors must have the same length");}
-    const length = x.length;
-    if (length <= 1) {return 0;}
+    if (x.length !== y.length) {
+      return 0;
+    }
+    if (x.length <= 1) {
+      return 0;
+    };
 
-    const meanX = x.reduce((a, b) => a + b, 0) / length;
-    const meanY = y.reduce((a, b) => a + b, 0) / length;
+    const muX = mean(x);
+    const muY = mean(y);
+    
+    const devX = subtract(x, muX) as number[];
+    const devY = subtract(y, muY) as number[];
+    const sum = devX.reduce((acc, val, i) => acc + val * devY[i], 0);
 
-    const covarianceSum = x.reduce((sum, xi, i) => sum + (xi - meanX) * (y[i] - meanY), 0);
-    return covarianceSum / (sample ? length - 1 : length);
+    return sum / (sample ? x.length - 1 : x.length);
   }
 
   static percentile(values: number[], percentile: number): number {
-    if (!values.length) {return 0;}
-
-    const sorted = [...values].sort((a, b) => a - b);
-    const index = (percentile / 100) * (sorted.length - 1);
-    const lowerIndex = Math.floor(index);
-    const upperIndex = Math.ceil(index);
-
-    if (lowerIndex === upperIndex) {
-      return Math.floor(sorted[lowerIndex]);
+    if (!values.length) {
+      return 0;
     }
 
-    const valueAtPercentile = sorted[lowerIndex] + (index - lowerIndex) * (sorted[upperIndex] - sorted[lowerIndex]);
-    return Math.floor(valueAtPercentile);
+    return Math.floor(quantileSeq(values, percentile / 100));
   }
 
   static average(values: number[]): number {
-    if (!values.length) {return 0;}
-    const total = values.reduce((acc, val) => acc + val, 0);
-    return total / values.length;
+    if (!values.length) {
+      return 0;
+    }
+    return mean(values);
   }
-
 }
