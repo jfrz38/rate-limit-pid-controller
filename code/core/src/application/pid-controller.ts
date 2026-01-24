@@ -1,3 +1,4 @@
+import { getLogger } from "../core/logging/logger";
 import { PriorityQueue } from "../domain/priority-queue/priority-queue";
 import { Pid } from "../domain/types/pid";
 import { Scheduler } from "./scheduler";
@@ -5,6 +6,7 @@ import { Scheduler } from "./scheduler";
 export class PidController {
   private readonly MAX_THRESHOLD = 100;  // Percentage (0-100)
   private readonly MIN_THRESHOLD = 0;    // Percentage (0-100)
+  // TODO: Customizable values (readonly but elegible by user)
   private readonly MAX_DELTA = 10;       // Maximum change per iteration (in percentage points)
   private readonly INTEGRAL_DECAY = 0.6; // Decay integral faster during recovery (was 0.8)
 
@@ -15,6 +17,8 @@ export class PidController {
   private currentThreshold: number;
   private integral = 0.0;
   private previousError = 0.0;
+
+  private logger = getLogger();
 
   constructor(
     private readonly scheduler: Scheduler,
@@ -61,6 +65,8 @@ export class PidController {
 
     const delta = Math.max(0, Math.min(this.MAX_DELTA, Math.abs(pidOutput)));
 
+    this.logger.info(`[PID-RECOVERY] Error: ${controlError.toFixed(4)}, Integral: ${this.integral.toFixed(4)}, PIDOutput: ${pidOutput.toFixed(4)}, Delta: ${delta.toFixed(4)}, Threshold: ${this.currentThreshold.toFixed(2)} to ${(this.currentThreshold + delta).toFixed(2)}`);
+
     if (delta > 0) {
       this.currentThreshold += delta;
     }
@@ -86,6 +92,8 @@ export class PidController {
     const pidOutput = (this.KP * controlError) + (this.KI * this.integral) + (this.KD * derivative);
 
     const delta = -Math.max(0, Math.min(this.MAX_DELTA, pidOutput));
+
+    this.logger.info(`[PID-OVERLOAD] Error: ${controlError.toFixed(4)}, Integral: ${this.integral.toFixed(4)}, PIDOutput: ${pidOutput.toFixed(4)}, Delta: ${delta.toFixed(4)}, Threshold: ${this.currentThreshold.toFixed(2)} to ${(this.currentThreshold + delta).toFixed(2)}`);
 
     this.currentThreshold += delta;
 

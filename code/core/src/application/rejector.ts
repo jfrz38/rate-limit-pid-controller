@@ -46,17 +46,23 @@ export class Rejector {
 
     public startThresholdCheck(interval: number): void {
         const timer = setInterval(() => {
+
             const pidPercentage = this.pidController.updateThreshold();
 
             try {
-                // Try to use Statistics if there's recent load
-                const actualThreshold = this.statistics.calculateCumulativePriorityDistribution(pidPercentage);
-                if (actualThreshold !== this.threshold) {
-                    this.updateThreshold(actualThreshold);
+                if(this.isServiceOverloaded()) {
+                    const actualThreshold = this.statistics.calculateCumulativePriorityDistribution(pidPercentage);
+                    if (actualThreshold !== this.threshold) {
+                        this.updateThreshold(actualThreshold);
+                    }
+                } else {
+                    const directThreshold = Math.round((pidPercentage * 768) / 100);
+                    if (directThreshold !== this.threshold) {
+                        this.updateThreshold(directThreshold);
+                    }
                 }
             } catch (e) {
-                // No recent data: convert PID percentage directly to priority threshold
-                // This allows gradual recovery during idle periods
+                // TODO: Variable max threshold
                 const directThreshold = Math.round((pidPercentage * 768) / 100);
                 if (directThreshold !== this.threshold) {
                     this.updateThreshold(directThreshold);
@@ -68,11 +74,12 @@ export class Rejector {
     }
 
     private isServiceOverloaded(): boolean {
-        return this.priorityQueue.getTimeSinceLastEmpty() > this.MAX_QUEUE_EMPTY_TIME;
+        // console.log(`[LAST EMPTY] VACÍA HACE ${this.priorityQueue.getSecondsSinceLastEmpty()} s`);
+        return this.priorityQueue.getSecondsSinceLastEmpty() > this.MAX_QUEUE_EMPTY_TIME;
     }
 
-    private getPriorityThreshold(): number {
-        const pidThreshold = this.pidController.updateThreshold();
-        return this.statistics.calculateCumulativePriorityDistribution(pidThreshold);
-    }
+    // private getPriorityThreshold(): number {
+    //     const pidThreshold = this.pidController.updateThreshold();
+    //     return this.statistics.calculateCumulativePriorityDistribution(pidThreshold);
+    // }
 }
