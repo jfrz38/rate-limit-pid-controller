@@ -3,6 +3,6 @@ import baseConfig from '../../vitest.config';
 
 export default mergeConfig(baseConfig, {
   test: {
-    name: 'express-adapter',
+    name: 'nestjs-adapter',
   },
 });
