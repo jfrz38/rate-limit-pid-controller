@@ -53,7 +53,7 @@ export class PriorityQueue extends EventEmitter {
             if (index !== -1) {
                 this.queue.remove(request);
                 request.status = Event.EVICTED;
-                this.logger.info(`Evicted request with priority ${request.priority}`);
+                this.logger.info(`Evicted request ${request.id}: Priority ${request.priority}`);
                 this.setLastTimeEmpty();
             }
             this.timers.delete(request);
@@ -68,7 +68,7 @@ export class PriorityQueue extends EventEmitter {
         }
     }
 
-    getTimeSinceLastEmpty(): number {
+    getSecondsSinceLastEmpty(): number {
         if (this.queue.isEmpty()) {
             return 0;
         }

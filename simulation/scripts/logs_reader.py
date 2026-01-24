@@ -11,9 +11,9 @@ date_format = "%Y-%m-%dT%H-%M-%S.%fZ"
 log_file = max(logs_folder.glob("*.log"), key=lambda f: datetime.strptime(f.stem, date_format))
 
 R = {
-    "completed": r"Completed request with priority (\d+)",
-    "rejected": r"Rejected request. Priority (\d+)/(\d+)",
-    "evicted": r"Evicted request with priority (\d+)",
+    "completed": r"Completed request.*: Priority (\d+)",
+    "rejected": r"Rejected request.*\: Priority (\d+)/(\d+)",
+    "evicted": r"Evicted request.*: Priority (\d+)",
     "threshold_mod": r"Threshold modified from (\d+) to: (\d+)",
     "threshold_init": r"Initial threshold: (\d+)",
 }

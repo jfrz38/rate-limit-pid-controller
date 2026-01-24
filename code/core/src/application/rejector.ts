@@ -33,7 +33,7 @@ export class Rejector {
 
         if (request.priority > this.threshold) {
             request.status = Event.REJECTED;
-            this.logger.info(`Rejected request ${request.id}. Priority ${request.priority}/${this.threshold}`);
+            this.logger.info(`Rejected request ${request.id}: Priority ${request.priority}/${this.threshold}`);
             throw new RejectedRequestException(request.priority, this.threshold);
         }
 

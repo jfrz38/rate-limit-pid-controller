@@ -48,7 +48,7 @@ export class Scheduler {
             try {
                 await request.task();
                 request.status = Event.COMPLETED;
-                this.logger.info(`Completed request with priority ${request.priority}`);
+                this.logger.info(`Completed request ${request.id}: Priority ${request.priority}`);
             } catch (error) {
                 request.status = Event.FAILED;
                 this.logger.error(`Error processing request ${error}`);

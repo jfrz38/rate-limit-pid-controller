@@ -46,5 +46,4 @@ export class Request {
     getEventTimestamp(event: Event): number | undefined {
         return this.eventLog.get(event);
     }
-
 }
