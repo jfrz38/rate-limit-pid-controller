@@ -1,4 +1,4 @@
-import { vi, describe, expect, beforeEach, Mocked } from 'vitest';
+import { beforeEach, describe, expect, Mocked, vi } from 'vitest';
 
 import { PidController } from "../../src/application/pid-controller";
 import { Rejector } from "../../src/application/rejector";
@@ -28,24 +28,33 @@ describe('Rejector', () => {
     const initialThreshold = DefaultOptions.values.threshold.initial;
     const initialInterval = DefaultOptions.values.pid.interval;
 
+    const INITIAL_THRESHOLD = 1000;
+    const PID_INTERVAL = 1000;
+
     beforeEach(() => {
+        vi.clearAllMocks();
+
         priorityQueue = {
             add: vi.fn(),
-            getTimeSinceLastEmpty: vi.fn().mockReturnValue(0),
+            getSecondsSinceLastEmpty: vi.fn().mockReturnValue(0),
         } as unknown as Mocked<PriorityQueue>;
 
         statistics = {
             add: vi.fn(),
-            calculateCumulativePriorityDistribution: vi.fn().mockReturnValue(100),
+            calculateCumulativePriorityDistribution: vi.fn(),
         } as unknown as Mocked<Statistics>;
 
         pidController = {
-            updateThreshold: vi.fn().mockReturnValue(123),
+            updateThreshold: vi.fn().mockReturnValue(100)
         } as unknown as Mocked<PidController>;
 
-        request = {} as unknown as Mocked<Request>;
-
-        rejector = new Rejector(priorityQueue, statistics, pidController, initialThreshold, initialInterval);
+        rejector = new Rejector(
+            priorityQueue,
+            statistics,
+            pidController,
+            INITIAL_THRESHOLD,
+            PID_INTERVAL
+        );
     });
 
     describe('process', () => {
@@ -87,7 +96,7 @@ describe('Rejector', () => {
         });
     });
 
-    describe('updateThreshold', () => {
+    describe('Threshold Updates (Interval Logic)', () => {
         test('should update threshold', () => {
             const newThreshold = 400;
 
@@ -97,68 +106,74 @@ describe('Rejector', () => {
             expect(currentThreshold).toBeDefined();
             expect(currentThreshold).toBe(newThreshold);
         });
+
+        test('when overloaded should use percentile distribution from statistics', () => {
+            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(15);
+            pidController.updateThreshold.mockReturnValue(50);
+            statistics.calculateCumulativePriorityDistribution.mockReturnValue(400);
+
+            vi.advanceTimersByTime(PID_INTERVAL);
+
+            expect(statistics.calculateCumulativePriorityDistribution).toHaveBeenCalledWith(50);
+            expect((rejector as any).threshold).toBe(400);
+        });
+
+        test('when not overloaded should use lineal recovery based on INITIAL_THRESHOLD', () => {
+            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(0);
+            pidController.updateThreshold.mockReturnValue(80);
+
+            vi.advanceTimersByTime(PID_INTERVAL);
+
+            expect((rejector as any).threshold).toBe(800);
+            expect(statistics.calculateCumulativePriorityDistribution).not.toHaveBeenCalled();
+        });
+
+        test('when percentile calculation fails should use lineal recovery', () => {
+            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(15);
+            pidController.updateThreshold.mockReturnValue(50);
+            statistics.calculateCumulativePriorityDistribution.mockImplementation(() => {
+                throw new Error("Stats failed");
+            });
+
+            vi.advanceTimersByTime(PID_INTERVAL);
+
+            expect((rejector as any).threshold).toBe(500);
+        });
+
+        test('should not log or update if threshold has not changed', () => {
+            const spyUpdate = vi.spyOn(rejector, 'updateThreshold');
+
+            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(0);
+            pidController.updateThreshold.mockReturnValue(100);
+
+            vi.advanceTimersByTime(PID_INTERVAL);
+
+            expect(spyUpdate).toHaveBeenCalled();
+            expect((rejector as any).threshold).toBe(INITIAL_THRESHOLD);
+        });
     });
 
-    describe('startThresholdCheck', () => {
-        test('should call updateThreshold if overloaded and threshold changes', () => {
-            const spyUpdate = vi.spyOn(rejector, 'updateThreshold');
-            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(20);
-            statistics.calculateCumulativePriorityDistribution.mockReturnValue(555);
-            pidController.updateThreshold.mockReturnValue(123);
-
-            rejector.startThresholdCheck(1000);
-
-            vi.advanceTimersByTime(1000);
-
-            expect(spyUpdate).toHaveBeenNthCalledWith(1, 555);
-        });
-
-        test('should not update if not overloaded', () => {
-            const spyUpdate = vi.spyOn(rejector, 'updateThreshold');
-            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(0);
-
-            rejector.startThresholdCheck(1000);
-            vi.advanceTimersByTime(1000);
-
-            expect(spyUpdate).not.toHaveBeenCalled();
-        });
-
-        test('should not call updateThreshold if the new calculated threshold is identical to the current one', () => {
-            const spyUpdate = vi.spyOn(rejector, 'updateThreshold');
-            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(20);
-
-            const current = (rejector as any).threshold;
-            statistics.calculateCumulativePriorityDistribution.mockReturnValue(current);
-
-            vi.advanceTimersByTime(initialInterval);
-
-            expect(spyUpdate).not.toHaveBeenCalled();
-        });
-
-        test('should not reset threshold automatically to initial value when service is no longer overloaded', () => {
-            (rejector as any).threshold = 10;
-
-            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(0);
-
-            vi.advanceTimersByTime(initialInterval);
-
-            expect((rejector as any).threshold).not.toBe(initialThreshold);
-        });
-    });
-
-    describe('private methods', () => {
-        test('isServiceOverloaded returns true when queue empty time > MAX', () => {
-            priorityQueue.getTimeSinceLastEmpty.mockReturnValue(999);
+    describe('isServiceOverloaded', () => {
+        test('when time exceed should return true', () => {
+            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(11);
             expect((rejector as any).isServiceOverloaded()).toBe(true);
         });
 
-        test('getPriorityThreshold combines pid + stats', () => {
-            pidController.updateThreshold.mockReturnValue(321);
-            statistics.calculateCumulativePriorityDistribution.mockReturnValue(777);
-            const result = (rejector as any).getPriorityThreshold();
-            expect(pidController.updateThreshold).toHaveBeenCalledTimes(1);
-            expect(statistics.calculateCumulativePriorityDistribution).toHaveBeenNthCalledWith(1, 321);
-            expect(result).toBe(777);
+        test('when time is not exceed should return false', () => {
+            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(5);
+            expect((rejector as any).isServiceOverloaded()).toBe(false);
+        });
+
+        test('when other MAX_QUEUE_EMPTY_TIME should return expected result', () => {
+            const newMaxTime = 100;
+            (rejector as any).MAX_QUEUE_EMPTY_TIME = newMaxTime;
+
+            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(newMaxTime - 1);
+            expect((rejector as any).isServiceOverloaded()).toBe(false);
+
+
+            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(newMaxTime + 1);
+            expect((rejector as any).isServiceOverloaded()).toBe(true);
         });
     });
 

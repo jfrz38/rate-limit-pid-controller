@@ -5,158 +5,168 @@ import { Scheduler } from "../../src/application/scheduler";
 import { DefaultOptions } from "../../src/default-parameters";
 import { PriorityQueue } from "../../src/domain/priority-queue/priority-queue";
 
-describe("PidController", () => {
+vi.mock("../../src/core/logging/logger", () => ({
+    getLogger: vi.fn().mockReturnValue({
+        debug: vi.fn()
+    }),
+}));
+
+describe("PidController (Real PID Logic)", () => {
     let scheduler: Mocked<Scheduler>;
     let priorityQueue: Mocked<PriorityQueue>;
     let controller: PidController;
 
+    const mockPidConfig = {
+        KP: 1.0,
+        KI: 0.1,
+        KD: 0.01,
+        interval: 1000,
+        delta: 20,
+        decayRatio: 0.8
+    };
+
     beforeEach(() => {
-        scheduler = {} as unknown as Mocked<Scheduler>;
+        scheduler = {
+            maxConcurrentRequests: 100,
+            processingRequests: 0,
+        } as unknown as Mocked<Scheduler>;
 
         priorityQueue = {
-            entryRequests: 0,
-            exitRequests: 0,
-            resetCounters: vi.fn(),
+            length: 0,
         } as unknown as Mocked<PriorityQueue>;
 
         controller = new PidController(
             scheduler,
             priorityQueue,
-            DefaultOptions.values.pid
+            mockPidConfig
         );
     });
 
-    test("increases threshold when overloaded", () => {
-        (scheduler as any).maxConcurrentRequests = 100;
-        (scheduler as any).processingRequests = 100;
-        (priorityQueue as any).entryRequests = 1000;
-        (priorityQueue as any).exitRequests = 0;
+    describe('Initial values', () => {
+        test('dt should be interval value in seconds', () => {
+            const newInterval = 8000;
+            const expectedDt = 8;
+            const config = { ...mockPidConfig, interval: newInterval };
 
-        const newThreshold = controller.updateThreshold();
-        expect(newThreshold).toBeGreaterThan(0);
-        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(1);
+            const pid = new PidController(scheduler, priorityQueue, config);
+
+            const dt = (pid as any).DT;
+            expect(dt).toBe(expectedDt);
+        });
+
+        test.each([
+            { value: -1, expected: 0 },
+            { value: 101, expected: 100 },
+            { value: 20, expected: 20 },
+            { value: 0, expected: 0 },
+            { value: 100, expected: 100 }
+        ])('when delta value is %value should be in range and be $expected', ({ value, expected }) => {
+            const config = { ...mockPidConfig, delta: value };
+
+            const pid = new PidController(scheduler, priorityQueue, config);
+
+            const delta = (pid as any).MAX_DELTA_PERCENT;
+            expect(delta).toBe(expected);
+        });
+
     });
 
-    test("decreases threshold when not overloaded", () => {
-        (scheduler as any).maxConcurrentRequests = 100;
-        (scheduler as any).processingRequests = 0;
-        (priorityQueue as any).entryRequests = 0;
-        (priorityQueue as any).exitRequests = 1000;
+    describe("Overload (controlError > 0)", () => {
+        test("should decrease threshold when system is overloaded", () => {
+            (scheduler as any).processingRequests = 100;
+            (priorityQueue as any).length = 50;
 
-        const newThreshold = controller.updateThreshold();
-        expect(newThreshold).toBe(0);
-        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(1);
+            const initialThreshold = 100;
+            const newThreshold = controller.updateThreshold();
+
+            expect(newThreshold).toBeLessThan(initialThreshold);
+        });
+
+        test("should not exceed MAX_DELTA_PERCENT per iteration", () => {
+            (scheduler as any).processingRequests = 100;
+            (priorityQueue as any).length = 3000;
+
+            const maxAllowedChange = mockPidConfig.delta * (mockPidConfig.interval / 1000);
+            const newThreshold = controller.updateThreshold();
+
+            expect(newThreshold).toBe(100 - maxAllowedChange);
+        });
+
+        test("should clamp to MIN_THRESHOLD (0)", () => {
+            (controller as any).currentThreshold = 5;
+
+            (scheduler as any).maxConcurrentRequests = 100;
+            (scheduler as any).processingRequests = 1000;
+
+            const newThreshold = controller.updateThreshold();
+
+            expect(newThreshold).toBe(0);
+        });
     });
 
-    test("increases threshold on second calculation when still overloaded", () => {
-        (scheduler as any).maxConcurrentRequests = 100;
-        (scheduler as any).processingRequests = 10;
-        (priorityQueue as any).exitRequests = 1000;
-        (priorityQueue as any).entryRequests = 10000;
+    describe("Recovery (controlError <= 0)", () => {
+        beforeEach(() => {
+            (controller as any).currentThreshold = 50;
+        });
 
-        const threshold = controller.updateThreshold();
+        test("should increase threshold when system is underused", () => {
+            (scheduler as any).processingRequests = 50;
+            (priorityQueue as any).length = 0;
 
-        (scheduler as any).processingRequests = 80;
-        (priorityQueue as any).entryRequests = 100;
-        (priorityQueue as any).exitRequests = 10;
+            const newThreshold = controller.updateThreshold();
 
-        const newThreshold = controller.updateThreshold();
+            expect(newThreshold).toBeGreaterThan(50);
+        });
 
-        expect(newThreshold).toBeGreaterThan(threshold);
-        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(2);
+        test("should apply integral decay during recovery", () => {
+            (controller as any).integral = 10.0;
+
+            (scheduler as any).processingRequests = 50;
+            controller.updateThreshold();
+
+            expect((controller as any).integral).toBeLessThan(10.0);
+        });
+
+        test("should clamp to MAX_THRESHOLD (100)", () => {
+            (controller as any).currentThreshold = 99;
+
+            (scheduler as any).maxConcurrentRequests = 100;
+            (scheduler as any).processingRequests = 0;
+            (priorityQueue as any).length = 0;
+
+            const newThreshold = controller.updateThreshold();
+
+            expect(newThreshold).toBe(100);
+        });
     });
 
-    test("decreases threshold on second calculation when not overloaded", () => {
-        (scheduler as any).maxConcurrentRequests = 100;
-        (scheduler as any).processingRequests = 10;
-        (priorityQueue as any).entryRequests = 10000;
-        (priorityQueue as any).exitRequests = 1000;
+    describe("PID Terms", () => {
+        test("should update previousError for derivative calculation in next iteration", () => {
+            (scheduler as any).processingRequests = 150;
+            controller.updateThreshold();
 
-        const threshold = controller.updateThreshold();
+            expect((controller as any).previousError).toBe(0.5);
+        });
 
-        (scheduler as any).processingRequests = 4;
-        (priorityQueue as any).entryRequests = 40;
-        (priorityQueue as any).exitRequests = 40;
+        test("should accumulate error in integral term", () => {
+            (scheduler as any).processingRequests = 150;
+            const dt = mockPidConfig.interval / 1000;
 
-        const newThreshold = controller.updateThreshold();
+            controller.updateThreshold();
 
-        expect(newThreshold).toBeLessThan(threshold);
-        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(2);
+            expect((controller as any).integral).toBe(0.5 * dt);
+        });
     });
 
-    test("increases threshold above limit should set as maximum threshold", () => {
-        const maximumThreshold = 100;
+    describe("Stability", () => {
+        test("should not change threshold if error is negligible (< 0.01) during overload", () => {
+            (controller as any).currentThreshold = 80;
+            (scheduler as any).maxConcurrentRequests = 100;
+            (scheduler as any).processingRequests = 100;
+            (priorityQueue as any).length = 0.5;
 
-        (scheduler as any).maxConcurrentRequests = 10;
-        (scheduler as any).processingRequests = 0;
-        (priorityQueue as any).entryRequests = 1000;
-        (priorityQueue as any).exitRequests = 0;
-
-        (controller as any).currentThreshold = 95;
-
-        const newThreshold = controller.updateThreshold();
-        expect(newThreshold).toBe(maximumThreshold);
-        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(1);
-    });
-
-    test("decreases threshold under limit should set as minimum threshold", () => {
-        const minimumThreshold = 0;
-
-        (scheduler as any).maxConcurrentRequests = 10;
-        (scheduler as any).processingRequests = 10;
-        (priorityQueue as any).entryRequests = 0;
-        (priorityQueue as any).exitRequests = 1000;
-
-        (controller as any).currentThreshold = 1;
-
-        const newThreshold = controller.updateThreshold();
-        expect(newThreshold).toBe(minimumThreshold);
-        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(1);
-    });
-
-    test("should reset priority queue counters after updating threshold", () => {
-        controller.updateThreshold();
-        expect(priorityQueue.resetCounters).toHaveBeenCalledTimes(1);
-    });
-
-    test("should handle zero exit requests without returning NaN", () => {
-        (scheduler as any).maxConcurrentRequests = 10;
-        (scheduler as any).processingRequests = 10;
-        (priorityQueue as any).entryRequests = 10;
-        (priorityQueue as any).exitRequests = 0;
-
-        const newThreshold = controller.updateThreshold();
-
-        expect(isNaN(newThreshold)).toBe(false);
-        expect(isFinite(newThreshold)).toBe(true);
-    });
-
-    test("should decrease threshold when entry rate is low but scheduler has free capacity", () => {
-        (controller as any).currentThreshold = 50;
-
-        (scheduler as any).maxConcurrentRequests = 100;
-        (scheduler as any).processingRequests = 20;
-        (priorityQueue as any).entryRequests = 10;
-        (priorityQueue as any).exitRequests = 5;
-
-        const newThreshold = controller.updateThreshold();
-
-        expect(newThreshold).toBeLessThan(50);
-    });
-
-    test("should increase threshold more aggressively when error is larger", () => {
-        (scheduler as any).maxConcurrentRequests = 100;
-        (scheduler as any).processingRequests = 100;
-        (priorityQueue as any).exitRequests = 10;
-
-        (priorityQueue as any).entryRequests = 110;
-        const jumpSmall = controller.updateThreshold();
-
-        (controller as any).currentThreshold = 0;
-
-        (priorityQueue as any).entryRequests = 500;
-        const jumpLarge = controller.updateThreshold();
-
-        expect(jumpLarge).toBeGreaterThan(jumpSmall);
+            const newThreshold = controller.updateThreshold();
+            expect(newThreshold).toBe(80);
+        });
     });
 });

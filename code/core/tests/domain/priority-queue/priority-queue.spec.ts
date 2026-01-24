@@ -105,11 +105,11 @@ describe('PriorityQueue', () => {
         expect(queue.exitRequests).toBe(1);
     });
 
-    test('getTimeSinceLastEmpty when never add a request should return 0', () => {
-        expect(queue.getTimeSinceLastEmpty()).toBe(0);
+    test('getSecondsSinceLastEmpty when never add a request should return 0', () => {
+        expect(queue.getSecondsSinceLastEmpty()).toBe(0);
     });
 
-    test('getTimeSinceLastEmpty when one value is added should return expected time', () => {
+    test('getSecondsSinceLastEmpty when one value is added should return expected time', () => {
         const request = createRequest(0);
         const timeout = 2000;
 
@@ -119,15 +119,15 @@ describe('PriorityQueue', () => {
 
         vi.advanceTimersByTime(1200);
 
-        expect(queue.getTimeSinceLastEmpty()).toBeGreaterThanOrEqual(1);
+        expect(queue.getSecondsSinceLastEmpty()).toBeGreaterThanOrEqual(1);
     });
 
-    test('getTimeSinceLastEmpty when a request is added an polled should return 0', () => {
+    test('getSecondsSinceLastEmpty when a request is added an polled should return 0', () => {
         const request = createRequest(0);
         queue.add(request);
         queue.poll();
 
-        expect(queue.getTimeSinceLastEmpty()).toBe(0);
+        expect(queue.getSecondsSinceLastEmpty()).toBe(0);
     });
 
     test('requests are evicted after timeout', () => {

@@ -1,8 +1,6 @@
-import { mean, quantileSeq, variance, subtract } from 'mathjs';
+import { mean, quantileSeq, subtract } from 'mathjs';
 
 export class MathUtils {
-
-  // TODO: Use variance
 
   static covariance(x: number[], y: number[], sample = false): number {
     if (x.length !== y.length) {
@@ -14,7 +12,7 @@ export class MathUtils {
 
     const muX = mean(x);
     const muY = mean(y);
-    
+
     const devX = subtract(x, muX) as number[];
     const devY = subtract(y, muY) as number[];
     const sum = devX.reduce((acc, val, i) => acc + val * devY[i], 0);

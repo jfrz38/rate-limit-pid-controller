@@ -1,7 +1,7 @@
 import { RejectedRequestException } from '@jfrz38/pid-controller-core';
 import { HttpErrorResponse } from '@jfrz38/pid-controller-shared';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { PidExceptionFilter } from '../../src/filter/pid-exception.filter'; // Ajusta la ruta
+import { PidExceptionFilter } from '../../src/filter/pid-exception.filter';
 
 const mockFormat = vi.fn();
 
