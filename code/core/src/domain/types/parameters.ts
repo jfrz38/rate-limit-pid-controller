@@ -31,17 +31,38 @@ type DeepPartial<T> = {
 
 export type Parameters = DeepPartial<RequiredParameters>;
 
-export function deepMerge<T>(base: T, override?: DeepPartial<T>): T {
-  if (!override) { return base; }
+export function deepMerge<T>(base: T, override?: any): T {
+  if (override === undefined || override === null) {
+     return base;
+  }
 
-  const result: any = { ...base };
+  if (typeof base === 'object' && base !== null && (typeof override !== 'object' || override === null)) {
+    return base;
+  }
+
+  const result: any = Array.isArray(base) ? [...base] : { ...base };
+
   for (const key in override) {
+    if (!Object.prototype.hasOwnProperty.call(override, key)) {
+       continue;
+    }
+
     const value = override[key];
-    if (value === undefined) { continue; }
-    result[key] =
-      typeof value === 'object' && value !== null
-        ? deepMerge((base as any)[key], value)
-        : value;
+    if (value === undefined) {
+       continue;
+    }
+
+    const baseValue = (base as any)[key];
+
+    if (baseValue !== null && typeof baseValue === 'object' && !Array.isArray(baseValue)) {
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        result[key] = deepMerge(baseValue, value);
+      } else {
+        result[key] = baseValue;
+      }
+    } else {
+      result[key] = value;
+    }
   }
   return result;
 }
