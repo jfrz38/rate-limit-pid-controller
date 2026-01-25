@@ -5,10 +5,8 @@ import { MathUtils } from "../../../src/domain/math/math-utils";
 describe('Math utils tests', () => {
     describe('Covariance tests', () => {
         describe('invalid input', () => {
-            test('should throw when vectors have different lengths', () => {
-                expect(() => MathUtils.covariance([1, 2], [1])).toThrow(
-                    'Vectors must have the same length'
-                );
+            test('should return 0 when vectors have different lengths', () => {
+                expect(MathUtils.covariance([1, 2], [1])).toBe(0);
             });
 
             test('should return 0 when vectors are empty', () => {

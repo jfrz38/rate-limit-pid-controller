@@ -2,6 +2,9 @@ import { RequestMethod } from '@nestjs/common';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { PidRoutes } from '../../src/error/routes/pid-routes';
 import { PidControllerModule } from '../../src/module/pid-controller.module';
+import { PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
+import { APP_FILTER } from '@nestjs/core';
+import { PidExceptionFilter } from '../../src/filter/pid-exception.filter';
 
 describe('PidControllerModule', () => {
     const pidProvider = 'PID_CONTROLLER';
@@ -33,7 +36,7 @@ describe('PidControllerModule', () => {
             expect(dynamicModule.exports).toContain(optionsProvider);
         });
 
-        test('when forRoot is called should include PID_CONTROLLER factory that instantiates the rate limit controller', () => {
+        test('when forRoot is called should include expected pid controller factory that instantiates the rate limit controller', () => {
             const dynamicModule = PidControllerModule.forRoot(mockOptions);
             const controllerProvider = dynamicModule.providers?.find(
                 (p: any) => p.provide === pidProvider
@@ -42,6 +45,35 @@ describe('PidControllerModule', () => {
             expect(controllerProvider.useFactory).toBeDefined();
             const controller = controllerProvider.useFactory();
             expect(controller).toBeDefined();
+        });
+
+        test('when forRoot is called should include APP_FILTER factory that instantiates PidExceptionFilter', () => {
+            const dynamicModule = PidControllerModule.forRoot(mockOptions);
+            const filterProvider = dynamicModule.providers?.find(
+                (p: any) => p.provide === APP_FILTER
+            ) as any;
+
+            expect(filterProvider.useFactory).toBeDefined();
+            
+            const filter = filterProvider.useFactory();
+            
+            expect(filter).toBeInstanceOf(PidExceptionFilter);
+        });
+
+        test('when forRoot is called should include PidControllerMiddlewareHandler factory with correct injection', () => {
+            const dynamicModule = PidControllerModule.forRoot(mockOptions);
+            const handlerProvider = dynamicModule.providers?.find(
+                (p: any) => p.provide === PidControllerMiddlewareHandler
+            ) as any;
+
+            expect(handlerProvider.useFactory).toBeDefined();
+            expect(handlerProvider.inject).toContain('PID_CONTROLLER');
+
+            const mockController = {} as any;
+            
+            const handler = handlerProvider.useFactory(mockController);
+            
+            expect(handler).toBeInstanceOf(PidControllerMiddlewareHandler);
         });
     });
 

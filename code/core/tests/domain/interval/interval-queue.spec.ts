@@ -111,7 +111,7 @@ describe('IntervalQueue tests', () => {
 
             const latencies = intervalQueue.getLatencies();
 
-            expect(latencies).toEqual([50]); // 150 - 100
+            expect(latencies).toEqual([50]);
         });
 
         test('getPriorities should return all priorities in the queue regardless of interval', () => {
