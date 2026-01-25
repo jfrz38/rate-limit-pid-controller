@@ -53,7 +53,7 @@ describe('Statistics', () => {
             const req1 = createMockRequest(100, 200);
             const req2 = createMockRequest(100, 300);
             const requests = [req1, req2, ...Array(MIN_REQUESTS - 2).fill(req1)];
-            
+
             intervalQueue.getCompletedRequests.mockReturnValue(requests);
             const spy = vi.spyOn(MathUtils, 'average').mockReturnValue(150);
 
@@ -98,6 +98,12 @@ describe('Statistics', () => {
         test('should return the minimum value from latencies', () => {
             intervalQueue.getLatencies.mockReturnValue([150, 80, 200, 100]);
             expect(statistics.getLowestLatencyForInterval()).toBe(80);
+        });
+
+        test('should handle cases where the first latency is 0', () => {
+            intervalQueue.getLatencies.mockReturnValue([0, 10, 20]);
+
+            expect(statistics.getLowestLatencyForInterval()).toBe(0);
         });
     });
 

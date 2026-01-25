@@ -1,8 +1,7 @@
-import { vi, describe, expect, beforeEach, Mocked } from 'vitest';
+import { beforeEach, describe, expect, Mocked, vi } from 'vitest';
 
 import { PidController } from "../../src/application/pid-controller";
 import { Scheduler } from "../../src/application/scheduler";
-import { DefaultOptions } from "../../src/default-parameters";
 import { PriorityQueue } from "../../src/domain/priority-queue/priority-queue";
 
 vi.mock("../../src/core/logging/logger", () => ({
@@ -137,6 +136,21 @@ describe("PidController (Real PID Logic)", () => {
             const newThreshold = controller.updateThreshold();
 
             expect(newThreshold).toBe(100);
+        });
+
+        test("should not update threshold if delta is 0 during recovery", () => {
+            (controller as any).currentThreshold = 50;
+
+            (scheduler as any).maxConcurrentRequests = 100;
+            (scheduler as any).processingRequests = 100;
+            (priorityQueue as any).length = 0;
+
+            (controller as any).integral = 0;
+            (controller as any).previousError = 0;
+
+            const newThreshold = controller.updateThreshold();
+
+            expect(newThreshold).toBe(50);
         });
     });
 
