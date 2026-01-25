@@ -7,7 +7,7 @@ export class PidController {
   private readonly MAX_THRESHOLD: number = 100;  // Percentage (0-100)
   private readonly MIN_THRESHOLD: number = 0;    // Percentage (0-100)
   private readonly MAX_DELTA_PERCENT: number; // Maximum change per iteration (in percentage points)
-  private readonly INTEGRAL_DECAY: number; // Decay integral faster during recovery (was 0.8)
+  private readonly INTEGRAL_DECAY: number; // Decay integral faster during recovery
 
   private readonly KP: number;
   private readonly KI: number;
