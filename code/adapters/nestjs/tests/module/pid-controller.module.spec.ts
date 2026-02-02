@@ -14,12 +14,12 @@ describe('PidControllerModule', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockOptions = {
-            pidConfig: { kP: 0.1, kI: 0.01, kD: 0, targetLatency: 200 },
-            rules: {
-                routes: {
-                    excludeRoutes: ['health'],
-                    allowedRoutes: { paths: 'api/*', method: RequestMethod.GET }
-                }
+            pid: {
+                config: { kP: 0.1, kI: 0.01, kD: 0, targetLatency: 200 },
+            },
+            routes: {
+                excludeRoutes: ['health'],
+                allowedRoutes: { paths: 'api/*', method: RequestMethod.GET }
             }
         };
     });
@@ -54,9 +54,9 @@ describe('PidControllerModule', () => {
             ) as any;
 
             expect(filterProvider.useFactory).toBeDefined();
-            
+
             const filter = filterProvider.useFactory();
-            
+
             expect(filter).toBeInstanceOf(PidExceptionFilter);
         });
 
@@ -70,9 +70,9 @@ describe('PidControllerModule', () => {
             expect(handlerProvider.inject).toContain('PID_CONTROLLER');
 
             const mockController = {} as any;
-            
+
             const handler = handlerProvider.useFactory(mockController);
-            
+
             expect(handler).toBeInstanceOf(PidControllerMiddlewareHandler);
         });
     });
@@ -93,7 +93,7 @@ describe('PidControllerModule', () => {
             const moduleInstance = new PidControllerModule(mockOptions);
             moduleInstance.configure(mockConsumer as any);
 
-            expect(generateSpy).toHaveBeenNthCalledWith(1, mockOptions.rules.routes);
+            expect(generateSpy).toHaveBeenNthCalledWith(1, mockOptions.routes);
             expect(mockConsumer.apply).toHaveBeenNthCalledWith(1, expect.any(Function));
             expect(mockConsumer.exclude).toHaveBeenNthCalledWith(1, 'health');
             expect(mockConsumer.forRoutes).toHaveBeenNthCalledWith(1, {
