@@ -18,5 +18,5 @@ export interface HttpPidControllerOptions {
      * Includes custom error handling for rejected or evicted requests.
      * * @see {@link PidHttpRules}
      */
-    rules?: PidHttpRules;
+    http?: PidHttpRules;
 }

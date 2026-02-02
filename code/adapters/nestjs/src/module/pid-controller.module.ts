@@ -27,7 +27,7 @@ export class PidControllerModule {
         },
         {
           provide: APP_FILTER,
-          useFactory: () => new PidExceptionFilter(options?.rules?.error),
+          useFactory: () => new PidExceptionFilter(options?.http?.error),
         },
         {
           provide: PidControllerMiddlewareHandler,
