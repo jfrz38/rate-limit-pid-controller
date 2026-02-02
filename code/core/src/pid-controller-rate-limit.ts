@@ -42,11 +42,11 @@ export class PidControllerRateLimit {
 
         initLogger(this.parameters.log.level);
 
-        const { capacity, statistics, timeout, pid, threshold } = this.parameters;
+        const { capacity, statistics, timeout, pid, threshold, interval } = this.parameters;
 
         this.executor = new Executor(capacity.maxConcurrentRequests);
-        this.requestInterval = new RequestInterval(statistics.requestInterval.minIntervalTime, statistics.requestInterval.maxIntervalTime);
-        this.intervalQueue = new IntervalQueue(this.requestInterval, statistics.maxRequests);
+        this.requestInterval = new RequestInterval(interval.requestInterval.minIntervalTime, interval.requestInterval.maxIntervalTime);
+        this.intervalQueue = new IntervalQueue(this.requestInterval, interval.maxRequests);
         this.statistics = new Statistics(this.intervalQueue, statistics);
         this.queueTimeout = new TimeoutHandler(this.statistics, timeout);
         this.priorityQueue = new PriorityQueue(new Heap(RequestPriorityComparator.compare()), this.queueTimeout);

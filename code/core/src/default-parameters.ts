@@ -27,10 +27,12 @@ export class DefaultOptions {
             cores: require('os').cpus().length
         },
         statistics: {
-            maxRequests: 1000,
             minRequestsForStats: 5,
             minRequestsForLatencyPercentile: 250,
-            latencyPercentile: 90,
+            latencyPercentile: 90
+        },
+        interval: {
+            maxRequests: 1000,
             requestInterval: {
                 minIntervalTime: 2,
                 maxIntervalTime: 30

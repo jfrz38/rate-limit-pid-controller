@@ -1,4 +1,5 @@
 import { Capacity } from "./capacity";
+import { Interval } from "./interval";
 import { Log } from "./log";
 import { Pid } from "./pid";
 import { Statistics } from "./statistics";
@@ -20,7 +21,9 @@ export type RequiredParameters = {
     /** Capacity configuration for request processing. */
     capacity: Capacity,
     /** Statistics configuration. */
-    statistics: Statistics
+    statistics: Statistics,
+    /** Interval queue configuration. */
+    interval: Interval
 }
 
 type DeepPartial<T> = {
