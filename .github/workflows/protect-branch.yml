@@ -1,0 +1,91 @@
+name: Build and run tests
+on:
+    pull_request:
+        branches:
+            - main
+            - develop
+
+jobs:
+    changes:
+        runs-on: ubuntu-latest
+        outputs:
+            core: ${{ steps.filter.outputs.core }}
+            shared: ${{ steps.filter.outputs.shared }}
+            express: ${{ steps.filter.outputs.express }}
+            nestjs: ${{ steps.filter.outputs.nestjs }}
+        steps:
+            - uses: actions/checkout@v5
+            - uses: dorny/paths-filter@v3
+              id: filter
+              with:
+                  filters: |
+                      core:
+                        - 'code/core/**'
+                      express:
+                        - 'code/adapters/express/**'
+                      nestjs:
+                        - 'code/adapters/nestjs/**'
+                      shared:
+                        - 'code/adapters/shared/**'
+
+    test-core:
+        needs: changes
+        if: ${{ needs.changes.outputs.core == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "20.x"
+                  cache: 'pnpm'
+            - name: Run Core Tests
+              run: |
+                  cd code/core
+                  pnpm install --frozen-lockfile
+                  pnpm test
+    test-shared:
+        needs: changes
+        if: ${{ needs.changes.outputs.shared == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "20.x"
+                  cache: 'pnpm'
+            - name: Run shared Tests
+              run: |
+                  cd code/adapters/shared
+                  pnpm install --frozen-lockfile
+                  pnpm test  
+    test-express:
+        needs: changes
+        if: ${{ needs.changes.outputs.express == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "20.x"
+                  cache: 'pnpm'
+            - name: Run Express Tests
+              run: |
+                  cd code/adapters/express
+                  pnpm install --frozen-lockfile
+                  pnpm test
+    test-nestjs:
+        needs: changes
+        if: ${{ needs.changes.outputs.nestjs == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "20.x"
+                  cache: 'pnpm'
+            - name: Run NestJS Tests
+              run: |
+                  cd code/adapters/nestjs
+                  pnpm install --frozen-lockfile
+                  pnpm test
+
