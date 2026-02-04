@@ -1,0 +1,50 @@
+{
+  "name": "@jfrz38/pid-controller-core",
+  "author": "José F. Ruiz <jrz899@inlumine.ual.es>",
+  "license": "MIT",
+  "version": "0.0.1",
+  "description": "Rate Limiter built based on Uber's Cinnamon architecture",
+  "main": "./dist/src/index.js",
+  "module": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:clean": "npm run clean && npm run build",
+    "start": "ts-node src/index.ts",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:coverage": "vitest --coverage",
+    "test:leak": "vitest --detectOpenHandles",
+    "local": "ts-node src/index.local.ts",
+    "lint": "eslint src",
+    "lint:src": "eslint src",
+    "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jfrz38/rate-limit-pid-controller.git",
+    "directory": "code/core"
+  },
+  "keywords": [
+    "rate-limiter",
+    "pid-controller",
+    "resilience",
+    "typescript",
+    "uber-cinnamon"
+  ],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jfrz38/rate-limit-pid-controller/issues"
+  },
+  "homepage": "https://github.com/jfrz38/rate-limit-pid-controller#readme",
+  "dependencies": {
+    "heap-js": "2.7.1",
+    "mathjs": "15.1.0",
+    "p-queue": "8.1.1",
+    "pino": "10.0.0"
+  }
+}

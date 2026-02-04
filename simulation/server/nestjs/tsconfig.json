@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@jfrz38/pid-controller-core": ["../../../code/core/src/index"],
+      "@jfrz38/pid-controller-shared": ["../../../code/adapters/shared/src/index"],
+      "@jfrz38/pid-controller-nestjs": ["../../../code/adapters/nestjs/src/index"]
+    }
+  },
+  "include": ["src/**/*"]
+}

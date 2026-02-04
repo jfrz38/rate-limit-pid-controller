@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "declaration": true,
+    "outDir": "dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "composite": true,
+    "types": ["vitest/globals"]
+  },
+  "references": [
+    {
+      "path": "./core"
+    },
+    {
+      "path": "./adapters/nestjs"
+    },
+    {
+      "path": "./adapters/express"
+    }
+  ]
+}

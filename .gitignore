@@ -1,0 +1,6 @@
+simulation/scenarios/generated/*.csv
+node_modules/
+dist/
+coverage/
+
+*.log
