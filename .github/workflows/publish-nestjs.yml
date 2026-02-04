@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'code/adapters/nestjs/**'
+      - "code/adapters/nestjs/**"
 
 permissions:
   id-token: write
@@ -42,9 +42,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'pnpm'
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
           cache-dependency-path: code/adapters/nestjs/pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
