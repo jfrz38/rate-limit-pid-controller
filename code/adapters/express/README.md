@@ -22,7 +22,17 @@ Configuration objects allow three values, where `config` is the same as explaine
 |----------------------------|----------------------------|-----------------------------|------------------------------------------------------------------------------|
 | `pid.config`               | Parameters                 | -                           | Configuration for the PID engine. See core for more information.             |
 | `pid.priority.getPriority` | `(req: Request) => number` | `req.headers['x-priority']` | Function to get priority from the request.                                   |
-| `http`                     | `PidHttpRules`             | -                           | HTTP policies: Response status and message error                             |
+
+## Error Handler configuration
+
+| Parameter    | Type    | Default                                    | Description                                                                                     |
+|--------------|---------|--------------------------------------------|-------------------------------------------------------------------------------------------------|
+| `message`    | string  | Too many requests, please try again later. | A custom descriptive message for the error                                                      |
+| `retryAfter` | number  | -                                          | The value in seconds for the 'Retry-After' HTTP header                                          |
+| `code`       | number  | 429                                        | The HTTP status code to return.                                                                 |
+| `response`   | object  | object with default `title` and `message`  | The custom JSON body object to be sent to the client.                                           |
+| `title`      | string  | RATE_LIMIT_EXCEEDED                        | A short string representing the error title or category.                                        |
+| `hideError`  | boolean | `true`                                     | If true, prevents the internal PID exception message from being included in the final response. |
 
 ## Quick Start
 
@@ -35,35 +45,38 @@ const { pidControllerMiddleware, pidControllerErrorHandler } = require('@jfrz38/
 // Initialize the middleware with your configuration. Check pid-controller-core for more information
 const { middleware } = pidControllerMiddleware(
     {
-        pid: {
-            priority: {
-                // Define how to extract priority from the request
-                getPriority: (req) => Number(req.headers['x-priority'])
-            },
-            config: {
-                log: { level: 'debug' },
-                statistics: {
-                    minRequestsForLatencyPercentile: 10,
-                    minRequestsForStats: 10
-                },
-                threshold: {
-                    initial: 768
-                }
-            }
+    pid: {
+      config: {
+        threshold: {
+          initial: 200
         },
-        rules: {
-            error: {
-                message: 'This is a custom message'
-            }
+        capacity: {
+          cores: 1,
+          maxConcurrentRequests: 2
+        },
+        log: {
+          level: 'debug'
+        },
+        statistics: {
+          minRequestsForLatencyPercentile: 10,
+          minRequestsForStats: 10
         }
+      },
+      priority: {
+        getPriority: (req) => req.get('x-priority')
+      },
     }
+  }
 );
 
 const app = express();
 
 // Use middleware and/or error handler
 app.use(middleware);
-app.use(pidControllerErrorHandler())
+app.use(pidControllerErrorHandler({
+  code: 503,
+  message: 'Custom message for the error'
+}))
 
 app.get('/test', async (req, res) => {
     res.json({ ok: true });
