@@ -30,3 +30,13 @@ Run PID controller and read logs to create an example image:
 ## Servers
 
 Practical examples using frameworks (**Express** and **NestJS** ) and its PID adapters. These servers allow you to test the PID controller implementation in a real HTTP environment calling it directly.
+
+Both server implements PID middleware and error handler. Their route and logic are the same, both accept priority in `x-priority` header and also another header to simulate latency: `execution-time`.
+
+You can test any of them calling via HTTP:
+
+```bash
+curl -H "x-priority: 4" -H "execution-time: 2000" http://localhost:3000/test
+```
+
+This `curl` will send a priority `4` and the server will be 2 seconds processing the request.
