@@ -2,6 +2,9 @@
 
 This is the **Express** adapter for the [PID Controller](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/core). It allows you to easily integrate adaptive rate limiting and load shedding into your Express applications as a standard middleware.
 
+> [!NOTE]  
+> See [core project](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/core) for more information.
+
 ## Features
 
 - **Middleware Integration**: Seamlessly injects the PID control loop into your request pipeline.
