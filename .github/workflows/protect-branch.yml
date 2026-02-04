@@ -8,6 +8,8 @@ on:
 jobs:
     changes:
         runs-on: ubuntu-latest
+        permissions:
+            pull-requests: read
         outputs:
             core: ${{ steps.filter.outputs.core }}
             shared: ${{ steps.filter.outputs.shared }}
