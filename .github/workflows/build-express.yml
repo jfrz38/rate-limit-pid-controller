@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: code
-        run: pnpm install --filter "@jfrz38/pid-controller-express^..." --frozen-lockfile
+        run: pnpm install --filter "@jfrz38/pid-controller-express..." --frozen-lockfile
 
       - name: Build
         working-directory: code/adapters/express
