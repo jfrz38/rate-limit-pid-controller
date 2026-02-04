@@ -16,7 +16,7 @@ npm install @jfrz38/pid-controller-express
 
 ## Configuration
 
-There configuration objects allow three values, where `config` is the same as explained into [PID core](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/code/core/README.md#Configuration%20Reference):
+Configuration objects allow three values, where `config` is the same as explained into [PID core](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/code/core/README.md#Configuration%20Reference):
 
 | Parameter                  | Type                       | Default                     | Description                                                                  |
 |----------------------------|----------------------------|-----------------------------|------------------------------------------------------------------------------|
