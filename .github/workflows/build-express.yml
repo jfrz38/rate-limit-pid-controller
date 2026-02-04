@@ -24,11 +24,11 @@ jobs:
 
       - name: Install dependencies
         working-directory: code
-        run: pnpm install --filter "@jfrz38/pid-controller-express..." --frozen-lockfile
+        run: pnpm install --filter "@jfrz38/pid-controller-express^..." --frozen-lockfile
 
       - name: Build
         working-directory: code/adapters/express
-        run: pnpm build
+        run: pnpm --filter "@jfrz38/pid-controller-nestjs^..." run build
 
       - name: Run Tests
         working-directory: code/adapters/express

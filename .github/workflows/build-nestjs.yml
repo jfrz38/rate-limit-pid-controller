@@ -28,7 +28,7 @@ jobs:
 
       - name: Build
         working-directory: code/adapters/nestjs
-        run: pnpm build
+        run: pnpm --filter "@jfrz38/pid-controller-nestjs^..." run build
 
       - name: Run Tests
         working-directory: code/adapters/nestjs
