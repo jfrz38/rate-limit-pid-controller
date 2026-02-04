@@ -18,7 +18,7 @@ describe('IntervalQueue tests', () => {
             getInitialTime: vi.fn()
         } as unknown as Mocked<RequestInterval>;
 
-        intervalQueue = new IntervalQueue(requestInterval, DefaultOptions.values.statistics.maxRequests);
+        intervalQueue = new IntervalQueue(requestInterval, DefaultOptions.values.interval.maxRequests);
     });
 
     describe('Test add', () => {
