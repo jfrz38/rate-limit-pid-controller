@@ -26,6 +26,10 @@ jobs:
         working-directory: code
         run: pnpm install --filter "@jfrz38/pid-controller-shared..." --frozen-lockfile
         
+      - name: Build
+        working-directory: code/adapters/shared
+        run: pnpm --filter "@jfrz38/pid-controller-shared^..." run build
+
       - name: Run Tests
         working-directory: code/adapters/shared
         run: pnpm test
