@@ -20,20 +20,22 @@ describe('Express PID Controller Middleware', () => {
 
     test('should create a middleware that calls handler.use', async () => {
         const options = {
-            pidConfig: { KP: 1, KI: 0.1 } as any,
-            priority: { getPriority: (req: any) => 1 }
+            pid: {
+                config: { KP: 1, KI: 0.1 } as any,
+                priority: { getPriority: (req: any) => 1 }
+            }
         };
 
         const { middleware } = pidControllerMiddleware(options);
 
         await middleware(mockRequest, mockResponse, nextFunction);
 
-        expect(PidControllerRateLimit).toHaveBeenCalledWith(options.pidConfig);
+        expect(PidControllerRateLimit).toHaveBeenCalledWith(options.pid.config);
 
         const mockControllerInstance = vi.mocked(PidControllerRateLimit).mock.instances[0];
         expect(PidControllerMiddlewareHandler).toHaveBeenCalledWith(
             mockControllerInstance,
-            options.priority
+            options.pid.priority
         );
 
         const mockHandlerInstance = vi.mocked(PidControllerMiddlewareHandler).mock.instances[0];

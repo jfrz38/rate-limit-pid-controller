@@ -58,22 +58,6 @@ describe('DefaultOptions', () => {
             expect(options.pid.interval).toBe(DefaultOptions.values.pid.interval);
         });
 
-        test('should override deeply nested properties (statistics)', () => {
-            const newMinIntervalTime = 30;
-            const overrides = {
-                statistics: {
-                    requestInterval: {
-                        minIntervalTime: newMinIntervalTime
-                    }
-                }
-            };
-            const options = DefaultOptions.getRequiredOptions(overrides);
-
-            expect(options.statistics.requestInterval.minIntervalTime).toBe(newMinIntervalTime);
-            expect(options.statistics.requestInterval.maxIntervalTime).toBe(DefaultOptions.values.statistics.requestInterval.maxIntervalTime);
-            expect(options.statistics.maxRequests).toBe(DefaultOptions.values.statistics.maxRequests);
-        });
-
         test('should ignore undefined values in overrides', () => {
             const overrides = {
                 threshold: {
@@ -94,30 +78,17 @@ describe('DefaultOptions', () => {
         test('should override specific nested properties while keeping others intact', () => {
             const overrides = {
                 pid: { KP: 0.99 },
-                statistics: { maxRequests: 5000 }
+                statistics: { latencyPercentile: 20 }
             };
 
             const result = DefaultOptions.getRequiredOptions(overrides);
 
             expect(result.pid.KP).toBe(0.99);
-            expect(result.statistics.maxRequests).toBe(5000);
+            expect(result.statistics.latencyPercentile).toBe(20);
 
             expect(result.pid.KI).toBe(0.5);
-            expect(result.statistics.latencyPercentile).toBe(90);
+            expect(result.statistics.minRequestsForLatencyPercentile).toBe(250);
             expect(result.log.level).toBe('warn');
-        });
-
-        test('should perform deep merge on third-level nesting (requestInterval)', () => {
-            const overrides = {
-                statistics: {
-                    requestInterval: { minIntervalTime: 99 }
-                }
-            };
-
-            const result = DefaultOptions.getRequiredOptions(overrides);
-
-            expect(result.statistics.requestInterval.minIntervalTime).toBe(99);
-            expect(result.statistics.requestInterval.maxIntervalTime).toBe(30);
         });
 
         test('should handle undefined values in overrides by falling back to defaults', () => {

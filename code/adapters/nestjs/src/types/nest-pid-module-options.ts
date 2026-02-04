@@ -1,14 +1,13 @@
-import { PidControllerOptions, PidHttpRules } from "@jfrz38/pid-controller-shared";
-import { NestPidHttpRules } from "../error/nest-pid-http-rules";
+import { HttpPidControllerOptions } from "@jfrz38/pid-controller-shared";
+import { PidRoutesConfig } from "../error/routes/pid-routes-config";
 
 /**
  * Configuration options for the PidControllerModule.
  */
-export interface NestPidModuleOptions extends PidControllerOptions {
+export interface NestPidModuleOptions extends HttpPidControllerOptions {
   /**
-   * HTTP-specific rules for the middleware.
-   * Includes status codes, custom bodies, and route filtering.
-   * @see {@link PidHttpRules}
+   * HTTP-routes rules for the middleware.
+   * @see {@link PidRoutesConfig}
    */
-  rules?: NestPidHttpRules;
+  routes?: PidRoutesConfig,
 }

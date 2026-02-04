@@ -23,15 +23,15 @@ export class PidControllerModule {
         },
         {
           provide: 'PID_CONTROLLER',
-          useFactory: () => new PidControllerRateLimit(options.pidConfig),
+          useFactory: () => new PidControllerRateLimit(options.pid?.config),
         },
         {
           provide: APP_FILTER,
-          useFactory: () => new PidExceptionFilter(options?.rules?.error),
+          useFactory: () => new PidExceptionFilter(options?.http?.error),
         },
         {
           provide: PidControllerMiddlewareHandler,
-          useFactory: (controller: PidControllerRateLimit) => new PidControllerMiddlewareHandler(controller, options.priority),
+          useFactory: (controller: PidControllerRateLimit) => new PidControllerMiddlewareHandler(controller, options.pid?.priority),
           inject: ['PID_CONTROLLER', 'PID_CONTROLLER_OPTIONS']
         }
       ],
@@ -47,7 +47,7 @@ export class PidControllerModule {
     const {
       excludeRoutes,
       allowedRoutes
-    } = PidRoutes.generate(this.options?.rules?.routes);
+    } = PidRoutes.generate(this.options?.routes);
 
     consumer
       .apply(PidControllerMiddleware)
