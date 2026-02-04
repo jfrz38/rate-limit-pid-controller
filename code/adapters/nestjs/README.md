@@ -18,10 +18,21 @@ Configuration objects allow three values, where `config` is the same as explaine
 |-------------------------------|----------------------------|-----------------------------|------------------------------------------------------------------------------|
 | `pid.config`                  | Parameters                 | -                           | Configuration for the PID engine. See core for more information.             |
 | `pid.priority.getPriority`    | `(req: Request) => number` | `req.headers['x-priority']` | Function to get priority from the request.                                   |
-| `http`                        | `PidHttpRules`             | -                           | HTTP policies: Response status and message error                             |
-| `routes.excludeRoutes`        | string[]                   | `[]`                        | Routes to be ignored                                                         |
-| `routes.allowedRoutes.paths`  | string                     | `'*'`                       | paths to be protected                                                        |
-| `routes.allowedRoutes.method` | `RequestMethod`            | `RequestMethod.ALL`         | HTTP method where the protection applies                                     |
+| `http`                        | `PidHttpRules`             | -                           | HTTP policies: Response status and message error  (see below)                |
+
+## Http Rules configuration
+
+| Parameter                          | Type            | Default                                    | Description                                                                                     |
+|------------------------------------|-----------------|--------------------------------------------|-------------------------------------------------------------------------------------------------|
+| `http.error.message`               | string          | Too many requests, please try again later. | A custom descriptive message for the error                                                      |
+| `http.error.retryAfter`            | number          | -                                          | The value in seconds for the 'Retry-After' HTTP header                                          |
+| `http.error.code`                  | number          | 429                                        | The HTTP status code to return.                                                                 |
+| `http.error.response`              | object          | object with default `title` and `message`  | The custom JSON body object to be sent to the client.                                           |
+| `http.error.title`                 | string          | RATE_LIMIT_EXCEEDED                        | A short string representing the error title or category.                                        |
+| `http.error.hideError`             | boolean         | `true`                                     | If true, prevents the internal PID exception message from being included in the final response. |
+| `http.routes.excludeRoutes`        | string[]        | `[]`                                       | Routes to be ignored                                                                            |
+| `http.routes.allowedRoutes.paths`  | string          | `'*'`                                      | paths to be protected                                                                           |
+| `http.routes.allowedRoutes.method` | `RequestMethod` | `RequestMethod.ALL`                        | HTTP method where the protection applies                                                        |
 
 ## Quick Start
 
@@ -54,7 +65,7 @@ import { AppController } from './app.controller';
         },
       },
       http: {
-          error:{
+        error: {
             code: 503,
             message: 'Custom message for the error'
           }
