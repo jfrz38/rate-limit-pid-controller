@@ -8,8 +8,6 @@ on:
 jobs:
     changes:
         runs-on: ubuntu-latest
-        permissions:
-            pull-requests: read
         outputs:
             core: ${{ steps.filter.outputs.core }}
             shared: ${{ steps.filter.outputs.shared }}
@@ -34,6 +32,8 @@ jobs:
         needs: changes
         if: ${{ needs.changes.outputs.core == 'true' }}
         runs-on: ubuntu-latest
+        permissions:
+            pull-requests: read
         steps:
             - uses: actions/checkout@v5
             - uses: actions/setup-node@v4
@@ -49,6 +49,8 @@ jobs:
         needs: changes
         if: ${{ needs.changes.outputs.shared == 'true' }}
         runs-on: ubuntu-latest
+        permissions:
+            pull-requests: read
         steps:
             - uses: actions/checkout@v5
             - uses: actions/setup-node@v4
@@ -64,6 +66,8 @@ jobs:
         needs: changes
         if: ${{ needs.changes.outputs.express == 'true' }}
         runs-on: ubuntu-latest
+        permissions:
+            pull-requests: read
         steps:
             - uses: actions/checkout@v5
             - uses: actions/setup-node@v4
@@ -79,6 +83,8 @@ jobs:
         needs: changes
         if: ${{ needs.changes.outputs.nestjs == 'true' }}
         runs-on: ubuntu-latest
+        permissions:
+            pull-requests: read
         steps:
             - uses: actions/checkout@v5
             - uses: actions/setup-node@v4
