@@ -1,0 +1,23 @@
+name: Run PID Simulation
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "Scenario to execute"
+        required: true
+        default: "base"
+        type: choice
+        options:
+          - base
+          - aggressive_peak
+          - high_latency
+          - high_volume
+          - priority_spike
+          - stress
+          - low_latency
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Created workflow"
