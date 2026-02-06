@@ -1,10 +1,11 @@
 name: Build Express Adapter
 on:
-  pull_request:
-    branches: [main, develop]
-    paths:
-      - "code/adapters/express/**"
-      - ".github/workflows/build-express.yml"
+  # pull_request:
+  #   branches: [main, develop]
+  #   paths:
+  #     - "code/adapters/express/**"
+  #     - ".github/workflows/build-express.yml"
+  workflow_dispatch:
 
 jobs:
   test:
