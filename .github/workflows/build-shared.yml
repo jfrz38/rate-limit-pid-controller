@@ -1,10 +1,10 @@
 name: Build Shared Adapter
 on:
-  # pull_request:
-  #   branches: [main, develop]
-  #   paths:
-  #     - "code/adapters/shared/**"
-  #     - ".github/workflows/build-shared.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "code/adapters/shared/**"
+      - ".github/workflows/build-shared.yml"
   workflow_dispatch:
 
 jobs:

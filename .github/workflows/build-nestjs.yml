@@ -1,10 +1,10 @@
 name: Build NestJS Adapter
 on:
-  # pull_request:
-  #   branches: [main, develop]
-  #   paths:
-  #     - "code/adapters/nestjs/**"
-  #     - ".github/workflows/build-nestjs.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "code/adapters/nestjs/**"
+      - ".github/workflows/build-nestjs.yml"
   workflow_dispatch:
 
 jobs:
