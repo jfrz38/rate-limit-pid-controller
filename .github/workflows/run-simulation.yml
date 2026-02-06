@@ -55,6 +55,10 @@ jobs:
         working-directory: simulation/scenarios
         run: poetry run python scenario_generator.py ${{ github.event.inputs.scenario }}
 
+      - name: Install PID Core dependencies
+        working-directory: code/core
+        run: pnpm install --frozen-lockfile
+
       - name: Install Runner Dependencies
         working-directory: simulation/scripts/runner
         run: pnpm install --frozen-lockfile
