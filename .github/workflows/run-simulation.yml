@@ -75,5 +75,5 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add simulation/scripts/runner/results/last_execution.png
+          git add -f simulation/scripts/runner/results/last_execution.png
           git diff --quiet && git diff --staged --quiet || (git commit -m "docs: update last simulation execution chart" && git push)
