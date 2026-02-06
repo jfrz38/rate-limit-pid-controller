@@ -49,7 +49,9 @@ jobs:
 
             - name: Install Python dependencies
               working-directory: simulation
-              run: poetry install --no-root
+              run: |
+                poetry config virtualenvs.in-project true
+                poetry install --no-root
 
             - name: Generate Scenario
               working-directory: simulation/scenarios
@@ -61,13 +63,11 @@ jobs:
 
             - name: Run Simulation
               working-directory: simulation/scripts/runner
-              run: pnpm dlx ts-node index.ts ${{ github.event.inputs.scenario }}
+              run: pnpm dlx ts-node run-log.ts ${{ github.event.inputs.scenario }}
 
             - name: Generate Visual Report
               working-directory: simulation/scripts
-              run: |
-                  pip install matplotlib pandas
-                  python logs_reader.py --no-show
+              run: poetry run python logs_reader.py --no-show
 
             - name: Commit and Push Report
               run: |
