@@ -15,6 +15,7 @@ on:
           - priority_spike
           - stress
           - low_latency
+
 jobs:
   run-simulation:
     runs-on: ubuntu-latest
@@ -38,9 +39,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-          cache: "poetry"
-          cache-dependency-path: 'simulation/pyproject.toml'
-        id: setup_python
 
       - name: Install Poetry
         run: |
