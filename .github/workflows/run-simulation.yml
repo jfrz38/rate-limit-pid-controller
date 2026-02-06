@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: "24"
           cache: "pnpm"
-          cache-dependency-path: code/pnpm-lock.yaml
+          cache-dependency-path: simulation/scripts/runner/pnpm-lock.yaml
 
       - name: Setup Python
         uses: actions/setup-python@v6
