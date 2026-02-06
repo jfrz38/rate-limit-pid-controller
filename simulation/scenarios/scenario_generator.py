@@ -1,6 +1,7 @@
 import csv
 import os
 import numpy as np
+import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 results_dir = os.path.join(script_dir, "./generated")
@@ -72,5 +73,17 @@ scenarios = {
     "priority_spike": 5000
 }
 
-for scenario, num_requests in scenarios.items():
-    generate_csv(scenario, num_requests)
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        target_scenario = sys.argv[1]
+        
+        if target_scenario in scenarios:
+            generate_csv(target_scenario, scenarios[target_scenario])
+        else:
+            print(f"Error: Scenario '{target_scenario}' is not defined in config.")
+            sys.exit(1)
+    else:
+        print("No scenario specified. Generating all scenarios...")
+        for scenario, num_requests in scenarios.items():
+            generate_csv(scenario, num_requests)
+

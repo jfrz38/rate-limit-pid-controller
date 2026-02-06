@@ -42,7 +42,7 @@ export class RunScenario {
       const line = queue.shift();
       if (!line) break;
 
-      const [requestId, priority, executionTime, sleepTime] = line.split(',').map(Number);
+      const [_, priority, executionTime, sleepTime] = line.split(',').map(Number);
 
       try {
         this.controller.run(await this.createRequest(executionTime), priority);
@@ -65,6 +65,9 @@ export class RunScenario {
   }
 }
 
-// const scenarios = ["high_latency.csv"];
-const scenarios = ["aggressive_peak.csv"];
+const args = process.argv.slice(2); 
+const scenarioName = args[0] || "base";
+const scenarioFile = scenarioName.endsWith('.csv') ? scenarioName : `${scenarioName}.csv`;
+
+const scenarios = [scenarioFile]
 new RunScenario().run(scenarios);

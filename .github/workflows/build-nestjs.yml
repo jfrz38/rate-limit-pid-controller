@@ -1,0 +1,36 @@
+name: Build NestJS Adapter
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "code/adapters/nestjs/**"
+      - ".github/workflows/build-nestjs.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "pnpm"
+          cache-dependency-path: code/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: code
+        run: pnpm install --filter "@jfrz38/pid-controller-nestjs..." --frozen-lockfile
+
+      - name: Build
+        working-directory: code/adapters/nestjs
+        run: pnpm --filter "@jfrz38/pid-controller-nestjs^..." run build
+
+      - name: Run Tests
+        working-directory: code/adapters/nestjs
+        run: pnpm test

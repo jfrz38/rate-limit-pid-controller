@@ -2,10 +2,11 @@ from pathlib import Path
 from datetime import datetime
 import re, json
 import matplotlib.pyplot as plt
+import sys
 
 base = Path(__file__).resolve().parent
-logs_folder = base / "nodejs/results/logs"
-out_image = base / "nodejs/results/result.png"
+logs_folder = base / "runner/results/logs"
+out_image = base / "runner/results/last_execution.png"
 
 date_format = "%Y-%m-%dT%H-%M-%S.%fZ"
 log_file = max(logs_folder.glob("*.log"), key=lambda f: datetime.strptime(f.stem, date_format))
@@ -99,7 +100,14 @@ if evicted:
 
 ax.set_xlabel("Seconds since start", fontweight="bold")
 ax.set_ylabel("Priority / Threshold", fontweight="bold")
-ax.set_title(f"PID Traffic Control Analysis\nFile: {log_file.name}", pad=20)
+
+display_log_name = Path(log_file).stem
+args = [a for a in sys.argv[1:] if not a.startswith('--')]
+scenario_name = args[0] if args else None
+scenario_line = f"\nScenario: {scenario_name}" if scenario_name else ""
+
+title_text = f"PID Traffic Control Analysis\nLog: {display_log_name}{scenario_line}"
+ax.set_title(f"{title_text}", pad=20)
 
 ax.grid(True, which="both", linestyle="--", alpha=0.5)
 ax.set_ylim(0, None)
@@ -113,4 +121,6 @@ ax.legend(loc='upper center',
 
 plt.tight_layout()
 plt.savefig(out_image, dpi=300, bbox_inches="tight")
-plt.show()
+no_show = "--no-show" in sys.argv
+if not no_show:
+    plt.show()
