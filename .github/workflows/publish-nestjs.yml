@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "code/adapters/nestjs/**"
+  workflow_dispatch:
 
 permissions:
   id-token: write

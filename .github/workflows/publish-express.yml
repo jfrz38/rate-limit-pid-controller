@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "code/adapters/express/**"
+  workflow_dispatch:
 
 permissions:
   id-token: write
