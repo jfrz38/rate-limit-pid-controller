@@ -1,13 +1,12 @@
 const express = require('express');
 const { pidControllerMiddleware, pidControllerErrorHandler } = require('@jfrz38/pid-controller-express')
 
-// TODO: Mirar si se está cogiendo el código y mensaje para express porque no veo el objeto en la entrada del middleware.
 const { middleware } = pidControllerMiddleware(
   {
     pid: {
       config: {
         threshold: {
-          initial: 200
+          initial: 800
         },
         capacity: {
           cores: 1,
