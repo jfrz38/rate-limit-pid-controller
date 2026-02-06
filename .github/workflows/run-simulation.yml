@@ -1,0 +1,77 @@
+name: Run PID Simulation
+
+on:
+    workflow_dispatch:
+        inputs:
+            scenario:
+                description: "Escenario a ejecutar"
+                required: true
+                default: "base"
+                type: choice
+                options:
+                    - base
+                    - aggressive_peak
+                    - high_latency
+                    - high_volume
+                    - priority_spike
+                    - stress
+                    - low_latency
+jobs:
+    run-simulation:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v3
+              with:
+                  version: 8
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: "pnpm"
+                  cache-dependency-path: code/pnpm-lock.yaml
+
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.x"
+                  cache: "poetry"
+                  cache-dependency-path: 'simulation/pyproject.toml'
+
+            - name: Install Poetry
+              run: |
+                python -m pip install --upgrade pip
+                pip install poetry
+
+            - name: Install Python dependencies
+              working-directory: simulation
+              run: poetry install --no-root
+
+            - name: Generate Scenario
+              working-directory: simulation/scenarios
+              run: poetry run python scenario_generator.py ${{ github.event.inputs.scenario }}
+
+            - name: Install Runner Dependencies
+              working-directory: simulation/scripts/runner
+              run: pnpm install --frozen-lockfile
+
+            - name: Run Simulation
+              working-directory: simulation/scripts/runner
+              run: pnpm dlx ts-node index.ts ${{ github.event.inputs.scenario }}
+
+            - name: Generate Visual Report
+              working-directory: simulation/scripts
+              run: |
+                  pip install matplotlib pandas
+                  python logs_reader.py --no-show
+
+            - name: Commit and Push Report
+              run: |
+                  git config --global user.name "github-actions[bot]"
+                  git config --global user.email "github-actions[bot]@users.noreply.github.com"
+                  git add simulation/scripts/report.png
+                  git diff --quiet && git diff --staged --quiet || (git commit -m "docs: update simulation chart" && git push)

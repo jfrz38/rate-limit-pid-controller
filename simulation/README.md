@@ -24,7 +24,7 @@ Run PID controller and read logs to create an example image:
 
 🏗️ **in progress...**
 
-![Last execution](./scripts/runner/results/last_exectution.png)
+![Last execution](./scripts/runner/results/last_execution.png)
 
 > [!WARNING]  
 > To output logs it is necessary to set logger level at least `debug` which is done automatically when run for tests.

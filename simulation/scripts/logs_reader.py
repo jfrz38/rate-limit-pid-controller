@@ -2,10 +2,11 @@ from pathlib import Path
 from datetime import datetime
 import re, json
 import matplotlib.pyplot as plt
+import sys
 
 base = Path(__file__).resolve().parent
-logs_folder = base / "nodejs/results/logs"
-out_image = base / "nodejs/results/result.png"
+logs_folder = base / "runner/results/logs"
+out_image = base / "runner/results/last_execution.png"
 
 date_format = "%Y-%m-%dT%H-%M-%S.%fZ"
 log_file = max(logs_folder.glob("*.log"), key=lambda f: datetime.strptime(f.stem, date_format))
@@ -113,4 +114,6 @@ ax.legend(loc='upper center',
 
 plt.tight_layout()
 plt.savefig(out_image, dpi=300, bbox_inches="tight")
-plt.show()
+no_show = "--no-show" in sys.argv
+if not no_show:
+    plt.show()
