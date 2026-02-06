@@ -100,7 +100,14 @@ if evicted:
 
 ax.set_xlabel("Seconds since start", fontweight="bold")
 ax.set_ylabel("Priority / Threshold", fontweight="bold")
-ax.set_title(f"PID Traffic Control Analysis\nFile: {log_file.name}", pad=20)
+
+display_log_name = Path(log_file).stem
+args = [a for a in sys.argv[1:] if not a.startswith('--')]
+scenario_name = args[0] if args else None
+scenario_line = f"\nScenario: {scenario_name}" if scenario_name else ""
+
+title_text = f"PID Traffic Control Analysis\nLog: {display_log_name}{scenario_line}"
+ax.set_title(f"{title_text}", pad=20)
 
 ax.grid(True, which="both", linestyle="--", alpha=0.5)
 ax.set_ylim(0, None)
