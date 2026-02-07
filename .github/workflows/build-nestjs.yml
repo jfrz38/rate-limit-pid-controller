@@ -30,7 +30,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: pnpm --filter "@jfrz38/pid-controller-nestjs..." run build
+        run: pnpm --filter "@jfrz38/pid-controller-nestjs..." build
 
       - name: Run Tests
         run: pnpm --filter "@jfrz38/pid-controller-nestjs^..." test
