@@ -21,6 +21,9 @@
     },
     {
       "path": "./adapters/express"
+    },
+    {
+      "path": "./adapters/shared"
     }
   ]
 }

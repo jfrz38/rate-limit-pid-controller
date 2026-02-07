@@ -2,7 +2,7 @@
   "name": "@jfrz38/pid-controller-express",
   "author": "José F. Ruiz <jrz899@inlumine.ual.es>",
   "license": "MIT",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Express adapter for the PID rate limiter core",
   "main": "dist/src/index.js",
   "module": "dist/src/index.js",
@@ -15,8 +15,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@jfrz38/pid-controller-core": "workspace:*",
-    "@jfrz38/pid-controller-shared": "workspace:*"
+    "@jfrz38/pid-controller-core": "workspace:*"
   },
   "peerDependencies": {
     "@jfrz38/pid-controller-core": "^0.0.1",
@@ -47,7 +46,8 @@
   "packageManager": "pnpm@10.12.3",
   "devDependencies": {
     "@types/express": "5.0.6",
-    "tsup": "8.5.1"
+    "tsup": "8.5.1",
+    "@jfrz38/pid-controller-shared": "workspace:*"
   },
   "repository": {
     "type": "git",

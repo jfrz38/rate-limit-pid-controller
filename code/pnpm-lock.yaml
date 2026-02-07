@@ -50,13 +50,13 @@ importers:
       '@jfrz38/pid-controller-core':
         specifier: workspace:*
         version: link:../../core
-      '@jfrz38/pid-controller-shared':
-        specifier: workspace:*
-        version: link:../shared
       express:
         specifier: ^5.0.0 || ^4.0.0
         version: 4.22.1
     devDependencies:
+      '@jfrz38/pid-controller-shared':
+        specifier: workspace:*
+        version: link:../shared
       '@types/express':
         specifier: 5.0.6
         version: 5.0.6
@@ -72,13 +72,13 @@ importers:
       '@jfrz38/pid-controller-express':
         specifier: workspace:*
         version: link:../express
-      '@jfrz38/pid-controller-shared':
-        specifier: workspace:*
-        version: link:../shared
       express:
         specifier: ^5.0.0 || ^4.0.0
         version: 4.22.1
     devDependencies:
+      '@jfrz38/pid-controller-shared':
+        specifier: workspace:*
+        version: link:../shared
       '@nestjs/common':
         specifier: 11.1.13
         version: 11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2)
