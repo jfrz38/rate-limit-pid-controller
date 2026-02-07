@@ -28,8 +28,8 @@ jobs:
                   files: code/core/package.json
 
     publish-core:
-        # needs: check-version
-        # if: needs.check-version.outputs.version_changed == 'true'
+        needs: check-version
+        if: needs.check-version.outputs.version_changed == 'true'
         runs-on: ubuntu-latest
         defaults:
             run:
