@@ -22,7 +22,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: "24"
           cache: "pnpm"
           cache-dependency-path: code/pnpm-lock.yaml
 
@@ -30,7 +30,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: pnpm --filter "@jfrz38/pid-controller-nestjs..." run build
+        run: pnpm --filter "@jfrz38/pid-controller-nestjs..." build
 
       - name: Run Tests
         run: pnpm --filter "@jfrz38/pid-controller-nestjs^..." test

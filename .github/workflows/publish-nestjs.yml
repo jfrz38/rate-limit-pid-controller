@@ -23,9 +23,9 @@ jobs:
 
       - name: Check if package.json version changed
         id: changed-package-json
-        uses: tj-actions/changed-files@v44
+        uses: tj-actions/changed-files@v47
         with:
-          files: code/adapters/nestjs/package.json
+          files: code/pnpm-lock.yaml
 
   publish-nestjs:
     needs: check-version
@@ -33,24 +33,30 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: code/adapters/nestjs
+        working-directory: code
     steps:
       - uses: actions/checkout@v5
 
       - uses: pnpm/action-setup@v3
         with:
-          version: 8
+          version: 10
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
-          cache-dependency-path: code/adapters/nestjs/pnpm-lock.yaml
+          cache-dependency-path: code/pnpm-lock.yaml
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run build --if-present
-      - run: pnpm test
-      - run: pnpm publish --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm --filter "@jfrz38/pid-controller-nestjs..." run build
+
+      - name: Run Tests
+        run: pnpm --filter "@jfrz38/pid-controller-nestjs^..." test
+
+      - name: Publish to NPM
+        working-directory: code/adapters/nestjs
+        run: pnpm publish --access public --no-git-checks
