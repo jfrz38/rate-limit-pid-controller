@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/code"
+    schedule:
+      interval: "monthly"
+    versioning-strategy: increase
+    commit-message:
+      prefix: "[Dependency Update]"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+  

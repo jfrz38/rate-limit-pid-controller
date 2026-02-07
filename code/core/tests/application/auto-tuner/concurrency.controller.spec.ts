@@ -127,7 +127,7 @@ describe('ConcurrencyController', () => {
       controller.update();
 
       const appliedLimit = scheduler.updateMaxConcurrentRequests.mock.calls[0][0];
-      expect(appliedLimit).toBeGreaterThanOrEqual(require('os').cpus().length);
+      expect(appliedLimit).toBeGreaterThanOrEqual((controller as any).cores);
     });
 
     test('should respect upper bound (inflightLimit * 10)', () => {

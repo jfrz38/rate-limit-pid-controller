@@ -3,9 +3,11 @@
   "version": "0.0.1",
   "private": true,
   "description": "Shared components for the PID rate limiter core",
-  "main": "src/index.ts",
-  "module": "src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "scripts": {
+    "build": "tsup",
     "test": "vitest run",
     "test:coverage": "vitest --coverage"
   },
@@ -17,7 +19,8 @@
   "license": "ISC",
   "packageManager": "pnpm@10.12.3",
   "devDependencies": {
-    "@types/express": "4.17.0",
-    "express": "5.2.1"
+    "@types/express": "5.0.6",
+    "express": "5.2.1",
+    "tsup": "8.5.1"
   }
 }
