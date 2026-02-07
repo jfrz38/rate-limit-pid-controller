@@ -159,7 +159,7 @@ describe('Scheduler', () => {
             const taskMock = vi.fn().mockResolvedValue(undefined);
             const request = { task: taskMock, status: Event.CREATED };
 
-            executor.add = vi.fn();
+            executor.add = vi.fn().mockResolvedValue(undefined as any);
             await (scheduler as any).processRequest(request);
 
             expect(executor.add).toHaveBeenCalledTimes(1);
