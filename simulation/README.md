@@ -22,8 +22,6 @@ The following scenarios are available:
 
 Run PID controller and read logs to create an example image:
 
-🏗️ **in progress...**
-
 ![Last execution](./scripts/runner/results/last_execution.png)
 
 > [!WARNING]  
