@@ -2,10 +2,9 @@
   "name": "@jfrz38/pid-controller-shared",
   "version": "0.0.1",
   "private": true,
-  "description": "Shared components for the PID rate limiter core",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "description": "Shared components for the PID rate limiter adapters",
+  "main": "./src/index.js",
+  "types": "./src/index.ts",
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
