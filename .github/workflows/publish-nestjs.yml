@@ -60,5 +60,3 @@ jobs:
       - name: Publish to NPM
         working-directory: code/adapters/nestjs
         run: pnpm publish --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
