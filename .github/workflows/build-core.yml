@@ -10,6 +10,9 @@ on:
 jobs:
     test:
         runs-on: ubuntu-latest
+        defaults:
+          run:
+            working-directory: code
         steps:
             - uses: actions/checkout@v5
 
@@ -24,13 +27,10 @@ jobs:
                   cache-dependency-path: code/pnpm-lock.yaml
 
             - name: Install dependencies
-              working-directory: code
-              run: pnpm install --filter "@jfrz38/pid-controller-core" --frozen-lockfile
+              run: pnpm install --frozen-lockfile
 
             - name: Build
-              working-directory: code/core
-              run: pnpm build
+              run: pnpm --filter "@jfrz38/pid-controller-core" build
 
             - name: Run Tests
-              working-directory: code/core
-              run: pnpm test
+              run: pnpm --filter "@jfrz38/pid-controller-core" test
