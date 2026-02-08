@@ -25,7 +25,7 @@ Run PID controller and read logs to create an example image:
 ![Last execution](./scripts/runner/results/last_execution.png)
 
 > [!WARNING]  
-> To output logs it is necessary to set logger level at least `debug` which is done automatically when run for tests.
+> To output logs it is necessary to set logger level at least `debug` which is done automatically when run for tests but not for adapters since you define your own configuration.
 
 ## Servers
 

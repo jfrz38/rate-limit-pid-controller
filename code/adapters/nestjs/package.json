@@ -2,7 +2,7 @@
   "name": "@jfrz38/pid-controller-nestjs",
   "author": "José F. Ruiz <jrz899@inlumine.ual.es>",
   "license": "MIT",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "NestJS adapter for the PID rate limiter core",
   "main": "./dist/src/index.js",
   "module": "./dist/src/index.js",
@@ -30,6 +30,7 @@
     "url": "git+https://github.com/jfrz38/rate-limit-pid-controller.git",
     "directory": "code/adapters/nestjs"
   },
+  "homepage": "https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/adapters/nestjs#readme",
   "scripts": {
     "build": "tsup",
     "build:clean": "npm run clean && npm run build",

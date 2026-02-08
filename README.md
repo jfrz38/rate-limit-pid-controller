@@ -18,6 +18,8 @@ Choose how you want to integrate the PID rate limiter:
 
 > You can either control requests manually via the core or handle them automatically with middleware.
 
+Also you can check [simulation examples](./simulation/README.md).
+
 ## Motivation
 
 Uber’s Cinnamon introduced a novel approach to rate limiting by combining **PID controllers** with traffic-shaping techniques.  
