@@ -8,17 +8,17 @@ It is designed to be framework-agnostic and written in plain TypeScript with zer
 Choose how you want to integrate the PID rate limiter:
 
 - **Standalone Core**  
-  Use the PID controller directly in any Node.js project.  
-  🔗 [Core README](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/core/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-core)](https://www.npmjs.com/package/@jfrz38/pid-controller-core)
+  Use the PID controller directly in any Node.js project without HTTP protocols.  
+  🔗 [Core README](./code/core/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-core)](https://www.npmjs.com/package/@jfrz38/pid-controller-core)
 
 - **Framework Adapters**  
   Plug the controller into your framework with minimal setup:  
-  🔗 [Express Adapter](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/adapters/express/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)
-  🔗 [NestJS Adapter](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/adapters/nestjs/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
+  🔗 [Express Adapter](./code/adapters/express/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)  
+  🔗 [NestJS Adapter](./code/adapters/nestjs/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
 
 > You can either control requests manually via the core or handle them automatically with middleware.
 
-Also you can check [simulation examples](./simulation/README.md).
+Also you can explore [simulation examples](./simulation/README.md) to see how the PID controller behaves under different traffic loads and latency scenarios..
 
 ## Motivation
 
