@@ -2,7 +2,7 @@
   "name": "@jfrz38/pid-controller-core",
   "author": "José F. Ruiz <jrz899@inlumine.ual.es>",
   "license": "MIT",
-  "version": "0.0.2",
+  "version": "0.0.1",
   "description": "Rate Limiter built based on Uber's Cinnamon architecture",
   "main": "./dist/src/index.js",
   "module": "./dist/src/index.js",

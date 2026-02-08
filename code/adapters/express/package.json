@@ -2,7 +2,7 @@
   "name": "@jfrz38/pid-controller-express",
   "author": "José F. Ruiz <jrz899@inlumine.ual.es>",
   "license": "MIT",
-  "version": "0.0.4",
+  "version": "0.0.3",
   "description": "Express adapter for the PID rate limiter core",
   "main": "dist/src/index.js",
   "module": "dist/src/index.js",
