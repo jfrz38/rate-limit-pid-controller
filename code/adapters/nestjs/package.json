@@ -45,7 +45,15 @@
     "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix"
   },
   "type": "commonjs",
-  "keywords": [],
+  "keywords": [
+    "nestjs",
+    "express",
+    "pid-controller",
+    "rate-limit",
+    "resilience",
+    "middleware",
+    "backpressure"
+  ],
   "packageManager": "pnpm@10.12.3",
   "devDependencies": {
     "@nestjs/common": "11.1.13",
