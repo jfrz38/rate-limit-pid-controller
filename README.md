@@ -3,6 +3,23 @@
 This project is an **opinionated implementation of a rate limiter**, inspired by Uber’s [Cinnamon blog post](https://www.uber.com/en-ES/blog/cinnamon-using-century-old-tech-to-build-a-mean-load-shedder/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  
 It is designed to be framework-agnostic and written in plain TypeScript with zero heavy dependencies, with the goal of being easily integrated as a dependency in plain NodeJs or using a framework such as **Express** or **NestJS**.
 
+## Usage
+
+Choose how you want to integrate the PID rate limiter:
+
+- **Standalone Core**  
+  Use the PID controller directly in any Node.js project without HTTP protocols.  
+  🔗 [Core README](./code/core/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-core)](https://www.npmjs.com/package/@jfrz38/pid-controller-core)
+
+- **Framework Adapters**  
+  Plug the controller into your framework with minimal setup:  
+  🔗 [Express Adapter](./code/adapters/express/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)  
+  🔗 [NestJS Adapter](./code/adapters/nestjs/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
+
+> You can either control requests manually via the core or handle them automatically with middleware.
+
+Also you can explore [simulation examples](./simulation/README.md) to see how the PID controller behaves under different traffic loads and latency scenarios..
+
 ## Motivation
 
 Uber’s Cinnamon introduced a novel approach to rate limiting by combining **PID controllers** with traffic-shaping techniques.  
@@ -47,6 +64,9 @@ flowchart TD
   style App fill:#ecfdf5,stroke:#10b981
 ```
 
+> [!NOTE]  
+> Check extended explanation into [Core project](./code/core/README.md#All%20pieces%20together).
+
 ## Features
 
 - PID-based dynamic rate limiting.
@@ -54,21 +74,6 @@ flowchart TD
 - Configurable thresholds, recovery, and overload handling.
 - Designed for **high concurrency** environments.
 - Priority-based shedding dropping background tasks during high-load periods while keeping critical requests alive.
-
-## Usage
-
-Choose how you want to integrate the PID rate limiter:
-
-- **Standalone Core**  
-  Use the PID controller directly in any Node.js project.  
-  🔗 [Core README](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/core/README.md)
-
-- **Framework Adapters**  
-  Plug the controller into your framework with minimal setup:  
-  - [Express Adapter](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/adapters/express/README.md)  
-  - [NestJS Adapter](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/adapters/nestjs/README.md)
-
-> You can either control requests manually via the core or handle them automatically with middleware.
 
 ## How it works
 

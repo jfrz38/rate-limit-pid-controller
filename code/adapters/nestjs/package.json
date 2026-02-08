@@ -30,6 +30,7 @@
     "url": "git+https://github.com/jfrz38/rate-limit-pid-controller.git",
     "directory": "code/adapters/nestjs"
   },
+  "homepage": "https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/adapters/nestjs#readme",
   "scripts": {
     "build": "tsup",
     "build:clean": "npm run clean && npm run build",
@@ -44,7 +45,15 @@
     "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix"
   },
   "type": "commonjs",
-  "keywords": [],
+  "keywords": [
+    "nestjs",
+    "express",
+    "pid-controller",
+    "rate-limit",
+    "resilience",
+    "middleware",
+    "backpressure"
+  ],
   "packageManager": "pnpm@10.12.3",
   "devDependencies": {
     "@nestjs/common": "11.1.13",

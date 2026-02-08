@@ -53,5 +53,6 @@
     "type": "git",
     "url": "git+https://github.com/jfrz38/rate-limit-pid-controller.git",
     "directory": "code/adapters/express"
-  }
+  },
+  "homepage": "https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/adapters/express#readme"
 }

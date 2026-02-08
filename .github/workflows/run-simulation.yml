@@ -73,11 +73,6 @@ jobs:
         working-directory: simulation/scripts
         run: poetry run python logs_reader.py --no-show
 
-      - name: Create empty image
-        run: |
-          mkdir -p simulation/scripts/runner/results
-          touch simulation/scripts/runner/results/last_execution.png
-
       - name: Commit and Push Report
         run: |
           git config --global user.name "github-actions[bot]"

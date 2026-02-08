@@ -2,6 +2,12 @@
 
 This directory contains the necessary tools to stress-test the PID controller, generate synthetic traffic patterns, and run real-world server examples. It is designed to demonstrate how the controller reacts to different load levels in real-time.
 
+## How to run
+
+1. Generate your scenario: `poetry run python scenario_generator.py <your_scenario>` under `simulation/scenarios` folder.
+2. Run PID Controller: `pnpm run start` under `runner` folder.
+3. Run logs reader: `poetry run python logs_reader.py` under `simulation/scripts` folder.
+
 ## Scenarios
 
 Scenarios are generated using normal distributions to create realistic variations in execution times and request intervals.
@@ -25,7 +31,7 @@ Run PID controller and read logs to create an example image:
 ![Last execution](./scripts/runner/results/last_execution.png)
 
 > [!WARNING]  
-> To output logs it is necessary to set logger level at least `debug` which is done automatically when run for tests.
+> To output logs it is necessary to set logger level at least `debug` which is done automatically when run for tests but not for adapters since you define your own configuration.
 
 ## Servers
 

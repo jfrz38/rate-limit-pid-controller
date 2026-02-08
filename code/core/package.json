@@ -40,7 +40,7 @@
   "bugs": {
     "url": "https://github.com/jfrz38/rate-limit-pid-controller/issues"
   },
-  "homepage": "https://github.com/jfrz38/rate-limit-pid-controller#readme",
+  "homepage": "https://github.com/jfrz38/rate-limit-pid-controller/blob/main/code/core#readme",
   "dependencies": {
     "heap-js": "2.7.1",
     "mathjs": "15.1.0",
