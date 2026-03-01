@@ -43,8 +43,8 @@
   "homepage": "https://github.com/jfrz38/rate-limit-pid-controller/blob/main/code/core#readme",
   "dependencies": {
     "heap-js": "2.7.1",
-    "mathjs": "15.1.0",
+    "mathjs": "15.1.1",
     "p-queue": "9.1.0",
-    "pino": "10.3.0"
+    "pino": "10.3.1"
   }
 }

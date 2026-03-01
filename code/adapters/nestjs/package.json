@@ -56,8 +56,8 @@
   ],
   "packageManager": "pnpm@10.12.3",
   "devDependencies": {
-    "@nestjs/common": "11.1.13",
-    "@nestjs/core": "11.1.13",
+    "@nestjs/common": "11.1.14",
+    "@nestjs/core": "11.1.14",
     "@types/express": "5.0.6",
     "tsup": "8.5.1",
     "@jfrz38/pid-controller-shared": "workspace:*"
