@@ -1,7 +1,8 @@
 # PID Controller - Express adapter
 
 [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jfrz38/rate-limit-pid-controller/build-express.yml)](https://github.com/jfrz38/rate-limit-pid-controller/actions)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jfrz38/rate-limit-pid-controller/build-express.yml)](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/build-express.yml)
+[![types](https://img.shields.io/npm/types/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)
 [![license](https://img.shields.io/npm/l/@jfrz38/pid-controller-express)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
 [![NPM Downloads](https://img.shields.io/npm/dm/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)
 

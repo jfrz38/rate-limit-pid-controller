@@ -1,5 +1,8 @@
 # Rate Limiter PID Controller
 
+[![CodeQL](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/codeql.yml/badge.svg)](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/codeql.yml)
+[![license](https://img.shields.io/github/license/jfrz38/rate-limit-pid-controller)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
+
 This project is an **opinionated implementation of a rate limiter**, inspired by Uber’s [Cinnamon blog post](https://www.uber.com/en-ES/blog/cinnamon-using-century-old-tech-to-build-a-mean-load-shedder/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  
 It is designed to be framework-agnostic and written in plain TypeScript with zero heavy dependencies, with the goal of being easily integrated as a dependency in plain NodeJs or using a framework such as **Express** or **NestJS**.
 
