@@ -37,7 +37,7 @@ This project implements a **simplified, opinionated version** of Cinnamon’s ap
 <sub><sup>_(simplified logic):_</sub></sup>
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, Arial, sans-serif'}, 'flowchart': {'curve': 'basis'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, Arial, sans-serif', 'primaryTextColor': '#172033', 'lineColor': '#5f6f89', 'textColor': '#172033', 'edgeLabelBackground': '#ffffff'}, 'flowchart': {'curve': 'basis'}}}%%
 flowchart LR
   Traffic([Incoming traffic]) --> Gate{Priority gate}
   Gate -->|Accepted| App[Application]
@@ -47,11 +47,11 @@ flowchart LR
   Rejected -. pressure signals .-> Controller
   Controller -. adjusts threshold .-> Gate
 
-  style Traffic fill:#eef6ff,stroke:#4f8cc9,stroke-width:1.5px
-  style Gate fill:#fff7e6,stroke:#d7971f,stroke-width:1.5px
-  style App fill:#ebf8f0,stroke:#3b9b61,stroke-width:1.5px
-  style Rejected fill:#fff0f0,stroke:#d45b5b,stroke-width:1.5px
-  style Controller fill:#f4f1ff,stroke:#7a64c7,stroke-width:1.5px
+  style Traffic fill:#eef6ff,stroke:#4f8cc9,stroke-width:1.5px,color:#172033
+  style Gate fill:#fff7e6,stroke:#d7971f,stroke-width:1.5px,color:#172033
+  style App fill:#ebf8f0,stroke:#3b9b61,stroke-width:1.5px,color:#172033
+  style Rejected fill:#fff0f0,stroke:#d45b5b,stroke-width:1.5px,color:#172033
+  style Controller fill:#f4f1ff,stroke:#7a64c7,stroke-width:1.5px,color:#172033
 ```
 
 > [!NOTE]  
