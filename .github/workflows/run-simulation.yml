@@ -28,14 +28,16 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
         with:
-          version: 9
+          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: "pnpm"
-          cache-dependency-path: simulation/scripts/runner/pnpm-lock.yaml
+          cache-dependency-path: |
+            code/pnpm-lock.yaml
+            simulation/scripts/runner/pnpm-lock.yaml
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -48,30 +50,22 @@ jobs:
           pip install poetry
 
       - name: Install Python dependencies
-        working-directory: simulation
-        run: |
-          poetry config virtualenvs.in-project true
-          poetry install --no-root
+        run: make install-simulation
 
       - name: Generate Scenario
-        working-directory: simulation/scenarios
-        run: poetry run python scenario_generator.py ${{ github.event.inputs.scenario }}
+        run: make simulation-generate SCENARIO=${{ github.event.inputs.scenario }}
 
-      - name: Install PID Core dependencies
-        working-directory: code/core
-        run: pnpm install --frozen-lockfile
+      - name: Install code dependencies
+        run: make install-code
 
       - name: Install Runner Dependencies
-        working-directory: simulation/scripts/runner
-        run: pnpm install --frozen-lockfile
+        run: make install-simulation-runner
 
       - name: Run Simulation
-        working-directory: simulation/scripts/runner
-        run: pnpm dlx ts-node run-log.ts ${{ github.event.inputs.scenario }}
+        run: make simulation-run SCENARIO=${{ github.event.inputs.scenario }}
 
       - name: Generate Visual Report
-        working-directory: simulation/scripts
-        run: poetry run python logs_reader.py --no-show
+        run: make simulation-report SCENARIO=${{ github.event.inputs.scenario }}
 
       - name: Commit and Push Report
         run: |

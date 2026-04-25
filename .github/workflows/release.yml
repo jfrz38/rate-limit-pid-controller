@@ -18,24 +18,23 @@ jobs:
       matrix:
         package:
           - release_name: core
+            package_key: core
             tag_prefix: core-v
             package_name: "@jfrz38/pid-controller-core"
             package_dir: code/core
             package_file: code/core/package.json
           - release_name: express
+            package_key: express
             tag_prefix: express-v
             package_name: "@jfrz38/pid-controller-express"
             package_dir: code/adapters/express
             package_file: code/adapters/express/package.json
           - release_name: nestjs
+            package_key: nestjs
             tag_prefix: nestjs-v
             package_name: "@jfrz38/pid-controller-nestjs"
             package_dir: code/adapters/nestjs
             package_file: code/adapters/nestjs/package.json
-
-    defaults:
-      run:
-        working-directory: code
 
     steps:
       - name: Check out repository
@@ -83,15 +82,15 @@ jobs:
 
       - name: Install dependencies
         if: steps.version-check.outputs.changed == 'true'
-        run: pnpm install --frozen-lockfile
+        run: make install-code
 
       - name: Build
         if: steps.version-check.outputs.changed == 'true'
-        run: pnpm --filter "${{ matrix.package.package_name }}..." build
+        run: make build-${{ matrix.package.package_key }}
 
       - name: Run tests
         if: steps.version-check.outputs.changed == 'true'
-        run: pnpm --filter "${{ matrix.package.package_name }}..." test
+        run: make test-${{ matrix.package.package_key }}
 
       - name: Resolve release version
         if: steps.version-check.outputs.changed == 'true'

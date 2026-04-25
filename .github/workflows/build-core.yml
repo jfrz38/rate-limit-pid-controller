@@ -4,15 +4,13 @@ on:
         branches: [main, develop]
         paths:
             - "code/core/**"
+            - "Makefile"
             - ".github/workflows/build-core.yml"
     workflow_dispatch:
 
 jobs:
     test:
         runs-on: ubuntu-latest
-        defaults:
-          run:
-            working-directory: code
         steps:
             - uses: actions/checkout@v6
 
@@ -27,10 +25,10 @@ jobs:
                   cache-dependency-path: code/pnpm-lock.yaml
 
             - name: Install dependencies
-              run: pnpm install --frozen-lockfile
+              run: make install-code
 
             - name: Build
-              run: pnpm --filter "@jfrz38/pid-controller-core" build
+              run: make build-core
 
             - name: Run Tests
-              run: pnpm --filter "@jfrz38/pid-controller-core" test
+              run: make test-core

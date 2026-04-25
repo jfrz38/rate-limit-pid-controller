@@ -4,15 +4,16 @@ on:
     branches: [main, develop]
     paths:
       - "code/adapters/nestjs/**"
+      - "code/adapters/express/**"
+      - "code/adapters/shared/**"
+      - "code/core/**"
+      - "Makefile"
       - ".github/workflows/build-nestjs.yml"
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: code
     steps:
       - uses: actions/checkout@v6
 
@@ -27,10 +28,10 @@ jobs:
           cache-dependency-path: code/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: make install-code
 
       - name: Build
-        run: pnpm --filter "@jfrz38/pid-controller-nestjs..." build
+        run: make build-nestjs
 
       - name: Run Tests
-        run: pnpm --filter "@jfrz38/pid-controller-nestjs^..." test
+        run: make test-nestjs

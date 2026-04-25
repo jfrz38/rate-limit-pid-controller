@@ -34,18 +34,21 @@ jobs:
         run: |
           case "${{ inputs.package }}" in
             core)
+              echo "package_key=core" >> "$GITHUB_OUTPUT"
               echo "tag_prefix=core-v" >> "$GITHUB_OUTPUT"
               echo "package_name=@jfrz38/pid-controller-core" >> "$GITHUB_OUTPUT"
               echo "package_dir=code/core" >> "$GITHUB_OUTPUT"
               echo "package_file=code/core/package.json" >> "$GITHUB_OUTPUT"
               ;;
             express)
+              echo "package_key=express" >> "$GITHUB_OUTPUT"
               echo "tag_prefix=express-v" >> "$GITHUB_OUTPUT"
               echo "package_name=@jfrz38/pid-controller-express" >> "$GITHUB_OUTPUT"
               echo "package_dir=code/adapters/express" >> "$GITHUB_OUTPUT"
               echo "package_file=code/adapters/express/package.json" >> "$GITHUB_OUTPUT"
               ;;
             nestjs)
+              echo "package_key=nestjs" >> "$GITHUB_OUTPUT"
               echo "tag_prefix=nestjs-v" >> "$GITHUB_OUTPUT"
               echo "package_name=@jfrz38/pid-controller-nestjs" >> "$GITHUB_OUTPUT"
               echo "package_dir=code/adapters/nestjs" >> "$GITHUB_OUTPUT"
@@ -96,15 +99,9 @@ jobs:
           fi
 
       - name: Verify package version matches release
-        working-directory: ${{ steps.package.outputs.package_dir }}
         env:
           EXPECTED_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          if [ "$PACKAGE_VERSION" != "$EXPECTED_VERSION" ]; then
-            echo "Release version $EXPECTED_VERSION does not match package version $PACKAGE_VERSION" >&2
-            exit 1
-          fi
+        run: make verify-release-package PACKAGE=${{ steps.package.outputs.package_key }} VERSION="$EXPECTED_VERSION"
 
       - id: version-check
         name: Check version is not already published
@@ -141,19 +138,15 @@ jobs:
           cache-dependency-path: code/pnpm-lock.yaml
 
       - name: Install dependencies
-        working-directory: code
-        run: pnpm install --frozen-lockfile
+        run: make install-code
 
       - name: Build
-        working-directory: code
-        run: pnpm --filter "${{ steps.package.outputs.package_name }}..." build
+        run: make build-${{ steps.package.outputs.package_key }}
 
       - name: Run tests
-        working-directory: code
-        run: pnpm --filter "${{ steps.package.outputs.package_name }}..." test
+        run: make test-${{ steps.package.outputs.package_key }}
 
       - name: Publish to npm
-        working-directory: ${{ steps.package.outputs.package_dir }}
-        run: pnpm publish --access public --no-git-checks --provenance
+        run: make publish-package PACKAGE=${{ steps.package.outputs.package_key }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
