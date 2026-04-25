@@ -20,6 +20,16 @@ Choose how you want to integrate the PID rate limiter:
 
 Also you can explore [simulation examples](./simulation/README.md) to see how the PID controller behaves under different traffic loads and latency scenarios..
 
+## Packages and releases
+
+This repository contains several npm packages that are versioned and released independently:
+
+- `@jfrz38/pid-controller-core` uses tags like `core-vX.Y.Z`.
+- `@jfrz38/pid-controller-express` uses tags like `express-vX.Y.Z`.
+- `@jfrz38/pid-controller-nestjs` uses tags like `nestjs-vX.Y.Z`.
+
+GitHub Releases are therefore package-specific. `npm` is the source of truth for each package's `latest` version, because npm tracks the `latest` dist-tag per package while GitHub only has one repository-level latest release.
+
 ## Motivation
 
 Uber’s Cinnamon introduced a novel approach to rate limiting by combining **PID controllers** with traffic-shaping techniques.  
