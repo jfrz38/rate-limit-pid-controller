@@ -74,12 +74,6 @@ Standard rate limiters are static: you set 100 RPS, and it stays at 100 RPS. Thi
 3. **Load Shedding**: Only requests with a priority higher than the current threshold are allowed.
 4. **Self-Correction**: If the server slows down, the PID raises the threshold automatically. As it recovers, it gracefully lowers it back.
 
-## References
-
-- [Cinnamon: Using Century Old Tech to Build a Mean Load Shedder](https://www.uber.com/en-ES/blog/cinnamon-using-century-old-tech-to-build-a-mean-load-shedder/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  
-- [PID Controller for Cinnamon](https://www.uber.com/en-ES/blog/pid-controller-for-cinnamon/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  
-- [Cinnamon Auto-Tuner: Adaptive Concurrency in the Wild](https://www.uber.com/en-ES/blog/cinnamon-auto-tuner-adaptive-concurrency-in-the-wild/).  
-
 ## Packages and releases
 
 This repository contains several npm packages that are versioned and released independently:
@@ -89,3 +83,30 @@ This repository contains several npm packages that are versioned and released in
 - `@jfrz38/pid-controller-nestjs` uses tags like `nestjs-vX.Y.Z`.
 
 GitHub Releases are therefore package-specific. `npm` is the source of truth for each package's `latest` version, because npm tracks the `latest` dist-tag per package while GitHub only has one repository-level latest release.
+
+## Development
+
+Common project tasks are exposed through the root `Makefile`:
+
+```bash
+make install-code
+make build
+make test
+make ci
+```
+
+Package-specific checks are also available:
+
+```bash
+make validate-core
+make validate-express
+make validate-nestjs
+```
+
+Run `make help` to list all available targets.
+
+## References
+
+- [Cinnamon: Using Century Old Tech to Build a Mean Load Shedder](https://www.uber.com/en-ES/blog/cinnamon-using-century-old-tech-to-build-a-mean-load-shedder/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  
+- [PID Controller for Cinnamon](https://www.uber.com/en-ES/blog/pid-controller-for-cinnamon/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  
+- [Cinnamon Auto-Tuner: Adaptive Concurrency in the Wild](https://www.uber.com/en-ES/blog/cinnamon-auto-tuner-adaptive-concurrency-in-the-wild/).  

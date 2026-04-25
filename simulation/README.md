@@ -4,9 +4,22 @@ This directory contains the necessary tools to stress-test the PID controller, g
 
 ## How to run
 
-1. Generate your scenario: `poetry run python scenario_generator.py <your_scenario>` under `simulation/scenarios` folder.
-2. Run PID Controller: `pnpm run start` under `runner` folder.
-3. Run logs reader: `poetry run python logs_reader.py` under `simulation/scripts` folder.
+From the repository root:
+
+```bash
+make install-code
+make install-simulation
+make install-simulation-runner
+make simulation SCENARIO=base
+```
+
+You can run each step independently:
+
+```bash
+make simulation-generate SCENARIO=base
+make simulation-run SCENARIO=base
+make simulation-report SCENARIO=base
+```
 
 ## Scenarios
 
