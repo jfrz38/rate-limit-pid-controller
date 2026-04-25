@@ -99,9 +99,15 @@ jobs:
           fi
 
       - name: Verify package version matches release
+        working-directory: ${{ steps.package.outputs.package_dir }}
         env:
           EXPECTED_VERSION: ${{ steps.version.outputs.version }}
-        run: make verify-release-package PACKAGE=${{ steps.package.outputs.package_key }} VERSION="$EXPECTED_VERSION"
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          if [ "$PACKAGE_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "Release version $EXPECTED_VERSION does not match package version $PACKAGE_VERSION" >&2
+            exit 1
+          fi
 
       - id: version-check
         name: Check version is not already published
@@ -147,6 +153,7 @@ jobs:
         run: make test-${{ steps.package.outputs.package_key }}
 
       - name: Publish to npm
-        run: make publish-package PACKAGE=${{ steps.package.outputs.package_key }}
+        working-directory: ${{ steps.package.outputs.package_dir }}
+        run: pnpm publish --access public --no-git-checks --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
