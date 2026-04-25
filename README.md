@@ -1,5 +1,8 @@
 # Rate Limiter PID Controller
 
+[![CodeQL](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/codeql.yml/badge.svg)](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/codeql.yml)
+[![license](https://img.shields.io/github/license/jfrz38/rate-limit-pid-controller)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
+
 This project is an **opinionated implementation of a rate limiter**, inspired by Uber’s [Cinnamon blog post](https://www.uber.com/en-ES/blog/cinnamon-using-century-old-tech-to-build-a-mean-load-shedder/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  
 It is designed to be framework-agnostic and written in plain TypeScript with zero heavy dependencies, with the goal of being easily integrated as a dependency in plain NodeJs or using a framework such as **Express** or **NestJS**.
 
@@ -34,34 +37,21 @@ This project implements a **simplified, opinionated version** of Cinnamon’s ap
 <sub><sup>_(simplified logic):_</sub></sup>
 
 ```mermaid
-%%{init: {'theme': 'base', 'graph': {'curve': 'linear'}}}%%
-flowchart TD
-  Req([Request]) --> Adapter[Middleware / Adapter]
-  subgraph Framework [Framework]
-    Adapter --> PID[PID Handler]
-    
-    subgraph Core [PID Control Logic]
-      PID --> Decision{Allowed?}
-      Stats[PID Calculation]
-    end
-    
-    Error[Rejected]
-  end
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, Arial, sans-serif'}, 'flowchart': {'curve': 'basis'}}}%%
+flowchart LR
+  Traffic([Incoming traffic]) --> Gate{Priority gate}
+  Gate -->|Accepted| App[Application]
+  Gate -->|Shed| Rejected[Fast rejection]
 
-  Decision -->|Yes| App[Process Application Logic]
-  Decision -->|No| Error[Rejected]
+  App -. health signals .-> Controller[PID controller]
+  Rejected -. pressure signals .-> Controller
+  Controller -. adjusts threshold .-> Gate
 
-  %% Feedback Loop
-  App -.->|1. Metric Collection| Stats[PID Calculation]
-  PID -.->|1. Metric Collection| Stats[PID Calculation]
-  Stats -.->|2. Adjust Threshold| PID
-
-  Error ~~~ App
-
-  style Decision fill:#fff4dd,stroke:#d4a017,stroke-width:2px
-  style Core fill:#f9f9f9,stroke:#666,stroke-dasharray: 5 5
-  style Error fill:#fee2e2,stroke:#ef4444
-  style App fill:#ecfdf5,stroke:#10b981
+  style Traffic fill:#eef6ff,stroke:#4f8cc9,stroke-width:1.5px
+  style Gate fill:#fff7e6,stroke:#d7971f,stroke-width:1.5px
+  style App fill:#ebf8f0,stroke:#3b9b61,stroke-width:1.5px
+  style Rejected fill:#fff0f0,stroke:#d45b5b,stroke-width:1.5px
+  style Controller fill:#f4f1ff,stroke:#7a64c7,stroke-width:1.5px
 ```
 
 > [!NOTE]  
@@ -83,6 +73,37 @@ Standard rate limiters are static: you set 100 RPS, and it stays at 100 RPS. Thi
 2. **Dynamic Thresholding**: Instead of a fixed number, it calculates a **Priority Threshold**.
 3. **Load Shedding**: Only requests with a priority higher than the current threshold are allowed.
 4. **Self-Correction**: If the server slows down, the PID raises the threshold automatically. As it recovers, it gracefully lowers it back.
+
+## Packages and releases
+
+This repository contains several npm packages that are versioned and released independently:
+
+- `@jfrz38/pid-controller-core` uses tags like `core-vX.Y.Z`.
+- `@jfrz38/pid-controller-express` uses tags like `express-vX.Y.Z`.
+- `@jfrz38/pid-controller-nestjs` uses tags like `nestjs-vX.Y.Z`.
+
+GitHub Releases are therefore package-specific. `npm` is the source of truth for each package's `latest` version, because npm tracks the `latest` dist-tag per package while GitHub only has one repository-level latest release.
+
+## Development
+
+Common project tasks are exposed through the root `Makefile`:
+
+```bash
+make install-code
+make build
+make test
+make ci
+```
+
+Package-specific checks are also available:
+
+```bash
+make validate-core
+make validate-express
+make validate-nestjs
+```
+
+Run `make help` to list all available targets.
 
 ## References
 

@@ -1,7 +1,8 @@
 # PID Controller - NestJS adapter
 
 [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jfrz38/rate-limit-pid-controller/build-nestjs.yml)](https://github.com/jfrz38/rate-limit-pid-controller/actions)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jfrz38/rate-limit-pid-controller/build-nestjs.yml)](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/build-nestjs.yml)
+[![types](https://img.shields.io/npm/types/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
 [![license](https://img.shields.io/npm/l/@jfrz38/pid-controller-nestjs)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
 [![NPM Downloads](https://img.shields.io/npm/dm/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
 

@@ -1,0 +1,159 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package to publish
+        required: true
+        type: choice
+        options:
+          - core
+          - express
+          - nestjs
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Verify workflow runs from main
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Publish must be run from main. Current ref is $GITHUB_REF" >&2
+            exit 1
+          fi
+
+      - name: Resolve package metadata
+        id: package
+        run: |
+          case "${{ inputs.package }}" in
+            core)
+              echo "package_key=core" >> "$GITHUB_OUTPUT"
+              echo "tag_prefix=core-v" >> "$GITHUB_OUTPUT"
+              echo "package_name=@jfrz38/pid-controller-core" >> "$GITHUB_OUTPUT"
+              echo "package_dir=code/core" >> "$GITHUB_OUTPUT"
+              echo "package_file=code/core/package.json" >> "$GITHUB_OUTPUT"
+              ;;
+            express)
+              echo "package_key=express" >> "$GITHUB_OUTPUT"
+              echo "tag_prefix=express-v" >> "$GITHUB_OUTPUT"
+              echo "package_name=@jfrz38/pid-controller-express" >> "$GITHUB_OUTPUT"
+              echo "package_dir=code/adapters/express" >> "$GITHUB_OUTPUT"
+              echo "package_file=code/adapters/express/package.json" >> "$GITHUB_OUTPUT"
+              ;;
+            nestjs)
+              echo "package_key=nestjs" >> "$GITHUB_OUTPUT"
+              echo "tag_prefix=nestjs-v" >> "$GITHUB_OUTPUT"
+              echo "package_name=@jfrz38/pid-controller-nestjs" >> "$GITHUB_OUTPUT"
+              echo "package_dir=code/adapters/nestjs" >> "$GITHUB_OUTPUT"
+              echo "package_file=code/adapters/nestjs/package.json" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported package: ${{ inputs.package }}" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Resolve latest package release
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_PREFIX: ${{ steps.package.outputs.tag_prefix }}
+        run: |
+          TAG="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName' | grep "^${TAG_PREFIX}" | head -n 1)"
+          if [ -z "$TAG" ]; then
+            echo "No GitHub release found for package prefix $TAG_PREFIX." >&2
+            exit 1
+          fi
+
+          VERSION="${TAG#${TAG_PREFIX}}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Verify GitHub release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: gh release view "$TAG" --repo "$GITHUB_REPOSITORY"
+
+      - name: Check out release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.version.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Verify release tag is on main
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git fetch origin main --tags
+          if ! git merge-base --is-ancestor "$TAG" origin/main; then
+            echo "Release tag $TAG is not reachable from main" >&2
+            exit 1
+          fi
+
+      - name: Verify package version matches release
+        working-directory: ${{ steps.package.outputs.package_dir }}
+        env:
+          EXPECTED_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          if [ "$PACKAGE_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "Release version $EXPECTED_VERSION does not match package version $PACKAGE_VERSION" >&2
+            exit 1
+          fi
+
+      - id: version-check
+        name: Check version is not already published
+        uses: jfrz38/check-version-change@v1
+        with:
+          file-path: ${{ steps.package.outputs.package_file }}
+          package-name: ${{ steps.package.outputs.package_name }}
+          compare-source: registry
+          registry: npm
+
+      - name: Verify version can be published
+        run: |
+          if [ "${{ steps.version-check.outputs.changed }}" != "true" ]; then
+            echo "Version ${{ steps.version-check.outputs.local-version }} is already published to npm" >&2
+            exit 1
+          fi
+
+          if [ -n "${{ steps.version-check.outputs.compared-version }}" ] && [ "${{ steps.version-check.outputs.is-higher }}" != "true" ]; then
+            echo "Version ${{ steps.version-check.outputs.local-version }} is not higher than published version ${{ steps.version-check.outputs.compared-version }}" >&2
+            exit 1
+          fi
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+          cache-dependency-path: code/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: make install-code
+
+      - name: Build
+        run: make build-${{ steps.package.outputs.package_key }}
+
+      - name: Run tests
+        run: make test-${{ steps.package.outputs.package_key }}
+
+      - name: Publish to npm
+        working-directory: ${{ steps.package.outputs.package_dir }}
+        run: pnpm publish --access public --no-git-checks --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
