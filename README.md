@@ -20,16 +20,6 @@ Choose how you want to integrate the PID rate limiter:
 
 Also you can explore [simulation examples](./simulation/README.md) to see how the PID controller behaves under different traffic loads and latency scenarios..
 
-## Packages and releases
-
-This repository contains several npm packages that are versioned and released independently:
-
-- `@jfrz38/pid-controller-core` uses tags like `core-vX.Y.Z`.
-- `@jfrz38/pid-controller-express` uses tags like `express-vX.Y.Z`.
-- `@jfrz38/pid-controller-nestjs` uses tags like `nestjs-vX.Y.Z`.
-
-GitHub Releases are therefore package-specific. `npm` is the source of truth for each package's `latest` version, because npm tracks the `latest` dist-tag per package while GitHub only has one repository-level latest release.
-
 ## Motivation
 
 Uber’s Cinnamon introduced a novel approach to rate limiting by combining **PID controllers** with traffic-shaping techniques.  
@@ -44,34 +34,21 @@ This project implements a **simplified, opinionated version** of Cinnamon’s ap
 <sub><sup>_(simplified logic):_</sub></sup>
 
 ```mermaid
-%%{init: {'theme': 'base', 'graph': {'curve': 'linear'}}}%%
-flowchart TD
-  Req([Request]) --> Adapter[Middleware / Adapter]
-  subgraph Framework [Framework]
-    Adapter --> PID[PID Handler]
-    
-    subgraph Core [PID Control Logic]
-      PID --> Decision{Allowed?}
-      Stats[PID Calculation]
-    end
-    
-    Error[Rejected]
-  end
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, Arial, sans-serif'}, 'flowchart': {'curve': 'basis'}}}%%
+flowchart LR
+  Traffic([Incoming traffic]) --> Gate{Priority gate}
+  Gate -->|Accepted| App[Application]
+  Gate -->|Shed| Rejected[Fast rejection]
 
-  Decision -->|Yes| App[Process Application Logic]
-  Decision -->|No| Error[Rejected]
+  App -. health signals .-> Controller[PID controller]
+  Rejected -. pressure signals .-> Controller
+  Controller -. adjusts threshold .-> Gate
 
-  %% Feedback Loop
-  App -.->|1. Metric Collection| Stats[PID Calculation]
-  PID -.->|1. Metric Collection| Stats[PID Calculation]
-  Stats -.->|2. Adjust Threshold| PID
-
-  Error ~~~ App
-
-  style Decision fill:#fff4dd,stroke:#d4a017,stroke-width:2px
-  style Core fill:#f9f9f9,stroke:#666,stroke-dasharray: 5 5
-  style Error fill:#fee2e2,stroke:#ef4444
-  style App fill:#ecfdf5,stroke:#10b981
+  style Traffic fill:#eef6ff,stroke:#4f8cc9,stroke-width:1.5px
+  style Gate fill:#fff7e6,stroke:#d7971f,stroke-width:1.5px
+  style App fill:#ebf8f0,stroke:#3b9b61,stroke-width:1.5px
+  style Rejected fill:#fff0f0,stroke:#d45b5b,stroke-width:1.5px
+  style Controller fill:#f4f1ff,stroke:#7a64c7,stroke-width:1.5px
 ```
 
 > [!NOTE]  
@@ -99,3 +76,13 @@ Standard rate limiters are static: you set 100 RPS, and it stays at 100 RPS. Thi
 - [Cinnamon: Using Century Old Tech to Build a Mean Load Shedder](https://www.uber.com/en-ES/blog/cinnamon-using-century-old-tech-to-build-a-mean-load-shedder/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  
 - [PID Controller for Cinnamon](https://www.uber.com/en-ES/blog/pid-controller-for-cinnamon/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  
 - [Cinnamon Auto-Tuner: Adaptive Concurrency in the Wild](https://www.uber.com/en-ES/blog/cinnamon-auto-tuner-adaptive-concurrency-in-the-wild/).  
+
+## Packages and releases
+
+This repository contains several npm packages that are versioned and released independently:
+
+- `@jfrz38/pid-controller-core` uses tags like `core-vX.Y.Z`.
+- `@jfrz38/pid-controller-express` uses tags like `express-vX.Y.Z`.
+- `@jfrz38/pid-controller-nestjs` uses tags like `nestjs-vX.Y.Z`.
+
+GitHub Releases are therefore package-specific. `npm` is the source of truth for each package's `latest` version, because npm tracks the `latest` dist-tag per package while GitHub only has one repository-level latest release.
