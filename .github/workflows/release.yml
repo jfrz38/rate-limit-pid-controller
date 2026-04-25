@@ -1,0 +1,139 @@
+name: Create Releases
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create ${{ matrix.package.release_name }} release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - release_name: core
+            tag_prefix: core-v
+            package_name: "@jfrz38/pid-controller-core"
+            package_dir: code/core
+            package_file: code/core/package.json
+          - release_name: express
+            tag_prefix: express-v
+            package_name: "@jfrz38/pid-controller-express"
+            package_dir: code/adapters/express
+            package_file: code/adapters/express/package.json
+          - release_name: nestjs
+            tag_prefix: nestjs-v
+            package_name: "@jfrz38/pid-controller-nestjs"
+            package_dir: code/adapters/nestjs
+            package_file: code/adapters/nestjs/package.json
+
+    defaults:
+      run:
+        working-directory: code
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - id: version-check
+        name: Check version is releasable
+        uses: jfrz38/check-version-change@v1
+        with:
+          file-path: ${{ matrix.package.package_file }}
+          package-name: ${{ matrix.package.package_name }}
+          compare-source: registry
+          registry: npm
+
+      - name: Skip already published version
+        if: steps.version-check.outputs.changed != 'true'
+        working-directory: .
+        run: |
+          echo "${{ matrix.package.package_name }} ${{ steps.version-check.outputs.local-version }} is already published to npm; no release to create."
+
+      - name: Verify version can be released
+        if: steps.version-check.outputs.changed == 'true'
+        working-directory: .
+        run: |
+          if [ -n "${{ steps.version-check.outputs.compared-version }}" ] && [ "${{ steps.version-check.outputs.is-higher }}" != "true" ]; then
+            echo "Version ${{ steps.version-check.outputs.local-version }} is not higher than published version ${{ steps.version-check.outputs.compared-version }}" >&2
+            exit 1
+          fi
+
+      - name: Install pnpm
+        if: steps.version-check.outputs.changed == 'true'
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Setup Node
+        if: steps.version-check.outputs.changed == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: code/pnpm-lock.yaml
+
+      - name: Install dependencies
+        if: steps.version-check.outputs.changed == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        if: steps.version-check.outputs.changed == 'true'
+        run: pnpm --filter "${{ matrix.package.package_name }}..." build
+
+      - name: Run tests
+        if: steps.version-check.outputs.changed == 'true'
+        run: pnpm --filter "${{ matrix.package.package_name }}..." test
+
+      - name: Resolve release version
+        if: steps.version-check.outputs.changed == 'true'
+        id: version
+        working-directory: ${{ matrix.package.package_dir }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ -z "$VERSION" ]; then
+            echo "Could not resolve package version" >&2
+            exit 1
+          fi
+
+          if [ "$VERSION" != "${{ steps.version-check.outputs.local-version }}" ]; then
+            echo "Resolved version $VERSION does not match checked version ${{ steps.version-check.outputs.local-version }}" >&2
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ matrix.package.tag_prefix }}$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        if: steps.version-check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        working-directory: .
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; nothing to create."
+            exit 0
+          fi
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists but the GitHub release is missing; creating it."
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "${{ matrix.package.release_name }} $VERSION" \
+            --generate-notes \
+            --latest=false
