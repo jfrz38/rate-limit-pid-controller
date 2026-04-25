@@ -1,5 +1,11 @@
 # PID Controller - Express adapter
 
+[![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jfrz38/rate-limit-pid-controller/build-express.yml)](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/build-express.yml)
+[![types](https://img.shields.io/npm/types/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)
+[![license](https://img.shields.io/npm/l/@jfrz38/pid-controller-express)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
+[![NPM Downloads](https://img.shields.io/npm/dm/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)
+
 This is the **Express** adapter for the [PID Controller](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/core). It allows you to easily integrate adaptive rate limiting and load shedding into your Express applications as a standard middleware.
 
 > [!NOTE]  

@@ -1,5 +1,11 @@
 # PID Controller - NestJS adapter
 
+[![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jfrz38/rate-limit-pid-controller/build-nestjs.yml)](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/build-nestjs.yml)
+[![types](https://img.shields.io/npm/types/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
+[![license](https://img.shields.io/npm/l/@jfrz38/pid-controller-nestjs)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
+[![NPM Downloads](https://img.shields.io/npm/dm/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
+
 This is the **NestJS** adapter for the [PID Controller](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/core). It provides a seamless way to integrate adaptive rate limiting and load shedding into your NestJS applications using a global _Middleware_ on each request and a _Filter_ to handle errors.
 
 > [!NOTE]  

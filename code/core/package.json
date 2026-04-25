@@ -2,7 +2,7 @@
   "name": "@jfrz38/pid-controller-core",
   "author": "José F. Ruiz <jrz899@inlumine.ual.es>",
   "license": "MIT",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Rate Limiter built based on Uber's Cinnamon architecture",
   "main": "./dist/src/index.js",
   "module": "./dist/src/index.js",
@@ -40,11 +40,11 @@
   "bugs": {
     "url": "https://github.com/jfrz38/rate-limit-pid-controller/issues"
   },
-  "homepage": "https://github.com/jfrz38/rate-limit-pid-controller#readme",
+  "homepage": "https://github.com/jfrz38/rate-limit-pid-controller/blob/main/code/core#readme",
   "dependencies": {
     "heap-js": "2.7.1",
-    "mathjs": "15.1.0",
-    "p-queue": "9.1.0",
-    "pino": "10.3.0"
+    "mathjs": "15.2.0",
+    "p-queue": "9.1.2",
+    "pino": "10.3.1"
   }
 }

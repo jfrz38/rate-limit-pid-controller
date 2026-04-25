@@ -11,4 +11,13 @@ updates:
       dependencies:
         patterns:
           - "*"
-  
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "[CI Update]"
+    groups:
+      dependencies:
+        patterns:
+          - "*"

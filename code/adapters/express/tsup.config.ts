@@ -12,5 +12,6 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   external: ['express', '@jfrz38/pid-controller-core'],
+  noExternal: ['@jfrz38/pid-controller-shared'],
   bundle: true
 });

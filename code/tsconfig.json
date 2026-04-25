@@ -3,6 +3,7 @@
     "target": "ES2020",
     "module": "CommonJS",
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
     "declaration": true,
     "outDir": "dist",
     "strict": true,
@@ -21,6 +22,9 @@
     },
     {
       "path": "./adapters/express"
+    },
+    {
+      "path": "./adapters/shared"
     }
   ]
 }

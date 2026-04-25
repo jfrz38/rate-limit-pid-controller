@@ -1,5 +1,12 @@
 # PID Controller - Core
 
+[![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-core)](https://www.npmjs.com/package/@jfrz38/pid-controller-core)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jfrz38/rate-limit-pid-controller/build-core.yml)](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/build-core.yml)
+[![types](https://img.shields.io/npm/types/@jfrz38/pid-controller-core)](https://www.npmjs.com/package/@jfrz38/pid-controller-core)
+[![license](https://img.shields.io/npm/l/@jfrz38/pid-controller-core)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
+[![NPM Downloads](https://img.shields.io/npm/dm/@jfrz38/pid-controller-core)](https://www.npmjs.com/package/@jfrz38/pid-controller-core)
+
+
 This is the engine of the project. It contains the mathematical logic, the statistics aggregator, and the priority-based thresholding system. It is **zero-heavy-dependency**, framework-agnostic, and written in plain TypeScript.
 
 ## Core Pillars
