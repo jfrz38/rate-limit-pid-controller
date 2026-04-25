@@ -133,6 +133,6 @@ jobs:
 
           gh release create "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
-            --title "${{ matrix.package.release_name }} $VERSION" \
+            --title "$TAG" \
             --generate-notes \
             --latest=false
