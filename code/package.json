@@ -16,7 +16,7 @@
   },
   "author": "José F. Ruiz",
   "license": "ISC",
-  "packageManager": "pnpm@10.12.3",
+  "packageManager": "pnpm@11.1.3",
   "devDependencies": {
     "@types/node": "25.6.0",
     "@typescript-eslint/eslint-plugin": "8.59.0",
