@@ -70,7 +70,7 @@ jobs:
         if: steps.version-check.outputs.changed == 'true'
         uses: pnpm/action-setup@v6.0.3
         with:
-          version: 10
+          version: 11.1.3
 
       - name: Setup Node
         if: steps.version-check.outputs.changed == 'true'
