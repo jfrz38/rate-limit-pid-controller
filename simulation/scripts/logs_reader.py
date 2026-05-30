@@ -107,6 +107,8 @@ if threshold:
     )
     ax.fill_between(t_ts, t_vs, step="post", alpha=0.1, color="#2c3e50")
 
+total_reqs = len(completed) + len(rejected) + len(evicted)
+
 if completed:
     ax.scatter(
         get_t(completed),
@@ -114,7 +116,7 @@ if completed:
         s=25,
         alpha=0.5,
         color="#27ae60",
-        label="Completed",
+        label=f"Completed ({len(completed)})",
         zorder=4,
     )
 
@@ -125,7 +127,7 @@ if rejected:
         s=50,
         marker="x",
         color="#e74c3c",
-        label="Rejected",
+        label=f"Rejected ({len(rejected)})",
         zorder=5,
     )
 
@@ -136,7 +138,7 @@ if evicted:
         s=40,
         marker="^",
         color="#f1c40f",
-        label="Evicted",
+        label=f"Evicted ({len(evicted)})",
         zorder=4,
     )
 
@@ -148,8 +150,13 @@ args = [a for a in sys.argv[1:] if not a.startswith("--")]
 scenario_name = args[0] if args else None
 scenario_line = f"\nScenario: {scenario_name}" if scenario_name else ""
 
-title_text = f"PID Traffic Control Analysis\nLog: {display_log_name}{scenario_line}"
+title_text = f"PID Traffic Control Analysis — Total: {total_reqs} requests{scenario_line}"
 ax.set_title(f"{title_text}", pad=20)
+
+fig.text(
+    0.98, 0.02, f"Log: {display_log_name}",
+    ha="right", va="bottom", fontsize=8, color="gray", alpha=0.7,
+)
 
 ax.grid(True, which="both", linestyle="--", alpha=0.5)
 ax.set_ylim(0, None)
