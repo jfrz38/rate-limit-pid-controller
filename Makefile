@@ -2,6 +2,7 @@ SCENARIO ?= base
 PACKAGE ?= core
 POETRY ?= poetry
 PNPM ?= pnpm
+PNPM_INSTALL_FLAGS ?= --frozen-lockfile --config.confirmModulesPurge=false
 
 PACKAGE_NAME_core := @jfrz38/pid-controller-core
 PACKAGE_NAME_shared := @jfrz38/pid-controller-shared
@@ -16,13 +17,13 @@ help: ## show make targets
 install: install-code ## install code workspace dependencies
 
 install-code: ## install the TypeScript workspace dependencies
-	cd code && $(PNPM) install --frozen-lockfile
+	cd code && $(PNPM) install $(PNPM_INSTALL_FLAGS)
 
 install-simulation: ## install Python simulation dependencies
 	cd simulation && $(POETRY) config virtualenvs.in-project true && $(POETRY) install --no-root
 
 install-simulation-runner: ## install simulation runner dependencies
-	cd simulation/scripts/runner && $(PNPM) install --frozen-lockfile
+	cd simulation/scripts/runner && $(PNPM) install $(PNPM_INSTALL_FLAGS)
 
 .PHONY: build test lint clean ci
 build: ## build all workspace packages
