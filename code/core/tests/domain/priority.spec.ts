@@ -79,6 +79,12 @@ describe('Priority', () => {
             expect(priority.value).toBe(3 * 128 + 10);
         });
 
+        test('should create a priority from full 0..767 value', () => {
+            expect(Priority.fromValue(767).value).toBe(767);
+            expect(Priority.fromValue(900).value).toBe(767);
+            expect(Priority.fromValue(-1).value).toBe(0);
+        });
+
         
     });
 

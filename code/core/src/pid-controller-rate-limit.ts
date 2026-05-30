@@ -73,9 +73,17 @@ export class PidControllerRateLimit {
         );
     }
 
-    run(task: Function, priority: number | undefined): void {
-        const request: Request = new Request(task, new Priority(priority));
-        this.rejector.process(request);
+    run<T>(task: () => T | Promise<T>, priority: Priority = Priority.default()): Promise<T> {
+        const request: Request<T> = new Request(task, priority);
+
+        try {
+            this.rejector.process(request);
+        } catch (error) {
+            request.reject(error);
+            return request.promise;
+        }
+
+        return request.promise;
     }
 
     shutdown(): void {

@@ -86,13 +86,13 @@ describe('Rejector', () => {
             expect((request as any).status).toBe(Event.REJECTED);
         });
 
-        test('when priority is exactly equal to threshold should accept request', () => {
+        test('when priority is exactly equal to threshold should reject request', () => {
             const exactValue = 100;
             (rejector as any).threshold = exactValue;
             const request = { priority: exactValue, status: undefined } as any;
 
-            expect(() => rejector.process(request)).not.toThrow();
-            expect(request.status).toBe(Event.QUEUED);
+            expect(() => rejector.process(request)).toThrow(RejectedRequestException);
+            expect(request.status).toBe(Event.REJECTED);
         });
     });
 

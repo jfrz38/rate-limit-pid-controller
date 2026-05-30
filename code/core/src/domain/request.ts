@@ -2,18 +2,28 @@ import { randomUUID, UUID } from "crypto";
 import { Event } from "./events";
 import { Priority } from "./priority";
 
-export class Request {
+export type RequestTask<T = any> = () => T | Promise<T>;
+
+export class Request<T = any> {
     private eventLog: Map<Event, number> = new Map();
+    private readonly _promise: Promise<T>;
+    private resolvePromise!: (value: unknown) => void;
+    private rejectPromise!: (reason?: unknown) => void;
 
     readonly id: UUID;
-    readonly task: Function;
+    readonly task: RequestTask<T>;
     private _status: Event;
     private _createdAt: number;
 
 
-    constructor(task: Function, private readonly _priority: Priority) {
+    constructor(task: RequestTask<T>, private readonly _priority: Priority) {
         this.id = randomUUID();
         this.task = task;
+        this._promise = new Promise<T>((resolve, reject) => {
+            this.resolvePromise = resolve as (value: unknown) => void;
+            this.rejectPromise = reject;
+        });
+        this._promise.catch(() => undefined);
         this.status = this._status = Event.CREATED;
         this._createdAt = performance.now();
     }
@@ -28,6 +38,18 @@ export class Request {
 
     get createdAt(): number {
         return this._createdAt;
+    }
+
+    get promise(): Promise<T> {
+        return this._promise;
+    }
+
+    resolve(value: T | PromiseLike<T>): void {
+        this.resolvePromise(value);
+    }
+
+    reject(reason?: unknown): void {
+        this.rejectPromise(reason);
     }
 
     set status(newStatus: Event) {

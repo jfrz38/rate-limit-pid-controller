@@ -28,6 +28,23 @@ describe('Request', () => {
             expect(request['_status']).toBe(Event.CREATED);
             expect((request as any).eventLog.has(Event.CREATED)).toBe(true);
         });
+
+        test('should expose a promise resolved by request result', async () => {
+            const request = new Request(task, priority);
+
+            request.resolve('ok');
+
+            await expect(request.promise).resolves.toBe('ok');
+        });
+
+        test('should expose a promise rejected by request failure', async () => {
+            const request = new Request(task, priority);
+            const error = new Error('fail');
+
+            request.reject(error);
+
+            await expect(request.promise).rejects.toBe(error);
+        });
     });
 
     describe('status getter & setter', () => {
