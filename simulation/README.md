@@ -52,6 +52,8 @@ Practical examples using frameworks (**Express** and **NestJS** ) and its PID ad
 
 Both server implements PID middleware and error handler. Their route and logic are the same, both accept priority in `x-priority` header and also another header to simulate latency: `execution-time`.
 
+The `x-priority` header represents a priority tier from `0` to `5`, where `0` is the most important traffic and `5` is the least important. The adapters convert this tier into the core `Priority` class before calling the controller.
+
 You can test any of them calling via HTTP:
 
 ```bash
@@ -59,3 +61,5 @@ curl -H "x-priority: 4" -H "execution-time: 2000" http://localhost:3000/test
 ```
 
 This `curl` will send a priority `4` and the server will be 2 seconds processing the request.
+
+The standalone runner waits for all accepted controller promises before calling `shutdown()`, so background intervals and signal handlers are cleaned up after each simulation run.

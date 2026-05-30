@@ -64,6 +64,7 @@ flowchart LR
 - Configurable thresholds, recovery, and overload handling.
 - Designed for **high concurrency** environments.
 - Priority-based shedding dropping background tasks during high-load periods while keeping critical requests alive.
+- Promise-based core API that propagates accepted results, rejections, evictions, and task failures.
 
 ## How it works
 
@@ -71,8 +72,10 @@ Standard rate limiters are static: you set 100 RPS, and it stays at 100 RPS. Thi
 
 1. **Error Calculation**: It constantly compares your current system health (latency/concurrency) against a "ideal" target.
 2. **Dynamic Thresholding**: Instead of a fixed number, it calculates a **Priority Threshold**.
-3. **Load Shedding**: Only requests with a priority higher than the current threshold are allowed.
+3. **Load Shedding**: Only requests with an effective priority value below the current threshold are allowed.
 4. **Self-Correction**: If the server slows down, the PID raises the threshold automatically. As it recovers, it gracefully lowers it back.
+
+The standalone core exposes priorities through a `Priority` class. Use `Priority.fromTier(0..5)` for tier-based traffic or `Priority.fromValue(0..767)` when you already have a full tier/cohort value.
 
 ## Packages and releases
 

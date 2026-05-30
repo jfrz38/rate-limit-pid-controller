@@ -97,6 +97,7 @@ The adapter automatically registers a global `Middleware` and `Filter`:
 
 - **Middleware**: Intercepts the request and checks with the PID engine if it should be admitted based on the current threshold. If rejected, it throws a `RejectedRequestException` which is handled by the **filter*.
 - **Filter**: If PID controller throw an exception it is handled by this filter automatically.
+- **Lifecycle**: The module implements NestJS shutdown hooks and calls `controller.shutdown()` on module/application shutdown, clearing controller timers and signal handlers.
 
 ## Error Handling
 
