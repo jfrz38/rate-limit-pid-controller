@@ -1,6 +1,6 @@
 import { PidControllerRateLimit } from '@jfrz38/pid-controller-core';
 import { PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
-import { DynamicModule, Global, Inject, MiddlewareConsumer, Module } from '@nestjs/common';
+import { DynamicModule, Global, Inject, MiddlewareConsumer, Module, OnApplicationShutdown, OnModuleDestroy, Optional } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { PidRoutes } from '../error/routes/pid-routes';
 import { PidExceptionFilter } from '../filter/pid-exception.filter';
@@ -9,7 +9,7 @@ import { NestPidModuleOptions } from '../types/nest-pid-module-options';
 
 @Global()
 @Module({})
-export class PidControllerModule {
+export class PidControllerModule implements OnModuleDestroy, OnApplicationShutdown {
   private options: NestPidModuleOptions;
 
   static forRoot(options: NestPidModuleOptions): DynamicModule {
@@ -39,8 +39,19 @@ export class PidControllerModule {
     };
   }
 
-  constructor(@Inject('PID_CONTROLLER_OPTIONS') options: NestPidModuleOptions) {
+  constructor(
+    @Inject('PID_CONTROLLER_OPTIONS') options: NestPidModuleOptions,
+    @Optional() @Inject('PID_CONTROLLER') private readonly controller?: PidControllerRateLimit
+  ) {
     this.options = options;
+  }
+
+  onModuleDestroy(): void {
+    this.controller?.shutdown();
+  }
+
+  onApplicationShutdown(): void {
+    this.controller?.shutdown();
   }
 
   configure(consumer: MiddlewareConsumer) {

@@ -8,7 +8,8 @@ export const pidControllerMiddleware = (options?: HttpPidControllerOptions) => {
     const handler = new PidControllerMiddlewareHandler(controller, options?.pid?.priority);
     const middleware = createPidControllerMiddleware(handler);
     return {
-        middleware
+        middleware,
+        shutdown: () => controller.shutdown()
     };
 };
 

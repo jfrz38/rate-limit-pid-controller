@@ -28,13 +28,28 @@ describe('Shutdown Manager', () => {
     });
 
     test('should call scheduler terminate and interval manager clearAll when shutdown is called', () => {
-        const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
         shutdownManager.shutdown();
 
         expect(scheduler.terminate).toHaveBeenCalledTimes(1);
         expect(intervalManager.clearAll).toHaveBeenCalledTimes(1);
-        expect(exit).toHaveBeenNthCalledWith(1, 0);
+    });
+
+    test('shutdown should be idempotent', () => {
+        shutdownManager.shutdown();
+        shutdownManager.shutdown();
+
+        expect(scheduler.terminate).toHaveBeenCalledTimes(1);
+        expect(intervalManager.clearAll).toHaveBeenCalledTimes(1);
+    });
+
+    test('shutdown should remove registered process signal handlers', () => {
+        const sigintBefore = process.listenerCount('SIGINT');
+        const sigtermBefore = process.listenerCount('SIGTERM');
+
+        shutdownManager.shutdown();
+
+        expect(process.listenerCount('SIGINT')).toBe(sigintBefore - 1);
+        expect(process.listenerCount('SIGTERM')).toBe(sigtermBefore - 1);
     });
 
     test('when SIGINT is called should shutdown program', () => {

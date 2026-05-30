@@ -1,4 +1,4 @@
-import { PidControllerRateLimit } from "@jfrz38/pid-controller-core";
+import { PidControllerRateLimit, Priority } from "@jfrz38/pid-controller-core";
 import { NextFunction, Request, Response } from 'express';
 import { PidControllerMiddlewarePriority } from "./types/pid-controller-middleware-options";
 
@@ -33,13 +33,13 @@ export class PidControllerMiddlewareHandler {
                         reject(err);
                     }
                 });
-            }, priority);
+            }, priority ?? Priority.default());
         } catch (error) {
             next(error);
         }
     }
 
-    private getPriority(req: Request): number | undefined {
+    private getPriority(req: Request): Priority | undefined {
         if (!this.priority?.getPriority) {
             return undefined;
         }
@@ -47,7 +47,7 @@ export class PidControllerMiddlewareHandler {
         try {
             const value = Number(this.priority.getPriority(req));
             if (typeof value === 'number' && Number.isFinite(value)) {
-                return value;
+                return Priority.fromTier(value);
             }
         } catch { }
 
