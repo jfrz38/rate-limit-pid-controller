@@ -53,6 +53,17 @@ export class Statistics {
     return this.intervalQueue.getLaunchedRequests().length;
   }
 
+  public getSuccessfulThroughputPerSecond(): number {
+    const launchedRequests = this.intervalQueue.getLaunchedRequests();
+    const intervalSeconds = this.intervalQueue.getRequestsIntervalDurationSeconds(launchedRequests);
+
+    if (intervalSeconds <= 0) {
+      return launchedRequests.length;
+    }
+
+    return launchedRequests.length / intervalSeconds;
+  }
+
   public getLowestLatencyForInterval(): number {
     const latencies = this.intervalQueue.getLatencies();
     if (latencies.length === 0) {

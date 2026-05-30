@@ -21,9 +21,10 @@ export class LatencyController {
     update(): void {
 
         const minLatency = this.statistics.getLowestLatencyForInterval();
+        const safeMinLatency = Math.max(1, minLatency);
 
         if (this.history.length < 10) {
-            this._targetLatency = minLatency;
+            this._targetLatency = safeMinLatency;
             this.logger.info(`New targetLatency: ${this._targetLatency}`);
             return;
         }
@@ -31,10 +32,12 @@ export class LatencyController {
         const covariance = MathUtils.covariance(this.history.maxInflights, this.history.intervalThroughputs);
 
         if (covariance > 0) {
-            this._targetLatency = Math.round((this._targetLatency * 0.9) + (minLatency * 0.1));
+            this._targetLatency = Math.round((this._targetLatency * 0.9) + (safeMinLatency * 0.1));
         } else if (covariance < 0) {
             this._targetLatency = Math.round(this._targetLatency * this.UPDATE_FACTOR);
         }
+
+        this._targetLatency = Math.max(1, this._targetLatency);
 
         this.logger.info(`New targetLatency: ${this._targetLatency}`);
     }

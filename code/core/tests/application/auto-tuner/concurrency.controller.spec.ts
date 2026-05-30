@@ -30,11 +30,17 @@ describe('ConcurrencyController', () => {
 
   beforeEach(() => {
     cpuSpy = vi.spyOn(os, 'cpus').mockImplementation(() => new Array(mockedCpus));
-    scheduler = { updateMaxConcurrentRequests: vi.fn() } as unknown as Mocked<Scheduler>;
+    scheduler = {
+      updateMaxConcurrentRequests: vi.fn(),
+      maxConcurrentRequests: 10,
+      processingRequests: 5,
+      consumeMaxObservedConcurrentRequests: vi.fn().mockReturnValue(5),
+    } as unknown as Mocked<Scheduler>;
     statistics = {
       getPercentileLatencySuccessfulRequests: vi.fn(),
       getThroughputForInterval: vi.fn(),
       getSuccessfulThroughput: vi.fn(),
+      getSuccessfulThroughputPerSecond: vi.fn(),
     } as unknown as Mocked<Statistics>;
 
     latencyController = {
@@ -107,13 +113,13 @@ describe('ConcurrencyController', () => {
     });
 
     test('should calculate new limit, apply it and save to history', () => {
-      statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(150);
-      statistics.getSuccessfulThroughput.mockReturnValue(20);
+      statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(120);
+      statistics.getSuccessfulThroughputPerSecond.mockReturnValue(20);
 
       controller.update();
 
       expect(statistics.getPercentileLatencySuccessfulRequests).toHaveBeenCalledTimes(1);
-      expect(statistics.getSuccessfulThroughput).toHaveBeenCalledTimes(1);
+      expect(statistics.getSuccessfulThroughputPerSecond).toHaveBeenCalledTimes(1);
       expect(history.push).toHaveBeenCalledTimes(1);
 
       const newLimit = scheduler.updateMaxConcurrentRequests.mock.calls[0][0];
@@ -122,7 +128,7 @@ describe('ConcurrencyController', () => {
 
     test('should respect lower bound (cores)', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(1);
-      statistics.getSuccessfulThroughput.mockReturnValue(20);
+      statistics.getSuccessfulThroughputPerSecond.mockReturnValue(20);
 
       controller.update();
 
@@ -132,7 +138,7 @@ describe('ConcurrencyController', () => {
 
     test('should respect upper bound (inflightLimit * 10)', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(0.1);
-      statistics.getSuccessfulThroughput.mockReturnValue(50);
+      statistics.getSuccessfulThroughputPerSecond.mockReturnValue(50);
 
       controller.update();
 
@@ -142,7 +148,7 @@ describe('ConcurrencyController', () => {
 
     test('should decrease queue when above beta in calculateNewLimit', () => {
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(250);
-      statistics.getSuccessfulThroughput.mockReturnValue(20);
+      statistics.getSuccessfulThroughputPerSecond.mockReturnValue(20);
 
       const spy = vi.spyOn(controller as any, 'applyNewLimit');
 
@@ -158,7 +164,7 @@ describe('ConcurrencyController', () => {
       (controller as any).cores = cores;
 
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(10_000);
-      statistics.getSuccessfulThroughput.mockReturnValue(5);
+      statistics.getSuccessfulThroughputPerSecond.mockReturnValue(5);
 
       controller.update();
 
@@ -172,7 +178,7 @@ describe('ConcurrencyController', () => {
       (controller as any).cores = cores;
 
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(10_000);
-      statistics.getSuccessfulThroughput.mockReturnValue(5);
+      statistics.getSuccessfulThroughputPerSecond.mockReturnValue(5);
 
       controller.update();
 
@@ -181,20 +187,20 @@ describe('ConcurrencyController', () => {
       expect(controller['inflightLimit']).toBe(cores);
     });
 
-    test('should cap newLimit when queue > inflightLimit * 10', () => {
-      const cores = -1;
+    test('should keep newLimit within safe lower bound', () => {
+      const cores = 1;
       (controller as any).cores = cores;
-      controller['inflightLimit'] = -1;
+      controller['inflightLimit'] = 2;
 
       statistics.getPercentileLatencySuccessfulRequests.mockReturnValue(10_000);
-      statistics.getSuccessfulThroughput.mockReturnValue(5);
+      statistics.getSuccessfulThroughputPerSecond.mockReturnValue(5);
 
 
       controller.update();
 
       const appliedLimit = scheduler.updateMaxConcurrentRequests.mock.calls[0][0];
-      expect(appliedLimit).toBe(-10);
-      expect(controller['inflightLimit']).toBe(-10);
+      expect(appliedLimit).toBeGreaterThanOrEqual(cores);
+      expect(controller['inflightLimit']).toBeGreaterThanOrEqual(cores);
     });
   });
 

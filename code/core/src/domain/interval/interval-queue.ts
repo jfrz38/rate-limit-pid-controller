@@ -54,4 +54,16 @@ export class IntervalQueue {
     public getPriorities(): number[] {
         return this.queue.map((request) => request.priority);
     }
+
+    public getRequestsIntervalDurationSeconds(requests: Request[]): number {
+        const timestamps = requests
+            .map((request) => request.getEventTimestamp(Event.LAUNCHED))
+            .filter((time): time is number => time !== undefined);
+
+        if (timestamps.length <= 1) {
+            return 0;
+        }
+
+        return (Math.max(...timestamps) - Math.min(...timestamps)) / 1000;
+    }
 }
