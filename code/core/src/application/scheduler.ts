@@ -7,6 +7,7 @@ import { Executor } from "./executor";
 export class Scheduler {
     private _maxConcurrentRequests: number;
     private _processingRequests: number = 0;
+    private _maxObservedConcurrentRequests: number = 0;
 
     private logger = getLogger();
 
@@ -42,15 +43,18 @@ export class Scheduler {
 
     private processRequest(request: Request) {
         this._processingRequests++;
+        this._maxObservedConcurrentRequests = Math.max(this._maxObservedConcurrentRequests, this._processingRequests);
         request.status = Event.LAUNCHED;
 
         this.executor.add(async () => {
             try {
-                await request.task();
+                const result = await request.task();
                 request.status = Event.COMPLETED;
+                request.resolve?.(result);
                 this.logger.info(`Completed request ${request.id}: Priority ${request.priority}`);
             } catch (error) {
                 request.status = Event.FAILED;
+                request.reject?.(error);
                 this.logger.error(`Error processing request ${error}`);
             } finally {
                 this._processingRequests--;
@@ -72,6 +76,12 @@ export class Scheduler {
 
     get processingRequests(): number {
         return this._processingRequests;
+    }
+
+    consumeMaxObservedConcurrentRequests(): number {
+        const observed = this._maxObservedConcurrentRequests;
+        this._maxObservedConcurrentRequests = this._processingRequests;
+        return observed;
     }
 
     terminate() {

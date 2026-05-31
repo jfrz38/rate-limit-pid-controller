@@ -52,7 +52,7 @@ const express = require('express');
 const { pidControllerMiddleware, pidControllerErrorHandler } = require('@jfrz38/pid-controller-express')
 
 // Initialize the middleware with your configuration. Check pid-controller-core for more information
-const { middleware } = pidControllerMiddleware(
+const { middleware, shutdown } = pidControllerMiddleware(
     {
     pid: {
       config: {
@@ -96,6 +96,9 @@ app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`Try: curl -H "x-priority: 4" http://localhost:3000/test`);
 });
+
+// If you close/recreate the server manually, call shutdown() to clear controller timers and signal handlers.
+// process.on('SIGTERM', () => { shutdown(); server.close(); });
 ```
 
 ## Error Handling
@@ -104,3 +107,7 @@ When the controller decides to reject the request due to low priority, it throws
 
 - **Default Behavior**: Returns `429 Too Many Request`.
 - **Customization**: You can override the status code and response body using the rules parameter during initialization.
+
+## Shutdown
+
+The core controller listens to process signals and cleans itself up on `SIGINT`/`SIGTERM`. Express does not provide a middleware lifecycle hook, so `pidControllerMiddleware()` also returns `shutdown()` for tests, hot reload, or applications that close and recreate servers without ending the process.

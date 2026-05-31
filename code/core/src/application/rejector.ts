@@ -28,13 +28,15 @@ export class Rejector {
         this.startThresholdCheck(pidControllerInterval);
     }
 
-    public process(request: Request): void {
+    public process(request: Request<any>): void {
         this.statistics.add(request);
 
-        if (request.priority > this.threshold) {
+        if (request.priority >= this.threshold) {
             request.status = Event.REJECTED;
+            const error = new RejectedRequestException(request.priority, this.threshold);
+            request.reject?.(error);
             this.logger.info(`Rejected request ${request.id}: Priority ${request.priority}/${this.threshold}`);
-            throw new RejectedRequestException(request.priority, this.threshold);
+            throw error;
         }
 
         this.priorityQueue.add(request);

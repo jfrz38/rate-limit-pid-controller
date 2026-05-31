@@ -1,15 +1,19 @@
-from pathlib import Path
-from datetime import datetime
-import re, json
-import matplotlib.pyplot as plt
+import json
+import re
 import sys
+from datetime import datetime
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 
 base = Path(__file__).resolve().parent
 logs_folder = base / "runner/results/logs"
 out_image = base / "runner/results/last_execution.png"
 
 date_format = "%Y-%m-%dT%H-%M-%S.%fZ"
-log_file = max(logs_folder.glob("*.log"), key=lambda f: datetime.strptime(f.stem, date_format))
+log_file = max(
+    logs_folder.glob("*.log"), key=lambda f: datetime.strptime(f.stem, date_format)
+)
 
 R = {
     "completed": r"Completed request.*: Priority (\d+)",
@@ -19,7 +23,8 @@ R = {
     "threshold_init": r"Initial threshold: (\d+)",
 }
 
-json_extract = re.compile(r'(\{.*\})')
+json_extract = re.compile(r"(\{.*\})")
+
 
 def parse_line(line):
     try:
@@ -31,15 +36,18 @@ def parse_line(line):
                 data = json.loads(match.group(1))
                 data["msg"] = line
                 return data
-            except: return None
+            except:
+                return None
     return None
+
 
 completed, rejected, evicted, threshold, all_data = [], [], [], [], []
 
 with open(log_file, encoding="utf-8") as f:
     for raw in f:
         obj = parse_line(raw)
-        if not obj: continue
+        if not obj:
+            continue
         all_data.append(obj)
 
 if not all_data:
@@ -47,7 +55,12 @@ if not all_data:
     exit()
 
 start_ts = all_data[0]["time"]
-def rel_t(ts): return (ts - start_ts) / 1000.0
+
+
+def rel_t(ts):
+    return (ts - start_ts) / 1000.0
+
+
 end_ts = all_data[-1]["time"]
 
 for obj in all_data:
@@ -56,68 +69,106 @@ for obj in all_data:
 
     if m := re.search(R["completed"], msg):
         completed.append((ts, int(m.group(1))))
-    
+
     if m := re.search(R["rejected"], msg):
         rejected.append((ts, int(m.group(1))))
         threshold.append((ts, int(m.group(2))))
-        
+
     if m := re.search(R["evicted"], msg):
         evicted.append((ts, int(m.group(1))))
-        
+
     if m := re.search(R["threshold_mod"], msg):
         threshold.append((ts, int(m.group(2))))
-        
+
     if m := re.search(R["threshold_init"], msg):
         threshold.insert(0, (ts, int(m.group(1))))
 
-def get_t(seq): return [t for t, _ in seq]
-def get_v(seq): return [v for _, v in seq]
+
+def get_t(seq):
+    return [t for t, _ in seq]
+
+
+def get_v(seq):
+    return [v for _, v in seq]
+
 
 plt.style.use("seaborn-v0_8-muted")
 fig, ax = plt.subplots(figsize=(14, 7))
 
 if threshold:
-    threshold.sort() 
+    threshold.sort()
     t_ts = get_t(threshold)
     t_vs = get_v(threshold)
     t_ts.append(rel_t(all_data[-1]["time"]))
     t_vs.append(t_vs[-1])
-    
-    ax.step(t_ts, t_vs, where="post", lw=2, color="#2c3e50", label="Threshold", zorder=3)
+
+    ax.step(
+        t_ts, t_vs, where="post", lw=2, color="#2c3e50", label="Threshold", zorder=3
+    )
     ax.fill_between(t_ts, t_vs, step="post", alpha=0.1, color="#2c3e50")
 
+total_reqs = len(completed) + len(rejected) + len(evicted)
+
 if completed:
-    ax.scatter(get_t(completed), get_v(completed),
-               s=25, alpha=0.5, color="#27ae60", label="Completed", zorder=4)
+    ax.scatter(
+        get_t(completed),
+        get_v(completed),
+        s=25,
+        alpha=0.5,
+        color="#27ae60",
+        label=f"Completed ({len(completed)})",
+        zorder=4,
+    )
 
 if rejected:
-    ax.scatter(get_t(rejected), get_v(rejected),
-               s=50, marker="x", color="#e74c3c", label="Rejected", zorder=5)
+    ax.scatter(
+        get_t(rejected),
+        get_v(rejected),
+        s=50,
+        marker="x",
+        color="#e74c3c",
+        label=f"Rejected ({len(rejected)})",
+        zorder=5,
+    )
 
 if evicted:
-    ax.scatter(get_t(evicted), get_v(evicted),
-               s=40, marker="^", color="#f1c40f", label="Evicted", zorder=4)
+    ax.scatter(
+        get_t(evicted),
+        get_v(evicted),
+        s=40,
+        marker="^",
+        color="#f1c40f",
+        label=f"Evicted ({len(evicted)})",
+        zorder=4,
+    )
 
 ax.set_xlabel("Seconds since start", fontweight="bold")
 ax.set_ylabel("Priority / Threshold", fontweight="bold")
 
 display_log_name = Path(log_file).stem
-args = [a for a in sys.argv[1:] if not a.startswith('--')]
+args = [a for a in sys.argv[1:] if not a.startswith("--")]
 scenario_name = args[0] if args else None
 scenario_line = f"\nScenario: {scenario_name}" if scenario_name else ""
 
-title_text = f"PID Traffic Control Analysis\nLog: {display_log_name}{scenario_line}"
+title_text = f"PID Traffic Control Analysis — Total: {total_reqs} requests{scenario_line}"
 ax.set_title(f"{title_text}", pad=20)
+
+fig.text(
+    0.98, 0.02, f"Log: {display_log_name}",
+    ha="right", va="bottom", fontsize=8, color="gray", alpha=0.7,
+)
 
 ax.grid(True, which="both", linestyle="--", alpha=0.5)
 ax.set_ylim(0, None)
 
-ax.legend(loc='upper center', 
-          bbox_to_anchor=(0.5, -0.15), 
-          ncol=4, 
-          frameon=True, 
-          shadow=True,
-          borderaxespad=0.)
+ax.legend(
+    loc="upper center",
+    bbox_to_anchor=(0.5, -0.15),
+    ncol=4,
+    frameon=True,
+    shadow=True,
+    borderaxespad=0.0,
+)
 
 plt.tight_layout()
 plt.savefig(out_image, dpi=300, bbox_inches="tight")

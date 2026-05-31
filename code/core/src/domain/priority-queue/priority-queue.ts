@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import { getLogger } from '../../core/logging/logger';
 import { Event } from '../events';
+import { EvictedRequestException } from '../exceptions/evicted-request.exception';
 import { Request } from "../request";
 import { Heap } from './heap';
 import { TimeoutHandler } from './timeout-handler';
@@ -16,20 +17,20 @@ export class PriorityQueue extends EventEmitter {
     private logger = getLogger();
 
     constructor(
-        private readonly queue: Heap<Request>,
+        private readonly queue: Heap<Request<any>>,
         private readonly timeoutHandler: TimeoutHandler
     ) {
         super();
     }
 
-    public add(request: Request): void {
+    public add(request: Request<any>): void {
         this.queue.push(request);
         this._entryRequests++;
         this.scheduleTimeoutRemoval(request);
         this.emit('requestAdded');
     }
 
-    public poll(): Request | null {
+    public poll(): Request<any> | null {
         while (this.queue.length > 0) {
             const request = this.queue.pop()!;
 
@@ -53,6 +54,7 @@ export class PriorityQueue extends EventEmitter {
             if (index !== -1) {
                 this.queue.remove(request);
                 request.status = Event.EVICTED;
+                request.reject(new EvictedRequestException(request.priority));
                 this.logger.info(`Evicted request ${request.id}: Priority ${request.priority}`);
                 this.setLastTimeEmpty();
             }

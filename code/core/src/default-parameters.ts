@@ -1,9 +1,10 @@
 import { Parameters, RequiredParameters, deepMerge } from "./domain/types/parameters";
+import { Priority } from "./domain/priority";
 
 export class DefaultOptions {
     private static readonly DEFAULT_VALUES: RequiredParameters = {
         threshold: {
-            initial: 768
+            initial: Priority.ALLOW_ALL_THRESHOLD
         },
         log: {
             level: 'warn',
