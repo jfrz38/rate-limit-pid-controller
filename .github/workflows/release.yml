@@ -44,7 +44,7 @@ jobs:
 
       - id: version-check
         name: Check version is releasable
-        uses: jfrz38/check-version-change@v1
+        uses: jfrz38/check-version-change@v1.1.0
         with:
           file-path: ${{ matrix.package.package_file }}
           package-name: ${{ matrix.package.package_name }}
@@ -68,7 +68,7 @@ jobs:
 
       - name: Install pnpm
         if: steps.version-check.outputs.changed == 'true'
-        uses: pnpm/action-setup@v6.0.3
+        uses: pnpm/action-setup@v6.0.8
         with:
           version: 11.1.3
 
