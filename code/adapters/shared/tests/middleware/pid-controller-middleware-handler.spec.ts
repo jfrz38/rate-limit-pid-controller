@@ -1,4 +1,4 @@
-import { PidControllerRateLimit, RejectedRequestException } from "@jfrz38/pid-controller-core";
+import { PidControllerRateLimit, Priority, RejectedRequestException } from "@jfrz38/pid-controller-core";
 import { EventEmitter } from 'events';
 import { NextFunction, Request, Response } from 'express';
 import { beforeEach, describe, expect, Mock, test, vi } from 'vitest';
@@ -12,6 +12,12 @@ vi.mock("@jfrz38/pid-controller-core", () => {
 
     return {
         PidControllerRateLimit: MockedController,
+        Priority: class Priority {
+            constructor(public readonly value = 0) { }
+            static default() { return new Priority(640); }
+            static fromTier(tier: number) { return new Priority(tier * 128); }
+            static fromValue(value: number) { return new Priority(value); }
+        },
         RejectedRequestException: class RejectedRequestException extends Error {
             constructor() {
                 super('Rejected');
@@ -169,12 +175,11 @@ describe('PidControllerMiddlewareHandler', () => {
                 nextFunction as unknown as NextFunction
             );
 
-            expect(mockController.run).toHaveBeenCalledWith(expect.any(Function), priorityValue);
+            expect(mockController.run).toHaveBeenCalledWith(expect.any(Function), expect.any(Priority));
+            expect((mockController.run as Mock).mock.calls[0][1].value).toBe(priorityValue * 128);
         });
 
-        test('when getPriority option is not provided should pass the undefined value to the controller', async () => {
-            const priorityFn = (req: Request) => Number(req.headers['x-priority']);
-
+        test('when getPriority option is not provided should pass the default priority to the controller', async () => {
             mockRequest.headers = { 'x-priority': 'not-a-number' };
             const controllerInstance = vi.mocked(PidControllerRateLimit).mock.results[0].value;
 
@@ -188,10 +193,11 @@ describe('PidControllerMiddlewareHandler', () => {
                 nextFunction as unknown as NextFunction
             );
 
-            expect(controllerInstance.run).toHaveBeenCalledWith(expect.any(Function), undefined);
+            expect(controllerInstance.run).toHaveBeenCalledWith(expect.any(Function), expect.any(Priority));
+            expect(controllerInstance.run.mock.calls[0][1].value).toBe(640);
         });
 
-        test('when getPriority returns NaN should pass undefined to the controller', async () => {
+        test('when getPriority returns NaN should pass default priority to the controller', async () => {
             mockPriorityOptions.getPriority = () => "prioridad-invalida";
 
             nextFunction.mockImplementation(() => {
@@ -204,11 +210,11 @@ describe('PidControllerMiddlewareHandler', () => {
                 nextFunction as unknown as NextFunction
             );
 
-            expect(mockController.run).toHaveBeenCalledWith(expect.any(Function), undefined);
+            expect(mockController.run).toHaveBeenCalledWith(expect.any(Function), expect.any(Priority));
+            expect((mockController.run as Mock).mock.calls[0][1].value).toBe(640);
         });
 
-        test('when getPriority throws error should pass undefined to the controller', async () => {
-            const priorityFn = () => { throw new Error('Crash'); };
+        test('when getPriority throws error should pass default priority to the controller', async () => {
             mockPriorityOptions.getPriority = () => { throw new Error('Crash'); };
 
             const controllerInstance = vi.mocked(PidControllerRateLimit).mock.results[0].value;
@@ -223,7 +229,8 @@ describe('PidControllerMiddlewareHandler', () => {
                 nextFunction as unknown as NextFunction
             );
 
-            expect(controllerInstance.run).toHaveBeenCalledWith(expect.any(Function), undefined);
+            expect(controllerInstance.run).toHaveBeenCalledWith(expect.any(Function), expect.any(Priority));
+            expect(controllerInstance.run.mock.calls[0][1].value).toBe(640);
             expect(nextFunction).toHaveBeenCalled();
         });
     });

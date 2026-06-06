@@ -74,13 +74,12 @@ describe('PidControllerRateLimit (mocked)', () => {
 
     test('when run should call expected functions', () => {
         task = vi.fn();
-        const priority: number = 3;
+        const priority = new Priority(3);
         controller.run(task, priority);
 
         const rejector = (controller as any).rejector;
 
         expect(Request).toHaveBeenCalledWith(task, expect.any(Priority));
-        expect(Priority).toHaveBeenCalledWith(priority);
         expect(rejector.process).toHaveBeenCalledWith(expect.any(Request));
     });
 

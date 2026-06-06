@@ -35,15 +35,31 @@ For usage in NestJS or Express check corresponding documentation.
 In plain NodeJS you can create an object with required parameters:
 
 ```ts
-import { PidController, Statistics, Scheduler } from '@jfrz38/pid-controller-core';
+import { PidControllerRateLimit, Priority } from '@jfrz38/pid-controller-core';
 
 const controller = new PidControllerRateLimit({
     // Configuration
 });
 
-const priority = 0; // your priority
-const task = () => { /* ... */ }
-controller.run(task, priority);
+const priority = Priority.fromTier(0); // 0 is the most important tier, 5 is the least important.
+const task = async () => { /* ... */ };
+
+try {
+    await controller.run(task, priority);
+} finally {
+    controller.shutdown();
+}
+```
+
+`run()` returns the task result as a promise. The promise rejects if the request is rejected immediately, evicted while waiting in the priority queue, or if the task itself fails.
+
+Priorities are represented by the `Priority` class:
+
+```ts
+Priority.default();          // lowest priority tier with a random cohort
+Priority.fromTier(2);        // tier 2 with a random cohort
+Priority.fromTier(2, 42);    // tier 2, deterministic cohort 42
+Priority.fromValue(298);     // full priority value in the 0..767 range
 ```
 
 ## Configuration Reference
@@ -52,7 +68,7 @@ The parameters configuration allows you to fine-tune the controller. You can use
 
 | Parameter                                    | Type   | Default        | Description                                                                                                                                        |
 |----------------------------------------------|--------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| `threshold.initial`                          | number | 768            | Starting threshold value. Based on 6 priority levels (0-5) with 128 cohorts each.                                                                  |
+| `threshold.initial`                          | number | 768            | Starting exclusive threshold value. `768` allows all priorities (`0..767`), `0` rejects all. Based on 6 priority levels (0-5) with 128 cohorts each. |
 | `log.level`                                  | string | 'warn'         | Minimum severity level to output logs `trace`, `debug`, `info`, `warn` `error`, `fatal`.                                                           |
 | `pid.KP`                                     | number | 0.2            | **Proportional Gain**: Controls the immediate response to the current error.                                                                       |
 | `pid.KI`                                     | number | 0.5            | **Integral Gain**: Corrects long-term steady-state error by accumulating past errors.                                                              |
@@ -86,8 +102,8 @@ The PID follows a Closed-Loop Control System pattern:
 
 Unlike traditional limiters where you define a capacity, here the *Threshold* is a dynamic value.
 
-- A threshold of maximum value means the system is healthy: everything is allowed.
-- A threshold of 0.0 (minimum value) means no requests are allowed because server is overcharged.
+- A threshold of maximum value (`768`) means the system is healthy: everything is allowed.
+- A threshold of `0` means no requests are allowed because the server is overloaded.
 
 By the way, *Threshold* is not PID value itself but PID percent used to find target priority allowed based on last requests statistics.
 
@@ -105,6 +121,8 @@ Every incoming request follows this sequential flow:
 - **Rejector**: Evaluates if the request can proceed based on the current dynamic threshold. If the request priority is too low for the current load, it is immediately `rejected`.
 - **Priority Queue**: Admitted requests enter a queue with a maximum wait time. If a request stays in the queue longer than allowed without being picked up, it is `evicted`.
 - **Scheduler**: Pulls available requests from the queue and manages their execution, returning the final response to the user.
+
+Call `shutdown()` when the controller is no longer needed. It stops background intervals and signal handlers without terminating the Node.js process.
 
 **Internal Calculations**:  
 While requests are flowing, the engine performs continuous internal adjustments in background:

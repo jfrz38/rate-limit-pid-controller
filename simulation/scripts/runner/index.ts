@@ -1,10 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import { PidControllerRateLimit } from '../../../code/core/src/pid-controller-rate-limit';
+import { Priority } from '../../../code/core/src/domain/priority';
 
 export class RunScenario {
   private scenariosDirectory = path.join(__dirname, '../../scenarios/generated');
   private readonly controller: PidControllerRateLimit;
+  private readonly pendingRequests: Promise<unknown>[] = [];
 
   constructor() {
     this.controller = new PidControllerRateLimit({
@@ -34,6 +36,7 @@ export class RunScenario {
       await Promise.all(workers);
     }
 
+    await Promise.allSettled(this.pendingRequests);
     this.controller.shutdown();
   }
 
@@ -45,7 +48,10 @@ export class RunScenario {
       const [_, priority, executionTime, sleepTime] = line.split(',').map(Number);
 
       try {
-        this.controller.run(await this.createRequest(executionTime), priority);
+        const request = this.controller
+          .run(this.createRequest(executionTime), Priority.fromTier(priority))
+          .catch(() => undefined);
+        this.pendingRequests.push(request);
       } catch (e) { }
 
       await this.sleep(sleepTime);
@@ -56,12 +62,12 @@ export class RunScenario {
 
   private createRequest(latency: number): () => Promise<void> {
     return async function (): Promise<void> {
-      await new Promise<void>((resolve) => setTimeout(resolve, latency * 1000));
+      await new Promise<void>((resolve) => setTimeout(resolve, Math.max(0, latency) * 1000));
     };
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms * 1000));
+    return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms) * 1000));
   }
 }
 

@@ -116,4 +116,24 @@ describe('PidControllerModule', () => {
             expect(mockConsumer.forRoutes).toHaveBeenCalledTimes(1);
         });
     });
+
+    describe('lifecycle', () => {
+        test('when module is destroyed should shutdown controller', () => {
+            const controller = { shutdown: vi.fn() } as any;
+            const moduleInstance = new PidControllerModule(mockOptions, controller);
+
+            moduleInstance.onModuleDestroy();
+
+            expect(controller.shutdown).toHaveBeenCalledTimes(1);
+        });
+
+        test('when application shuts down should shutdown controller', () => {
+            const controller = { shutdown: vi.fn() } as any;
+            const moduleInstance = new PidControllerModule(mockOptions, controller);
+
+            moduleInstance.onApplicationShutdown();
+
+            expect(controller.shutdown).toHaveBeenCalledTimes(1);
+        });
+    });
 });

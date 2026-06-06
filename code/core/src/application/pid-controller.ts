@@ -47,9 +47,24 @@ export class PidController {
   private getControlError(): number {
     const processingRequests = this.scheduler.processingRequests;
     const maxInflights = this.scheduler.maxConcurrentRequests;
-    const totalInFlight = processingRequests + this.priorityQueue.length;
+    const incoming = this.priorityQueue.entryRequests;
+    const outgoing = this.priorityQueue.exitRequests;
 
-    const error = (totalInFlight - maxInflights) / maxInflights;
+    if (!Number.isFinite(incoming) || !Number.isFinite(outgoing)) {
+      const totalInFlight = processingRequests + this.priorityQueue.length;
+      return (totalInFlight - maxInflights) / maxInflights;
+    }
+
+    const freeInflight = Math.max(0, maxInflights - processingRequests);
+    const normalizer = outgoing > 0 ? outgoing : maxInflights;
+
+    this.priorityQueue.resetCounters();
+
+    if (normalizer <= 0) {
+      return 0;
+    }
+
+    const error = (incoming - outgoing - freeInflight) / normalizer;
 
     return error;
   }

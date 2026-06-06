@@ -1,0 +1,90 @@
+name: Bump Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package to bump
+        required: true
+        default: core
+        type: choice
+        options:
+          - core
+          - express
+          - nestjs
+          - shared
+      bump:
+        description: Version component to bump
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      base_branch:
+        description: Branch to bump and target with the pull request
+        required: true
+        default: develop
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.base_branch }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve package metadata
+        id: package
+        run: |
+          case "${{ inputs.package }}" in
+            core)
+              echo "package_name=@jfrz38/pid-controller-core" >> "$GITHUB_OUTPUT"
+              echo "version_file=code/core/package.json" >> "$GITHUB_OUTPUT"
+              echo "tag_prefix=core-v" >> "$GITHUB_OUTPUT"
+              ;;
+            express)
+              echo "package_name=@jfrz38/pid-controller-express" >> "$GITHUB_OUTPUT"
+              echo "version_file=code/adapters/express/package.json" >> "$GITHUB_OUTPUT"
+              echo "tag_prefix=express-v" >> "$GITHUB_OUTPUT"
+              ;;
+            nestjs)
+              echo "package_name=@jfrz38/pid-controller-nestjs" >> "$GITHUB_OUTPUT"
+              echo "version_file=code/adapters/nestjs/package.json" >> "$GITHUB_OUTPUT"
+              echo "tag_prefix=nestjs-v" >> "$GITHUB_OUTPUT"
+              ;;
+            shared)
+              echo "package_name=@jfrz38/pid-controller-shared" >> "$GITHUB_OUTPUT"
+              echo "version_file=code/adapters/shared/package.json" >> "$GITHUB_OUTPUT"
+              echo "tag_prefix=shared-v" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported package: ${{ inputs.package }}" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Bump version
+        uses: jfrz38/version-bump-action@v0
+        with:
+          bump: ${{ inputs.bump }}
+          strategy: npm
+          version-file: ${{ steps.package.outputs.version_file }}
+          base-branch: ${{ inputs.base_branch }}
+          branch-prefix: chore/bump-${{ inputs.package }}-version-
+          tag-prefix: ${{ steps.package.outputs.tag_prefix }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Bump ${{ steps.package.outputs.package_name }} to {next-version}
+          pr-title: Bump ${{ steps.package.outputs.package_name }} to {next-version}
+          pr-body: Bumps ${{ steps.package.outputs.package_name }} from {current-version} to {next-version} using a {bump} release bump.

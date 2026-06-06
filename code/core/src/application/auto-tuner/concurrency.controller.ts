@@ -7,7 +7,7 @@ import { LatencyController } from "./latency.controller";
 
 export class ConcurrencyController {
 
-    private inflightLimit = 10;
+    private inflightLimit: number;
 
     private readonly a = 3;
     private readonly b = 5;
@@ -24,6 +24,7 @@ export class ConcurrencyController {
         maxCores: number,
     ) {
         this.cores = Math.max(1, Math.min(maxCores, this.cores));
+        this.inflightLimit = Math.max(this.cores, this.scheduler.maxConcurrentRequests ?? 10);
     }
 
     update(): void {
@@ -37,32 +38,39 @@ export class ConcurrencyController {
             return;
         }
 
-        const currentThroughput = this.statistics.getSuccessfulThroughput();
+        const observedInflight = Math.max(
+            this.scheduler.consumeMaxObservedConcurrentRequests?.() ?? this.scheduler.processingRequests ?? 0,
+            this.scheduler.processingRequests ?? 0
+        );
+        const currentThroughput = this.statistics.getSuccessfulThroughputPerSecond?.() ?? this.statistics.getSuccessfulThroughput();
 
-        this.history.push(this.inflightLimit, currentThroughput);
+        this.history.push(observedInflight, currentThroughput);
 
-        const newLimit = this.calculateNewLimit(aggregatedLatency);
+        const newLimit = this.calculateNewLimit(aggregatedLatency, observedInflight);
         this.applyNewLimit(newLimit);
     }
 
-    private calculateNewLimit(aggregatedLatency: number): number {
-        let queue = Math.round(this.inflightLimit * (1 - this.latencyController.targetLatency / aggregatedLatency));
+    private calculateNewLimit(aggregatedLatency: number, observedInflight: number): number {
+        if (aggregatedLatency <= 0 || this.latencyController.targetLatency <= 0) {
+            return this.inflightLimit;
+        }
+
+        const queue = this.inflightLimit * (1 - this.latencyController.targetLatency / aggregatedLatency);
         const alpha = this.a * Math.log10(this.inflightLimit);
         const beta = this.b * Math.log10(this.inflightLimit);
+        const step = Math.max(1, Math.floor(Math.log10(this.inflightLimit)));
+        let newLimit = this.inflightLimit;
 
-        if (queue < alpha) {
-            queue += Math.floor(Math.log10(this.inflightLimit));
+        if (queue <= alpha) {
+            newLimit += step;
         } else if (queue > beta) {
-            queue -= Math.floor(Math.log10(this.inflightLimit));
+            newLimit -= step;
         }
 
-        if (queue < this.cores) {
-            queue = this.cores;
-        } else if (queue > this.inflightLimit * 10) {
-            queue = this.inflightLimit * 10;
-        }
+        const upperBound = Math.max(this.cores, Math.max(1, observedInflight) * 10);
+        newLimit = Math.max(this.cores, Math.min(newLimit, upperBound));
 
-        return queue;
+        return Math.round(newLimit);
     }
 
     private applyNewLimit(newLimit: number): void {

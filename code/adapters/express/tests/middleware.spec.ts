@@ -57,4 +57,13 @@ describe('Express PID Controller Middleware', () => {
         const mockHandlerInstance = vi.mocked(PidControllerMiddlewareHandler).mock.instances[0];
         expect(mockHandlerInstance.use).toBeCalled();
     });
+
+    test('should expose shutdown to cleanup controller resources', () => {
+        const { shutdown } = pidControllerMiddleware();
+
+        shutdown();
+
+        const mockControllerInstance = vi.mocked(PidControllerRateLimit).mock.instances[0];
+        expect(mockControllerInstance.shutdown).toHaveBeenCalledTimes(1);
+    });
 });

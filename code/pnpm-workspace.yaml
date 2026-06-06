@@ -1,3 +1,11 @@
 packages:
   - 'core'
   - 'adapters/*'
+
+allowBuilds:
+  '@nestjs/core': true
+  esbuild: true
+
+enablePrePostScripts: false
+minimumReleaseAge: 4320
+saveExact: true

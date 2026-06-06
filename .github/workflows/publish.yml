@@ -111,7 +111,7 @@ jobs:
 
       - id: version-check
         name: Check version is not already published
-        uses: jfrz38/check-version-change@v1
+        uses: jfrz38/check-version-change@v1.1.0
         with:
           file-path: ${{ steps.package.outputs.package_file }}
           package-name: ${{ steps.package.outputs.package_name }}
@@ -131,9 +131,9 @@ jobs:
           fi
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@v6.0.8
         with:
-          version: 10
+          version: 11.1.3
 
       - name: Setup Node
         uses: actions/setup-node@v6

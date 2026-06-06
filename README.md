@@ -37,7 +37,7 @@ This project implements a **simplified, opinionated version** of Cinnamon’s ap
 <sub><sup>_(simplified logic):_</sub></sup>
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, Arial, sans-serif'}, 'flowchart': {'curve': 'basis'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Inter, Arial, sans-serif', 'primaryTextColor': '#172033', 'lineColor': '#5f6f89', 'textColor': '#172033', 'edgeLabelBackground': '#ffffff'}, 'flowchart': {'curve': 'basis'}}}%%
 flowchart LR
   Traffic([Incoming traffic]) --> Gate{Priority gate}
   Gate -->|Accepted| App[Application]
@@ -47,11 +47,11 @@ flowchart LR
   Rejected -. pressure signals .-> Controller
   Controller -. adjusts threshold .-> Gate
 
-  style Traffic fill:#eef6ff,stroke:#4f8cc9,stroke-width:1.5px
-  style Gate fill:#fff7e6,stroke:#d7971f,stroke-width:1.5px
-  style App fill:#ebf8f0,stroke:#3b9b61,stroke-width:1.5px
-  style Rejected fill:#fff0f0,stroke:#d45b5b,stroke-width:1.5px
-  style Controller fill:#f4f1ff,stroke:#7a64c7,stroke-width:1.5px
+  style Traffic fill:#eef6ff,stroke:#4f8cc9,stroke-width:1.5px,color:#172033
+  style Gate fill:#fff7e6,stroke:#d7971f,stroke-width:1.5px,color:#172033
+  style App fill:#ebf8f0,stroke:#3b9b61,stroke-width:1.5px,color:#172033
+  style Rejected fill:#fff0f0,stroke:#d45b5b,stroke-width:1.5px,color:#172033
+  style Controller fill:#f4f1ff,stroke:#7a64c7,stroke-width:1.5px,color:#172033
 ```
 
 > [!NOTE]  
@@ -64,6 +64,7 @@ flowchart LR
 - Configurable thresholds, recovery, and overload handling.
 - Designed for **high concurrency** environments.
 - Priority-based shedding dropping background tasks during high-load periods while keeping critical requests alive.
+- Promise-based core API that propagates accepted results, rejections, evictions, and task failures.
 
 ## How it works
 
@@ -71,8 +72,10 @@ Standard rate limiters are static: you set 100 RPS, and it stays at 100 RPS. Thi
 
 1. **Error Calculation**: It constantly compares your current system health (latency/concurrency) against a "ideal" target.
 2. **Dynamic Thresholding**: Instead of a fixed number, it calculates a **Priority Threshold**.
-3. **Load Shedding**: Only requests with a priority higher than the current threshold are allowed.
+3. **Load Shedding**: Only requests with an effective priority value below the current threshold are allowed.
 4. **Self-Correction**: If the server slows down, the PID raises the threshold automatically. As it recovers, it gracefully lowers it back.
+
+The standalone core exposes priorities through a `Priority` class. Use `Priority.fromTier(0..5)` for tier-based traffic or `Priority.fromValue(0..767)` when you already have a full tier/cohort value.
 
 ## Packages and releases
 
