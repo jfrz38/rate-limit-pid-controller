@@ -83,7 +83,7 @@ jobs:
         run: gh release view "$TAG" --repo "$GITHUB_REPOSITORY"
 
       - name: Check out release tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ steps.version.outputs.tag }}
           fetch-depth: 0
@@ -111,7 +111,7 @@ jobs:
 
       - id: version-check
         name: Check version is not already published
-        uses: jfrz38/check-version-change@v1.1.0
+        uses: jfrz38/check-version-change@v1.3.0
         with:
           file-path: ${{ steps.package.outputs.package_file }}
           package-name: ${{ steps.package.outputs.package_name }}
@@ -131,7 +131,7 @@ jobs:
           fi
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v6.0.8
+        uses: pnpm/action-setup@v6.0.9
         with:
           version: 11.1.3
 
