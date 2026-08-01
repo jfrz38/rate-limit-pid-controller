@@ -44,7 +44,7 @@
   "dependencies": {
     "heap-js": "2.7.1",
     "mathjs": "15.2.0",
-    "p-queue": "9.3.0",
+    "p-queue": "9.3.3",
     "pino": "10.3.1"
   }
 }
