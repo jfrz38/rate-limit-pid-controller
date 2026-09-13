@@ -9,13 +9,16 @@ import { PidExceptionFilter } from '../../src/filter/pid-exception.filter';
 describe('PidControllerModule', () => {
     const pidProvider = 'PID_CONTROLLER';
     const optionsProvider = 'PID_CONTROLLER_OPTIONS';
-    let mockOptions: any;
+    let mockOptions: Parameters<typeof PidControllerModule.forRoot>[0];
 
     beforeEach(() => {
         vi.clearAllMocks();
         mockOptions = {
             pid: {
-                config: { kP: 0.1, kI: 0.01, kD: 0, targetLatency: 200 },
+                config: {
+                    pid: { KP: 0.1, KI: 0.01, KD: 0 },
+                    capacity: { maxConcurrentRequests: 2 },
+                },
             },
             routes: {
                 excludeRoutes: ['health'],

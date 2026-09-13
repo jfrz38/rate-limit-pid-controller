@@ -59,7 +59,6 @@ import { AppController } from './app.controller';
       pid: {
         config: {
           capacity: {
-            cores: 1,
             maxConcurrentRequests: 2
           },
           log: { level: 'debug' },
