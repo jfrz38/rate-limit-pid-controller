@@ -37,11 +37,18 @@ export class LatencyController {
         return this.filteredLatency;
     }
 
-    reset(): void {
-        this._targetLatency = 100;
+    reset(targetLatency = 100, snapshotId?: number): void {
+        this._targetLatency = Number.isFinite(targetLatency) && targetLatency > 0
+            ? targetLatency
+            : 100;
         this.samples.length = 0;
         this.filteredLatency = undefined;
-        this.lastSnapshotId = undefined;
+        this.lastSnapshotId = snapshotId;
+        this.logger.info({
+            event: 'LATENCY_RESET',
+            targetLatency: this._targetLatency,
+            snapshotId,
+        }, `Reset targetLatency: ${this._targetLatency}`);
     }
 
     update(): void {
@@ -52,10 +59,11 @@ export class LatencyController {
         }
         this.lastSnapshotId = snapshot.id;
         const safeMinLatency = Math.max(1, snapshot.minimumLatency);
+        const previousTargetLatency = this._targetLatency;
 
         if (this.history.length < 10) {
             this._targetLatency = safeMinLatency;
-            this.logger.info(`New targetLatency: ${this._targetLatency}`);
+            this.logTargetUpdate(snapshot.id, previousTargetLatency);
             return;
         }
 
@@ -69,6 +77,15 @@ export class LatencyController {
 
         this._targetLatency = Math.max(1, this._targetLatency);
 
-        this.logger.info(`New targetLatency: ${this._targetLatency}`);
+        this.logTargetUpdate(snapshot.id, previousTargetLatency);
+    }
+
+    private logTargetUpdate(snapshotId: number, previousTargetLatency: number): void {
+        this.logger.info({
+            event: 'LATENCY_TARGET',
+            snapshotId,
+            previousTargetLatency,
+            targetLatency: this._targetLatency,
+        }, `New targetLatency: ${this._targetLatency}`);
     }
 }

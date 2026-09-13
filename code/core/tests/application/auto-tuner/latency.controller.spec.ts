@@ -108,4 +108,20 @@ describe('LatencyController', () => {
     expect(controller.targetLatency).toBe(100);
     expect(controller.aggregate(20)).toBe(20);
   });
+
+  test('reset can use observed latency and mark its snapshot as consumed', () => {
+    statistics.getLatestSnapshot.mockReturnValue(snapshot(3, 40));
+
+    controller.reset(350, 3);
+    controller.update();
+
+    expect(controller.targetLatency).toBe(350);
+    expect(controller.aggregate(20)).toBe(20);
+  });
+
+  test('reset rejects an unstable observed target', () => {
+    controller.reset(Number.NaN);
+
+    expect(controller.targetLatency).toBe(100);
+  });
 });

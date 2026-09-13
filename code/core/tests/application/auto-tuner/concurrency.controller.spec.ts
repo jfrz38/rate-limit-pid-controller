@@ -120,17 +120,51 @@ describe('ConcurrencyController', () => {
     expect(scheduler.updateMaxConcurrentRequests).toHaveBeenCalledWith(10);
   });
 
-  test('resets latency learning after three closed buckets at the lower bound', () => {
+  test('probes concurrency two after three closed buckets at the lower bound', () => {
     (scheduler as any).maxConcurrentRequests = 1;
     controller = new ConcurrencyController(scheduler, statistics, latencyController, history);
-    statistics.takeSnapshot.mockReturnValue(snapshot({ percentileLatency: 10_000 }));
+    statistics.takeSnapshot
+      .mockReturnValueOnce(snapshot({ id: 1, percentileLatency: 10_000 }))
+      .mockReturnValueOnce(snapshot({ id: 2, percentileLatency: 10_000 }))
+      .mockReturnValueOnce(snapshot({ id: 3, percentileLatency: 10_000 }));
     latencyController.aggregate.mockReturnValue(10_000);
 
     controller.update();
     controller.update();
     controller.update();
 
-    expect(latencyController.reset).toHaveBeenCalledTimes(1);
+    expect(latencyController.reset).toHaveBeenCalledWith(10_000, 3);
+    expect(scheduler.updateMaxConcurrentRequests).toHaveBeenCalledWith(2);
+    expect(controller['inflightLimit']).toBe(2);
+  });
+
+  test('can grow after the lower-bound probe and reduce on later degradation', () => {
+    (scheduler as any).maxConcurrentRequests = 1;
+    (latencyController as any).targetLatency = 100;
+    latencyController.reset.mockImplementation((targetLatency) => {
+      (latencyController as any).targetLatency = targetLatency;
+    });
+    controller = new ConcurrencyController(scheduler, statistics, latencyController, history);
+    statistics.takeSnapshot
+      .mockReturnValueOnce(snapshot({ id: 1 }))
+      .mockReturnValueOnce(snapshot({ id: 2 }))
+      .mockReturnValueOnce(snapshot({ id: 3 }))
+      .mockReturnValueOnce(snapshot({ id: 4 }))
+      .mockReturnValueOnce(snapshot({ id: 5 }));
+    latencyController.aggregate
+      .mockReturnValueOnce(1_000)
+      .mockReturnValueOnce(1_000)
+      .mockReturnValueOnce(1_000)
+      .mockReturnValueOnce(1_000)
+      .mockReturnValueOnce(10_000);
+
+    controller.update();
+    controller.update();
+    controller.update();
+    controller.update();
+    controller.update();
+
+    expect(scheduler.updateMaxConcurrentRequests.mock.calls.map(([limit]) => limit)).toEqual([2, 3, 2]);
   });
 
   test.each([Number.NaN, Number.POSITIVE_INFINITY])(

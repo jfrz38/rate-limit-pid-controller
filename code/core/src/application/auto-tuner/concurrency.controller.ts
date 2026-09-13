@@ -49,6 +49,20 @@ export class ConcurrencyController {
         const aggregatedLatency = this.latencyController.aggregate(snapshot.percentileLatency);
         const newLimit = this.calculateNewLimit(aggregatedLatency, observedInflight);
         this.applyNewLimit(newLimit);
+        this.handleLowerBound(aggregatedLatency, snapshot.id);
+        this.logger.info({
+            event: 'CONCURRENCY_BUCKET',
+            snapshotId: snapshot.id,
+            percentileLatency: snapshot.percentileLatency,
+            minimumLatency: snapshot.minimumLatency,
+            averageLatency: snapshot.averageLatency,
+            aggregatedLatency,
+            targetLatency: this.latencyController.targetLatency,
+            throughputPerSecond: snapshot.throughputPerSecond,
+            successfulRequests: snapshot.successfulRequests,
+            observedInflight,
+            inflightLimit: this.inflightLimit,
+        }, `Processed concurrency bucket ${snapshot.id}`);
     }
 
     private calculateNewLimit(aggregatedLatency: number, observedInflight: number): number {
@@ -86,11 +100,15 @@ export class ConcurrencyController {
             this.logger.info(`New inflightLimit: ${this.inflightLimit}`);
         }
 
+    }
+
+    private handleLowerBound(aggregatedLatency: number, snapshotId: number): void {
         if (this.inflightLimit === 1) {
             this.lowerBoundHits++;
             if (this.lowerBoundHits >= 3) {
-                this.latencyController.reset();
+                this.latencyController.reset(aggregatedLatency, snapshotId);
                 this.lowerBoundHits = 0;
+                this.applyNewLimit(2);
             }
         } else {
             this.lowerBoundHits = 0;
