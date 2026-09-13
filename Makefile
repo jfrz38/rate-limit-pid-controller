@@ -1,4 +1,5 @@
 SCENARIO ?= base
+SEED ?= 20260913
 PACKAGE ?= core
 POETRY ?= poetry
 PNPM ?= pnpm
@@ -75,9 +76,9 @@ validate-express: install-code build-express test-express ## install, build, and
 
 validate-nestjs: install-code build-nestjs test-nestjs ## install, build, and test NestJS
 
-.PHONY: simulation-generate simulation-run simulation-report simulation
+.PHONY: simulation-generate simulation-run simulation-report simulation test-simulation test-simulation-python test-simulation-runner
 simulation-generate: install-simulation ## generate a simulation scenario with SCENARIO=name
-	cd simulation/scenarios && $(POETRY) run python scenario_generator.py $(SCENARIO)
+	cd simulation/scenarios && $(POETRY) run python scenario_generator.py $(SCENARIO) --seed $(SEED)
 
 simulation-run: install-code install-simulation-runner ## run a generated simulation scenario with SCENARIO=name
 	cd simulation/scripts/runner && $(PNPM) exec ts-node run-log.ts $(SCENARIO)
@@ -86,6 +87,14 @@ simulation-report: install-simulation ## generate the simulation visual report
 	cd simulation/scripts && $(POETRY) run python logs_reader.py --no-show $(SCENARIO)
 
 simulation: simulation-generate simulation-run simulation-report ## generate, run, and render a simulation scenario
+
+test-simulation-python: install-simulation ## test scenario generation and report parsing
+	cd simulation && $(POETRY) run python -m unittest discover -s tests -p "test_*.py"
+
+test-simulation-runner: install-simulation-runner ## test the TypeScript simulation runner
+	cd simulation/scripts/runner && $(PNPM) test && $(PNPM) typecheck
+
+test-simulation: test-simulation-python test-simulation-runner ## test all simulation tooling
 
 .PHONY: simulation-express simulation-nestjs
 simulation-express: ## start the Express simulation server

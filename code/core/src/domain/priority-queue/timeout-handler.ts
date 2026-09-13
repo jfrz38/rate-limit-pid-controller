@@ -38,7 +38,13 @@ export class TimeoutHandler {
             const newTimeout = Math.round(avgProcessingTime * this.ratio);
 
             if (Number.isFinite(newTimeout) && newTimeout > 0 && newTimeout !== this._timeout) {
-                this.logger.info(`Updating timeout from ${this._timeout} to ${newTimeout}`);
+                const previousTimeout = this._timeout;
+                this.logger.info({
+                    event: 'QUEUE_TIMEOUT',
+                    previousTimeout,
+                    timeout: newTimeout,
+                    averageProcessingTime: avgProcessingTime,
+                }, `Updating timeout from ${previousTimeout} to ${newTimeout}`);
                 this._timeout = newTimeout;
             }
         } catch (e: any) {

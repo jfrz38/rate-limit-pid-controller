@@ -50,7 +50,11 @@ export class Rejector {
             return;
         }
 
-        this.logger.info(`Threshold modified from ${this.threshold} to: ${newThreshold}`);
+        this.logger.info({
+            event: 'ADMISSION_THRESHOLD',
+            previousThreshold: this.threshold,
+            threshold: newThreshold,
+        }, `Threshold modified from ${this.threshold} to: ${newThreshold}`);
         this.threshold = newThreshold;
     }
 
