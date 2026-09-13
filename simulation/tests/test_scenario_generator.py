@@ -52,6 +52,16 @@ class ScenarioGeneratorTest(unittest.TestCase):
             },
         )
 
+    def test_aggressive_peak_has_a_two_minute_peak_after_warmup(self):
+        requests = scenario_generator.generate_requests("aggressive_peak_10m", 42)
+        peak_requests = [request for request in requests if request.phase == "super_aggressive_peak"]
+
+        self.assertEqual(len(requests), 29_040)
+        self.assertEqual(len(peak_requests), 24_000)
+        self.assertTrue(all(120_000 <= request.arrival_time_ms < 240_000 for request in peak_requests))
+        self.assertEqual({request.priority_tier for request in peak_requests}, {0, 1, 2, 3, 4, 5})
+        self.assertLess(requests[-1].arrival_time_ms, 600_000)
+
 
 if __name__ == "__main__":
     unittest.main()

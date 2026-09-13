@@ -37,6 +37,7 @@ The following scenarios are available:
 | `stress`            | 6 min    | 9,360    | Overload, backend degradation, and recovery.                       |
 | `low_latency`       | 2 min    | 1,800    | Steady traffic against a 30 ms backend.                            |
 | `adaptive_soak_10m` | 10 min   | 12,180   | Exercises capacity discovery, shedding, degradation, and recovery. |
+| `aggressive_peak_10m` | 10 min  | 29,040   | Two-minute 200 req/s peak after warmup; forces admission shedding. |
 
 Generated CSV files contain absolute arrival times in milliseconds and the complete priority value used by the core: `requestId`, `scenario`, `seed`, `phase`, `arrivalTimeMs`, `executionTimeMs`, `priorityTier`, and `priorityValue`.
 
@@ -44,6 +45,12 @@ Use the soak scenario to observe several complete statistics buckets and auto-tu
 
 ```bash
 make simulation SCENARIO=adaptive_soak_10m SEED=20260913
+```
+
+Use the aggressive scenario to make admission rejection and queue eviction visible in the traffic panel:
+
+```bash
+make simulation SCENARIO=aggressive_peak_10m SEED=20260913
 ```
 
 ## Scripts

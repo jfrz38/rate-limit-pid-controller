@@ -16,6 +16,7 @@ on:
           - stress
           - low_latency
           - adaptive_soak_10m
+          - aggressive_peak_10m
       seed:
         description: "Deterministic scenario seed"
         required: true

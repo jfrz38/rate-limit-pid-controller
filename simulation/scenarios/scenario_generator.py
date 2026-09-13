@@ -77,6 +77,13 @@ SCENARIOS: dict[str, tuple[Phase, ...]] = {
         Phase("recovery", 90, 6, 70, 8, BALANCED),
         Phase("cooldown", 60, 2, 70, 8, BALANCED),
     ),
+    "aggressive_peak_10m": (
+        Phase("warmup", 120, 10, 80, 10, BALANCED),
+        Phase("super_aggressive_peak", 120, 200, 120, 20, LOW_IMPORTANCE),
+        Phase("recovery", 120, 8, 80, 10, BALANCED),
+        Phase("moderate_load", 120, 20, 80, 10, BALANCED),
+        Phase("cooldown", 120, 4, 70, 8, BALANCED),
+    ),
 }
 
 
