@@ -5,6 +5,9 @@ import { ControllerHistory } from "./controller-history";
 
 export class LatencyController {
     private readonly UPDATE_FACTOR = 0.8;
+    private readonly samples: number[] = [];
+    private filteredLatency?: number;
+    private lastSnapshotId?: number;
     private _targetLatency = 100;
 
     private logger = getLogger();
@@ -18,10 +21,37 @@ export class LatencyController {
         return this._targetLatency;
     }
 
+    aggregate(sample: number): number {
+        if (!Number.isFinite(sample) || sample <= 0) {
+            return this.filteredLatency ?? this._targetLatency;
+        }
+        this.samples.push(sample);
+        if (this.samples.length > 5) {
+            this.samples.shift();
+        }
+        const sorted = [...this.samples].sort((a, b) => a - b);
+        const median = sorted[Math.floor((sorted.length - 1) / 2)];
+        this.filteredLatency = this.filteredLatency === undefined
+            ? median
+            : (this.filteredLatency * 0.8) + (median * 0.2);
+        return this.filteredLatency;
+    }
+
+    reset(): void {
+        this._targetLatency = 100;
+        this.samples.length = 0;
+        this.filteredLatency = undefined;
+        this.lastSnapshotId = undefined;
+    }
+
     update(): void {
 
-        const minLatency = this.statistics.getLowestLatencyForInterval();
-        const safeMinLatency = Math.max(1, minLatency);
+        const snapshot = this.statistics.getLatestSnapshot();
+        if (!snapshot || snapshot.id === this.lastSnapshotId) {
+            return;
+        }
+        this.lastSnapshotId = snapshot.id;
+        const safeMinLatency = Math.max(1, snapshot.minimumLatency);
 
         if (this.history.length < 10) {
             this._targetLatency = safeMinLatency;

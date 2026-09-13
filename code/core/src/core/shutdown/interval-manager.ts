@@ -1,4 +1,4 @@
-class IntervalManagerImpl {
+export class IntervalManager {
   private intervals = new Set<NodeJS.Timeout>();
 
   add(interval: NodeJS.Timeout): void {
@@ -15,12 +15,4 @@ class IntervalManagerImpl {
     }
     this.intervals.clear();
   }
-}
-
-export const intervalManager = new IntervalManagerImpl();
-
-export interface IntervalManager {
-    add(interval: NodeJS.Timeout): void
-    addAll(intervals: NodeJS.Timeout[]): void
-    clearAll(): void
 }

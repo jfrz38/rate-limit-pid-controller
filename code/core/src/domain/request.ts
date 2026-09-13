@@ -5,6 +5,11 @@ import { Priority } from "./priority";
 export type RequestTask<T = any> = () => T | Promise<T>;
 
 export class Request<T = any> {
+    private static readonly ALLOWED_TRANSITIONS: ReadonlyMap<Event, ReadonlySet<Event>> = new Map<Event, ReadonlySet<Event>>([
+        [Event.CREATED, new Set([Event.QUEUED, Event.REJECTED])],
+        [Event.QUEUED, new Set([Event.LAUNCHED, Event.EVICTED, Event.CANCELLED])],
+        [Event.LAUNCHED, new Set([Event.COMPLETED, Event.FAILED])],
+    ]);
     private eventLog: Map<Event, number> = new Map();
     private readonly _promise: Promise<T>;
     private resolvePromise!: (value: unknown) => void;
@@ -24,8 +29,9 @@ export class Request<T = any> {
             this.rejectPromise = reject;
         });
         this._promise.catch(() => undefined);
-        this.status = this._status = Event.CREATED;
         this._createdAt = performance.now();
+        this._status = Event.CREATED;
+        this.eventLog.set(Event.CREATED, this._createdAt);
     }
 
     get status() {
@@ -52,7 +58,10 @@ export class Request<T = any> {
         this.rejectPromise(reason);
     }
 
-    set status(newStatus: Event) {
+    transitionTo(newStatus: Event): void {
+        if (!Request.ALLOWED_TRANSITIONS.get(this._status)?.has(newStatus)) {
+            throw new Error(`Invalid request transition from ${Event[this._status]} to ${Event[newStatus]}`);
+        }
         this._status = newStatus;
         this.eventLog.set(newStatus, performance.now());
     }

@@ -7,7 +7,7 @@ import { PidController } from "./application/pid-controller";
 import { Rejector } from "./application/rejector";
 import { Scheduler } from "./application/scheduler";
 import { getLogger, initLogger } from "./core/logging/logger";
-import { intervalManager } from "./core/shutdown/interval-manager";
+import { IntervalManager } from "./core/shutdown/interval-manager";
 import { ShutdownManager } from "./core/shutdown/shutdown-manager";
 import { DefaultOptions } from "./default-parameters";
 import { IntervalQueue } from "./domain/interval/interval-queue";
@@ -20,6 +20,7 @@ import { TimeoutHandler } from "./domain/priority-queue/timeout-handler";
 import { Request } from "./domain/request";
 import { Statistics } from "./domain/statistics/statistics";
 import { Parameters, RequiredParameters } from "./domain/types/parameters";
+import { ControllerShutdownException } from "./domain/exceptions/controller-shutdown.exception";
 
 export class PidControllerRateLimit {
 
@@ -36,6 +37,8 @@ export class PidControllerRateLimit {
     private readonly requestInterval: RequestInterval;
     private readonly intervalQueue: IntervalQueue;
     private readonly controllerHistory: ControllerHistory;
+    private readonly intervalManager = new IntervalManager();
+    private isShutdown = false;
 
     constructor(options: Parameters = {}) {
         this.parameters = DefaultOptions.getRequiredOptions(options);
@@ -48,13 +51,13 @@ export class PidControllerRateLimit {
         this.requestInterval = new RequestInterval(interval.requestInterval.minIntervalTime, interval.requestInterval.maxIntervalTime);
         this.intervalQueue = new IntervalQueue(this.requestInterval, interval.maxRequests);
         this.statistics = new Statistics(this.intervalQueue, statistics);
-        this.queueTimeout = new TimeoutHandler(this.statistics, timeout);
+        this.queueTimeout = new TimeoutHandler(this.statistics, timeout, this.intervalManager);
         this.priorityQueue = new PriorityQueue(new Heap(RequestPriorityComparator.compare()), this.queueTimeout);
-        this.scheduler = new Scheduler(this.priorityQueue, this.executor);
+        this.scheduler = new Scheduler(this.priorityQueue, this.executor, this.statistics);
         this.pidController = new PidController(this.scheduler, this.priorityQueue, pid);
-        this.rejector = new Rejector(this.priorityQueue, this.statistics, this.pidController, threshold?.initial, pid?.interval);
+        this.rejector = new Rejector(this.priorityQueue, this.statistics, this.pidController, threshold.initial, pid.interval, this.intervalManager);
         this.controllerHistory = new ControllerHistory();
-        this.shutdownManager = new ShutdownManager(this.scheduler, intervalManager);
+        this.shutdownManager = new ShutdownManager(this.scheduler, this.intervalManager);
 
         this.init();
 
@@ -68,12 +71,16 @@ export class PidControllerRateLimit {
         this.scheduler.start();
         const latencyController = new LatencyController(this.statistics, this.controllerHistory);
         new AutoTuner(
-            new ConcurrencyController(this.scheduler, this.statistics, latencyController, this.controllerHistory, this.parameters.capacity.cores),
-            latencyController
+            new ConcurrencyController(this.scheduler, this.statistics, latencyController, this.controllerHistory),
+            latencyController,
+            this.intervalManager,
         );
     }
 
     run<T>(task: () => T | Promise<T>, priority: Priority = Priority.default()): Promise<T> {
+        if (this.isShutdown) {
+            return Promise.reject(new ControllerShutdownException());
+        }
         const request: Request<T> = new Request(task, priority);
 
         try {
@@ -87,6 +94,7 @@ export class PidControllerRateLimit {
     }
 
     shutdown(): void {
+        this.isShutdown = true;
         this.shutdownManager.shutdown();
     }
 }

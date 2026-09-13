@@ -14,7 +14,7 @@ This is the engine of the project. It contains the mathematical logic, the stati
 The core is built around three main concepts:
 
 1. **PID Controller**: The "brain" that calculates the current allowed traffic threshold based on the error between real-time metrics and target goals (ideal system state).
-2. **Statistics Engine**: A sliding-window aggregator that tracks latency, throughput, and completed requests rates.
+2. **Statistics Engine**: A bucketed aggregator that tracks latency and successful throughput over coherent execution windows.
 3. **Thresholding Logic**: A non-binary admission system. Instead of a simple "on/off" switch, the controller calculates a floating threshold. Each incoming request is evaluated based on its assigned priority: during congestion, the system "sheds" low-priority background tasks first to guarantee resources for critical user-facing operations. **Note that lower priorities are for most important requests**.
 
 More information in [References section](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/README.md#references).
@@ -79,13 +79,12 @@ The parameters configuration allows you to fine-tune the controller. You can use
 | `timeout.priorityQueue.value`                | number | 500            | Base time in ms before a queued request is considered for eviction.                                                                                |
 | `timeout.priorityQueue.ratio`                | number | 0.33           | Adjusts the eviction timeout based on average request duration.                                                                                    |
 | `capacity.maxConcurrentRequests`             | number | 10             | Maximum number of requests allowed to be processed simultaneously.                                                                                 |
-| `capacity.cores`                             | number | max. available | Number of CPU cores to utilize (defaults to the total available on the machine).                                                                   |
 | `statistics.minRequestsForStats`             | number | 5              | Minimum samples required before the engine starts generating valid metrics.                                                                        |
 | `statistics.minRequestsForLatencyPercentile` | number | 250            | Samples needed to ensure statistical significance for percentile calculations.                                                                     |
 | `statistics.latencyPercentile`               | number | 90             | The target percentile (e.g., P90) used to find current threshold based on statistics.                                                              |
-| `interval.maxRequests`                       | number | 1000           | Maximum sample size for the interval queue. Oldest requests are shedded when limit is reached                                                      |
-| `interval.requestInterval.minIntervalTime`   | number | 2              | **Minimum window duration** (in seconds). Ensures statistics aren't based on too short a time slice, avoiding over-reaction to micro-bursts.       |
-| `interval.requestInterval.maxIntervalTime`   | number | 30             | **Maximum window duration** (in seconds). Limits how far back the system looks, ensuring statistics remain relevant to current traffic conditions. |
+| `interval.maxRequests`                       | number | 1000           | Maximum retained priority and latency samples. Execution totals remain accurate when a bucket exceeds this sample size.                           |
+| `interval.requestInterval.minIntervalTime`   | number | 2              | **Minimum bucket duration** (in seconds). A bucket closes after this duration once it also contains the required successful samples.               |
+| `interval.requestInterval.maxIntervalTime`   | number | 30             | **Maximum bucket duration** (in seconds). At this age, a bucket is published with the available samples when it satisfies `minRequestsForStats`.      |
 
 ## Architecture Flow
 
@@ -128,10 +127,12 @@ Call `shutdown()` when the controller is no longer needed. It stops background i
 While requests are flowing, the engine performs continuous internal adjustments in background:
 
 - **PID Controller**: Constantly recalculates the new admission threshold by analyzing the error between past execution data and target performance.
-- **Statistics**: Aggregates execution metrics within a specific sliding time window.
+- **Statistics**: Aggregates successful executions into closed time buckets so latency, throughput, and observed concurrency describe the same period.
 
 **Auto-Tuner**:  
 The system automatically manages its own processing capacity to prevent saturation:
 
 - **Latency Controller**: Monitors real-time latency to determine the system's stress level.
 - **Concurrency Controller**: Dynamically adjusts the number of allowed concurrent executions based on the insights provided by the **Latency Controller**.
+
+`shutdown()` rejects queued and future work with `ControllerShutdownException`, lets already-running tasks finish, and only stops timers owned by that controller instance.

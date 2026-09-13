@@ -1,9 +1,10 @@
 import { getLogger } from "../core/logging/logger";
-import { intervalManager } from "../core/shutdown/interval-manager";
+import { IntervalManager } from "../core/shutdown/interval-manager";
 import { Event } from "../domain/events";
 import { RejectedRequestException } from "../domain/exceptions/rejected-request.exception";
 import { PriorityQueue } from "../domain/priority-queue/priority-queue";
 import { Request } from "../domain/request";
+import { Priority } from "../domain/priority";
 import { Statistics } from "../domain/statistics/statistics";
 import { PidController } from "./pid-controller";
 
@@ -20,7 +21,8 @@ export class Rejector {
         private readonly statistics: Statistics,
         private readonly pidController: PidController,
         readonly initialThreshold: number,
-        pidControllerInterval: number
+        pidControllerInterval: number,
+        private readonly intervals: IntervalManager,
     ) {
         this.threshold = initialThreshold;
         this.INITIAL_THRESHOLD = initialThreshold;
@@ -32,15 +34,15 @@ export class Rejector {
         this.statistics.add(request);
 
         if (request.priority >= this.threshold) {
-            request.status = Event.REJECTED;
+            request.transitionTo(Event.REJECTED);
             const error = new RejectedRequestException(request.priority, this.threshold);
             request.reject?.(error);
             this.logger.info(`Rejected request ${request.id}: Priority ${request.priority}/${this.threshold}`);
             throw error;
         }
 
+        request.transitionTo(Event.QUEUED);
         this.priorityQueue.add(request);
-        request.status = Event.QUEUED;
     }
 
     public updateThreshold(newThreshold: number): void {
@@ -54,19 +56,27 @@ export class Rejector {
 
     public startThresholdCheck(interval: number): void {
         const timer = setInterval(() => {
-            const pidPercentage = this.pidController.updateThreshold();
             try {
+                const pidPercentage = this.pidController.updateThreshold();
+                if (!Number.isFinite(pidPercentage)) {
+                    return;
+                }
                 if (this.isServiceOverloaded()) {
-                    this.updateThresholdByPercentile(pidPercentage);
+                    try {
+                        this.updateThresholdByPercentile(pidPercentage);
+                    } catch (error) {
+                        this.logger.warn({ error }, 'Unable to calculate priority percentile; using linear recovery');
+                        this.updateThresholdByLinealRecovery(pidPercentage);
+                    }
                     return;
                 }
                 this.updateThresholdByLinealRecovery(pidPercentage);
             } catch (e) {
-                this.updateThresholdByLinealRecovery(pidPercentage);
+                this.logger.warn({ error: e }, 'Unable to update admission threshold');
             }
         }, interval);
 
-        intervalManager.add(timer);
+        this.intervals.add(timer);
     }
 
     private isServiceOverloaded(): boolean {
@@ -74,7 +84,18 @@ export class Rejector {
     }
 
     private updateThresholdByPercentile(pidPercentage: number): void {
-        const actualThreshold = this.statistics.calculateCumulativePriorityDistribution(pidPercentage);
+        if (pidPercentage <= 0) {
+            this.updateThreshold(0);
+            return;
+        }
+        if (pidPercentage >= 100) {
+            this.updateThreshold(Priority.ALLOW_ALL_THRESHOLD);
+            return;
+        }
+        const actualThreshold = Math.min(
+            Priority.ALLOW_ALL_THRESHOLD,
+            this.statistics.calculateCumulativePriorityDistribution(pidPercentage) + 1
+        );
         this.updateThreshold(actualThreshold);
 
     }

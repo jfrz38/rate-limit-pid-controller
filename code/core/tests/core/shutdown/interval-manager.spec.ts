@@ -1,13 +1,14 @@
 import { vi, describe, expect, beforeEach } from 'vitest';
 
-import { intervalManager } from "../../../src/core/shutdown/interval-manager";
+import { IntervalManager } from "../../../src/core/shutdown/interval-manager";
 
 describe('Interval Manager', () => {
+    let intervalManager: IntervalManager;
 
     beforeEach(() => {
         vi.useFakeTimers();
         vi.spyOn(global, 'clearInterval');
-        (intervalManager as any).intervals = new Set<NodeJS.Timeout>();
+        intervalManager = new IntervalManager();
     });
 
     afterEach(() => {

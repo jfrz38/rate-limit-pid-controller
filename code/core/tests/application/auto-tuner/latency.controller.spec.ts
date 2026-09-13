@@ -1,107 +1,111 @@
-import { vi, describe, expect, beforeEach, Mocked } from 'vitest';
+import { beforeEach, describe, expect, test, vi, type Mocked } from 'vitest';
 
-import { ControllerHistory } from "../../../src/application/auto-tuner/controller-history";
-import { LatencyController } from "../../../src/application/auto-tuner/latency.controller";
-import { MathUtils } from "../../../src/domain/math/math-utils";
-import { Statistics } from "../../../src/domain/statistics/statistics";
+import { ControllerHistory } from '../../../src/application/auto-tuner/controller-history';
+import { LatencyController } from '../../../src/application/auto-tuner/latency.controller';
+import { MathUtils } from '../../../src/domain/math/math-utils';
+import { Statistics, type StatisticsSnapshot } from '../../../src/domain/statistics/statistics';
 
-vi.mock("../../../src/core/logging/logger", () => ({
-  getLogger: vi.fn().mockReturnValue({
-    info: vi.fn()
-  }),
+vi.mock('../../../src/core/logging/logger', () => ({
+  getLogger: vi.fn().mockReturnValue({ info: vi.fn() }),
 }));
+
+const snapshot = (id: number, minimumLatency: number): StatisticsSnapshot => ({
+  id,
+  percentileLatency: minimumLatency,
+  minimumLatency,
+  averageLatency: minimumLatency,
+  successfulRequests: 100,
+  throughputPerSecond: 50,
+});
 
 describe('LatencyController', () => {
   let statistics: Mocked<Statistics>;
-  let latencyController: LatencyController;
   let history: ControllerHistory;
+  let controller: LatencyController;
 
   beforeEach(() => {
     statistics = {
-      getLowestLatencyForInterval: vi.fn(),
+      getLatestSnapshot: vi.fn(),
     } as unknown as Mocked<Statistics>;
-
-    history = {
-      maxInflights: [],
-      intervalThroughputs: [],
-      length: 0,
-      push: vi.fn()
-    } as unknown as Mocked<ControllerHistory>;
-
-    latencyController = new LatencyController(statistics, history);
+    history = new ControllerHistory();
+    controller = new LatencyController(statistics, history);
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
+  test('starts with a 100 ms target and ignores missing snapshots', () => {
+    controller.update();
+
+    expect(controller.targetLatency).toBe(100);
   });
 
-  test('should initialize with default targetLatency = 100', () => {
-    expect(latencyController.targetLatency).toBe(100);
+  test('uses the bucket minimum latency during warmup', () => {
+    statistics.getLatestSnapshot.mockReturnValue(snapshot(1, 42));
+
+    controller.update();
+
+    expect(controller.targetLatency).toBe(42);
   });
 
-  test('should set targetLatency to minLatency when maxInflights < 10', () => {
-    statistics.getLowestLatencyForInterval.mockReturnValue(42);
+  test('does not process the same bucket twice', () => {
+    statistics.getLatestSnapshot.mockReturnValue(snapshot(1, 42));
+    controller.update();
+    statistics.getLatestSnapshot.mockReturnValue(snapshot(1, 80));
 
-    latencyController.update();
+    controller.update();
 
-    expect(statistics.getLowestLatencyForInterval).toHaveBeenCalledTimes(1);
-    expect(latencyController.targetLatency).toBe(42);
+    expect(controller.targetLatency).toBe(42);
   });
 
-  test('should apply EMA smoothing when covariance > 0', () => {
-    statistics.getLowestLatencyForInterval.mockReturnValue(50);
+  test('moves the target toward minimum latency when covariance is positive', () => {
+    for (let value = 1; value <= 10; value++) {
+      history.push(value, value * 10);
+    }
+    statistics.getLatestSnapshot.mockReturnValue(snapshot(1, 50));
 
-    (history as any).length = 15;
-    history.maxInflights = [10, 11, 12];
-    history.intervalThroughputs = [100, 110, 120];
+    controller.update();
 
-    vi.spyOn(MathUtils, 'covariance').mockReturnValue(5);
-
-    latencyController.update();
-
-    expect(latencyController.targetLatency).toBe(95);
-    expect(MathUtils.covariance).toHaveBeenCalledWith(history.maxInflights, history.intervalThroughputs);
+    expect(controller.targetLatency).toBe(95);
   });
 
-  test('should maintain targetLatency if covariance is exactly 0', () => {
-    statistics.getLowestLatencyForInterval.mockReturnValue(200);
+  test('reduces the target when covariance is negative', () => {
+    for (let value = 1; value <= 10; value++) {
+      history.push(value, 110 - value * 10);
+    }
+    statistics.getLatestSnapshot.mockReturnValue(snapshot(1, 80));
 
-    (history as any).length = 15;
-    
-    vi.spyOn(MathUtils, 'covariance').mockReturnValue(0);
+    controller.update();
 
-    const previousTarget = latencyController.targetLatency;
-    latencyController.update();
-
-    expect(latencyController.targetLatency).toBe(previousTarget);
+    expect(controller.targetLatency).toBe(80);
   });
 
-  test('should reduce targetLatency when covariance < 0', () => {
-    statistics.getLowestLatencyForInterval.mockReturnValue(80);
+  test('keeps the target when covariance is zero', () => {
+    for (let value = 1; value <= 10; value++) {
+      history.push(value, 10);
+    }
+    statistics.getLatestSnapshot.mockReturnValue(snapshot(1, 200));
 
-    (history as any).length = 5; 
-    latencyController.update(); 
-    expect(latencyController.targetLatency).toBe(80);
+    controller.update();
 
-    (history as any).length = 15;
-    vi.spyOn(MathUtils, 'covariance').mockReturnValue(-3);
-
-    latencyController.update();
-
-    expect(latencyController.targetLatency).toBe(64);
+    expect(MathUtils.covariance(history.maxInflights, history.intervalThroughputs)).toBe(0);
+    expect(controller.targetLatency).toBe(100);
   });
 
-  test('should not change targetLatency if covariance = 0', () => {
-    const initialValue = 70;
-    statistics.getLowestLatencyForInterval.mockReturnValue(initialValue);
+  test('filters percentile samples with a five-sample median and EMA', () => {
+    expect(controller.aggregate(100)).toBe(100);
+    expect(controller.aggregate(1_000)).toBe(100);
+    expect(controller.aggregate(110)).toBe(102);
+    expect(controller.aggregate(120)).toBeCloseTo(103.6);
+    expect(controller.aggregate(130)).toBeCloseTo(106.88);
+    expect(controller.aggregate(140)).toBeCloseTo(111.504);
+  });
 
-    (latencyController as any).maxInflights = Array(10).fill(1);
-    (latencyController as any).intervalThroughputs = Array(10).fill(2);
+  test('reset clears target and latency filter state', () => {
+    controller.aggregate(300);
+    statistics.getLatestSnapshot.mockReturnValue(snapshot(1, 50));
+    controller.update();
 
-    vi.spyOn(MathUtils, 'covariance').mockReturnValue(0);
+    controller.reset();
 
-    latencyController.update();
-
-    expect(latencyController.targetLatency).toBe(initialValue);
+    expect(controller.targetLatency).toBe(100);
+    expect(controller.aggregate(20)).toBe(20);
   });
 });
