@@ -41,6 +41,12 @@ The following scenarios are available:
 
 Generated CSV files contain absolute arrival times in milliseconds and the complete priority value used by the core: `requestId`, `scenario`, `seed`, `phase`, `arrivalTimeMs`, `executionTimeMs`, `priorityTier`, and `priorityValue`.
 
+### Representative cases
+
+- `aggressive_peak_10m`: verifies that low-priority traffic is rejected or evicted under a sharp peak, while more important work continues to be admitted.
+- `adaptive_soak_10m`: shows the auto-tuner discovering capacity, reacting to degradation, and recovering over several statistics buckets.
+- `high_latency`: isolates the controller response to a consistently slow backend without a high arrival rate.
+
 Use the soak scenario to observe several complete statistics buckets and auto-tuner decisions:
 
 ```bash
@@ -53,9 +59,9 @@ Use the aggressive scenario to make admission rejection and queue eviction visib
 make simulation SCENARIO=aggressive_peak_10m SEED=20260913
 ```
 
-## Scripts
+## Report
 
-The report shades scenario phases and plots admission outcomes, concurrency, latency signals, throughput, and adaptive queue timeout:
+Each simulation produces a report that shades scenario phases and plots admission outcomes, concurrency, latency signals, throughput, and adaptive queue timeout. The committed image is the latest `aggressive_peak_10m` execution; run any scenario to replace it locally:
 
 ![Last execution](./scripts/runner/results/last_execution.png)
 
