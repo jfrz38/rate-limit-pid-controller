@@ -43,9 +43,10 @@
   "packageManager": "pnpm@11.1.3",
   "devDependencies": {
     "@jfrz38/pid-controller-core": "workspace:*",
+    "@jfrz38/pid-controller-shared": "workspace:*",
     "@types/express": "5.0.6",
-    "tsup": "8.5.1",
-    "@jfrz38/pid-controller-shared": "workspace:*"
+    "express": "5.2.1",
+    "tsup": "8.5.1"
   },
   "repository": {
     "type": "git",

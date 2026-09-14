@@ -3,17 +3,30 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - "code/adapters/nestjs/**"
-      - "code/adapters/express/**"
-      - "code/adapters/shared/**"
       - "code/core/**"
+      - "code/adapters/shared/**"
+      - "code/adapters/nestjs/**"
+      - "code/package.json"
+      - "code/pnpm-lock.yaml"
+      - "code/pnpm-workspace.yaml"
       - "Makefile"
       - ".github/workflows/build-nestjs.yml"
   workflow_dispatch:
 
 jobs:
   test:
+    name: NestJS ${{ matrix.nestjs }} compatibility
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nestjs: 10
+            nestjs_version: 10.4.22
+          - nestjs: 11
+            nestjs_version: 11.2.3
+          - nestjs: 12
+            nestjs_version: 12.0.1
     steps:
       - uses: actions/checkout@v7
 
@@ -29,6 +42,12 @@ jobs:
 
       - name: Install dependencies
         run: make install-code
+
+      - name: Install NestJS compatibility version
+        run: >-
+          pnpm --dir code --filter "@jfrz38/pid-controller-nestjs" add --save-dev --save-exact
+          @nestjs/common@${{ matrix.nestjs_version }}
+          @nestjs/core@${{ matrix.nestjs_version }}
 
       - name: Build
         run: make build-nestjs
