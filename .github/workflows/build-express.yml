@@ -3,16 +3,30 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - "code/adapters/express/**"
-      - "code/adapters/shared/**"
       - "code/core/**"
+      - "code/adapters/shared/**"
+      - "code/adapters/express/**"
+      - "code/package.json"
+      - "code/pnpm-lock.yaml"
+      - "code/pnpm-workspace.yaml"
       - "Makefile"
       - ".github/workflows/build-express.yml"
   workflow_dispatch:
 
 jobs:
   test:
+    name: Express ${{ matrix.express }} compatibility
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - express: 4
+            express_version: 4.22.1
+            express_types_version: 4.17.25
+          - express: 5
+            express_version: 5.2.1
+            express_types_version: 5.0.6
     steps:
       - uses: actions/checkout@v7
 
@@ -28,6 +42,17 @@ jobs:
 
       - name: Install dependencies
         run: make install-code
+
+      - name: Install Express compatibility version
+        run: >-
+          pnpm --dir code --filter "@jfrz38/pid-controller-express" add --save-dev --save-exact
+          express@${{ matrix.express_version }}
+          @types/express@${{ matrix.express_types_version }}
+
+      - name: Install shared Express type compatibility version
+        run: >-
+          pnpm --dir code --filter "@jfrz38/pid-controller-shared" add --save-dev --save-exact
+          @types/express@${{ matrix.express_types_version }}
 
       - name: Build
         run: make build-express

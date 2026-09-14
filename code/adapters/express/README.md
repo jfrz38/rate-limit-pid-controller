@@ -60,7 +60,6 @@ const { middleware, shutdown } = pidControllerMiddleware(
           initial: 200
         },
         capacity: {
-          cores: 1,
           maxConcurrentRequests: 2
         },
         log: {

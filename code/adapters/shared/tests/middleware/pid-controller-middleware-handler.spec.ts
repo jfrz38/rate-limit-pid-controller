@@ -38,7 +38,7 @@ describe('PidControllerMiddlewareHandler', () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
-        mockController = new PidControllerRateLimit({} as any);
+        mockController = new PidControllerRateLimit();
 
         mockRequest = { headers: {} };
         mockResponse = new EventEmitter() as unknown as EventEmitter & Response;

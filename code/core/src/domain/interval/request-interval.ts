@@ -9,6 +9,14 @@ export class RequestInterval {
         return highTime - lowTime;
     }
 
+    get minimumMilliseconds(): number {
+        return this.minIntervalTime * 1000;
+    }
+
+    get maximumMilliseconds(): number {
+        return this.maxIntervalTime * 1000;
+    }
+
     public isTimeInInterval(time: number, referenceTime: number = performance.now()): boolean {
         const { start, end } = this.getWindowRange(referenceTime);
 

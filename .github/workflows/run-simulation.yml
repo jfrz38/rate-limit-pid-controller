@@ -15,6 +15,12 @@ on:
           - priority_spike
           - stress
           - low_latency
+          - adaptive_soak_10m
+          - aggressive_peak_10m
+      seed:
+        description: "Deterministic scenario seed"
+        required: true
+        default: "20260913"
 
 jobs:
   run-simulation:
@@ -62,7 +68,7 @@ jobs:
         run: make install-simulation
 
       - name: Generate Scenario
-        run: make simulation-generate SCENARIO=${{ github.event.inputs.scenario }}
+        run: make simulation-generate SCENARIO=${{ github.event.inputs.scenario }} SEED=${{ github.event.inputs.seed }}
 
       - name: Install code dependencies
         run: make install-code

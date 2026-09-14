@@ -170,6 +170,58 @@ describe("PidController (Real PID Logic)", () => {
 
             expect((controller as any).integral).toBe(0.5 * dt);
         });
+
+        test('uses finite queue counters for the production control error and resets them', () => {
+            const resetCounters = vi.fn();
+            const finiteQueue = {
+                entryRequests: 10,
+                exitRequests: 4,
+                length: 0,
+                resetCounters,
+            } as unknown as Mocked<PriorityQueue>;
+            const finiteScheduler = {
+                maxConcurrentRequests: 10,
+                processingRequests: 6,
+            } as unknown as Mocked<Scheduler>;
+            const pid = new PidController(finiteScheduler, finiteQueue, {
+                ...mockPidConfig,
+                KP: 1,
+                KI: 0,
+                KD: 0,
+                interval: 500,
+            });
+
+            expect(pid.updateThreshold()).toBe(99.5);
+            expect(resetCounters).toHaveBeenCalledTimes(1);
+        });
+
+        test('does not integrate error that pushes an already saturated threshold outward', () => {
+            const pid = new PidController(scheduler, priorityQueue, {
+                ...mockPidConfig,
+                KP: 0,
+                KI: 1,
+                KD: 0,
+                interval: 500,
+            });
+            pid['currentThreshold'] = 0;
+
+            pid['thresholdForSystemOverloaded'](1);
+
+            expect(pid['integral']).toBe(0);
+        });
+
+        test('applies delta as a per-iteration limit independently of PID interval', () => {
+            const pid = new PidController(scheduler, priorityQueue, {
+                ...mockPidConfig,
+                KP: 10,
+                KI: 0,
+                KD: 0,
+                interval: 100,
+                delta: 10,
+            });
+
+            expect(pid['thresholdForSystemOverloaded'](100)).toBe(90);
+        });
     });
 
     describe("Stability", () => {

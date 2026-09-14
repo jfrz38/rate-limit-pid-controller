@@ -1,6 +1,5 @@
-import { Event } from "../events";
 import { NotEnoughStatsException } from "../exceptions/not-enough-stats.exception";
-import { IntervalQueue } from "../interval/interval-queue";
+import { ExecutionBucket, IntervalQueue } from "../interval/interval-queue";
 import { MathUtils } from "../math/math-utils";
 import { Request } from "../request";
 import { Statistics as StatisticsType } from "../types/statistics";
@@ -9,6 +8,7 @@ export class Statistics {
   private readonly minRequestsForStats: number;
   private readonly minRequestsForLatencyPercentile: number;
   private readonly latencyPercentile: number;
+  private latestSnapshot?: StatisticsSnapshot;
 
   constructor(
     private readonly intervalQueue: IntervalQueue,
@@ -23,54 +23,52 @@ export class Statistics {
     this.intervalQueue.add(request);
   }
 
-  public getAverageProcessingTime(): number {
-    const validRequests = this.intervalQueue.getCompletedRequests();
+  public recordSuccessful(request: Request): void {
+    this.intervalQueue.recordSuccessful(request);
+  }
 
-    if (validRequests.length < this.minRequestsForStats) {
-      throw new NotEnoughStatsException();
+  public takeSnapshot(): StatisticsSnapshot | null | undefined {
+    const bucket = this.intervalQueue.closeExecutionBucket(this.minRequestsForLatencyPercentile);
+    if (bucket === undefined) {
+      return undefined;
+    }
+    if (bucket === null || bucket.successfulRequests < this.minRequestsForStats) {
+      return null;
     }
 
-    const durations = validRequests.map(request => {
-      const completed = request.getEventTimestamp(Event.COMPLETED)!;
-      const created = request.getEventTimestamp(Event.CREATED)!;
-      return completed - created;
-    });
+    this.latestSnapshot = this.toSnapshot(bucket);
+    return this.latestSnapshot;
+  }
 
-    return MathUtils.average(durations);
+  public getLatestSnapshot(): StatisticsSnapshot | undefined {
+    return this.latestSnapshot;
+  }
+
+  public getAverageProcessingTime(): number {
+    const averageLatency = this.intervalQueue.getAverageLatency(this.minRequestsForStats);
+    if (averageLatency === undefined) {
+      throw new NotEnoughStatsException();
+    }
+    return averageLatency;
   }
 
   public getPercentileLatencySuccessfulRequests(): number {
-    const latencies = this.intervalQueue.getLatencies();
-
-    if (latencies.length < this.minRequestsForLatencyPercentile) {
+    if (!this.latestSnapshot) {
       throw new NotEnoughStatsException();
     }
-
-    return MathUtils.percentile(latencies, this.latencyPercentile);
+    return this.latestSnapshot.percentileLatency;
   }
 
   public getSuccessfulThroughput(): number {
-    return this.intervalQueue.getLaunchedRequests().length;
+    return this.latestSnapshot?.successfulRequests ?? 0;
   }
 
   public getSuccessfulThroughputPerSecond(): number {
-    const launchedRequests = this.intervalQueue.getLaunchedRequests();
-    const intervalSeconds = this.intervalQueue.getRequestsIntervalDurationSeconds(launchedRequests);
-
-    if (intervalSeconds <= 0) {
-      return launchedRequests.length;
-    }
-
-    return launchedRequests.length / intervalSeconds;
+    return this.latestSnapshot?.throughputPerSecond ?? 0;
   }
 
   public getLowestLatencyForInterval(): number {
-    const latencies = this.intervalQueue.getLatencies();
-    if (latencies.length === 0) {
-      return 0;
-    }
-
-    return latencies.reduce((min, val) => val < min ? val : min, latencies[0] || 0);
+    return this.latestSnapshot?.minimumLatency ?? 0;
   }
 
   public calculateCumulativePriorityDistribution(threshold: number): number {
@@ -82,4 +80,24 @@ export class Statistics {
 
     return MathUtils.percentile(priorities, threshold);
   }
+
+  private toSnapshot(bucket: ExecutionBucket): StatisticsSnapshot {
+    return {
+      id: bucket.id,
+      percentileLatency: MathUtils.percentile(bucket.latencies, this.latencyPercentile),
+      minimumLatency: bucket.minimumLatency,
+      averageLatency: bucket.averageLatency,
+      successfulRequests: bucket.successfulRequests,
+      throughputPerSecond: bucket.successfulRequests / bucket.durationSeconds,
+    };
+  }
 }
+
+export type StatisticsSnapshot = {
+  id: number;
+  percentileLatency: number;
+  minimumLatency: number;
+  averageLatency: number;
+  successfulRequests: number;
+  throughputPerSecond: number;
+};

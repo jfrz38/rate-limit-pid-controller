@@ -17,7 +17,9 @@ export class Priority {
         priority: number = Priority.DEFAULT_PRIORITY,
         cohort: number = Math.floor(Math.random() * 128)
     ) {
-        const safePriority = Math.max(0, Math.min(priority, Priority.LOWEST_PRIORITY));
+        Priority.assertFinite('priority', priority);
+        Priority.assertFinite('cohort', cohort);
+        const safePriority = Math.floor(Math.max(0, Math.min(priority, Priority.LOWEST_PRIORITY)));
         const safeCohort = Math.floor(Math.max(0, cohort)) % 128;
 
         this._value = safePriority * Priority.COHORT_VALUE + safeCohort;
@@ -32,6 +34,7 @@ export class Priority {
     }
 
     static fromValue(value: number): Priority {
+        Priority.assertFinite('value', value);
         const priority = Object.create(Priority.prototype) as Priority;
         const safeValue = Math.floor(Math.max(0, Math.min(value, Priority.MAX_VALUE)));
         Object.defineProperty(priority, '_value', {
@@ -46,5 +49,11 @@ export class Priority {
 
     get value(): number {
         return this._value;
+    }
+
+    private static assertFinite(name: string, value: number): void {
+        if (!Number.isFinite(value)) {
+            throw new RangeError(`${name} must be finite`);
+        }
     }
 }

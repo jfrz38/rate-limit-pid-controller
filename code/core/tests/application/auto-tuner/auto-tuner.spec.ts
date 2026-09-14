@@ -3,13 +3,14 @@ import { vi, describe, expect, beforeEach, Mock, Mocked } from 'vitest';
 import { AutoTuner } from "../../../src/application/auto-tuner/auto-tuner";
 import { ConcurrencyController } from "../../../src/application/auto-tuner/concurrency.controller";
 import { LatencyController } from "../../../src/application/auto-tuner/latency.controller";
+import { IntervalManager } from '../../../src/core/shutdown/interval-manager';
 
-vi.mock("../../../src/core/shutdown/interval-manager");
 
 describe('AutoTuner tests', () => {
   let concurrencyController: Mocked<ConcurrencyController>;
   let latencyController: Mocked<LatencyController>;
   let autoTuner: AutoTuner;
+  let intervalManager: Mocked<IntervalManager>;
 
   beforeEach(() => {
     concurrencyController = {
@@ -22,8 +23,11 @@ describe('AutoTuner tests', () => {
     } as unknown as Mocked<LatencyController>;
 
     vi.useFakeTimers();
+    intervalManager = {
+      addAll: vi.fn(),
+    } as unknown as Mocked<IntervalManager>;
 
-    autoTuner = new AutoTuner(concurrencyController, latencyController);
+    autoTuner = new AutoTuner(concurrencyController, latencyController, intervalManager);
   });
 
   afterEach(() => {
@@ -31,6 +35,7 @@ describe('AutoTuner tests', () => {
   });
 
   test('should call update on both controllers according to intervals', () => {
+    expect(intervalManager.addAll).toHaveBeenCalledTimes(1);
     vi.advanceTimersByTime(2000);
     expect(concurrencyController.update).toHaveBeenCalledTimes(1);
     expect(latencyController.update).toHaveBeenCalledTimes(0);

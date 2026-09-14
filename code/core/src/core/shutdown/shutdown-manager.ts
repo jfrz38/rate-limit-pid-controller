@@ -1,5 +1,6 @@
 import { Scheduler } from "../../application/scheduler";
 import { IntervalManager } from "./interval-manager";
+import { ControllerShutdownException } from "../../domain/exceptions/controller-shutdown.exception";
 
 export class ShutdownManager {
     private isShutdown = false;
@@ -20,7 +21,7 @@ export class ShutdownManager {
         }
 
         this.isShutdown = true;
-        this.scheduler.terminate();
+        this.scheduler.terminate(new ControllerShutdownException());
         this.intervalManager.clearAll();
         process.off('SIGINT', this.onSigint);
         process.off('SIGTERM', this.onSigterm);

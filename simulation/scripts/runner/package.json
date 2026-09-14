@@ -1,7 +1,9 @@
 {
   "scripts": {
     "log": "npm run start",
-    "start": "ts-node run-log.ts"
+    "start": "ts-node run-log.ts",
+    "test": "node --require ts-node/register/transpile-only --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "24.6.2",
