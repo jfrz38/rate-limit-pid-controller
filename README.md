@@ -108,6 +108,16 @@ make validate-nestjs
 
 Run `make help` to list all available targets.
 
+### Local package testing
+
+Build a package and create a local tarball with `PACKAGE=core`, `shared`, `express`, or `nestjs`:
+
+```bash
+make pack-local PACKAGE=core
+```
+
+The command prints how to add the generated `.tgz` in another local project. It uses `pnpm add --force`, so the local artifact replaces the installed version even when its version number has not changed.
+
 ## References
 
 - [Cinnamon: Using Century Old Tech to Build a Mean Load Shedder](https://www.uber.com/en-ES/blog/cinnamon-using-century-old-tech-to-build-a-mean-load-shedder/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  

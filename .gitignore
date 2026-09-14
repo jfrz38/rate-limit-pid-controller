@@ -1,6 +1,7 @@
 simulation/scenarios/generated/*.csv
 node_modules/
 .pnpm-store/
+.artifacts/
 dist/
 coverage/
 
