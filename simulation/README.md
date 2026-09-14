@@ -59,6 +59,8 @@ The report shades scenario phases and plots admission outcomes, concurrency, lat
 
 ![Last execution](./scripts/runner/results/last_execution.png)
 
+The report title includes dispatch-lag P95 and maximum values. Treat a run as a valid timing experiment only when P95 is at most 50 ms and maximum lag is at most 500 ms; the runner emits `SCENARIO_DISPATCH_LAG` when either budget is exceeded.
+
 > [!WARNING]  
 > To output logs it is necessary to set logger level at least `debug` which is done automatically when run for tests but not for adapters since you define your own configuration.
 

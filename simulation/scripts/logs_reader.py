@@ -220,7 +220,18 @@ def render_report(data: dict, output: Path = DEFAULT_IMAGE, show: bool = True) -
     total = summary.get("submitted", sum(len(data[key]) for key in outcome_styles))
     scenario = data["scenario"] or "unknown"
     seed = data["seed"] if data["seed"] is not None else "unknown"
-    figure.suptitle(f"PID traffic control - {scenario} - seed {seed} - {total} requests", fontsize=15)
+    dispatch_lag = summary.get("dispatchLag", {})
+    if isinstance(dispatch_lag, dict) and dispatch_lag.get("samples"):
+        lag_summary = (
+            f" - dispatch lag P95 {dispatch_lag.get('p95Ms', 0):.1f} ms"
+            f", max {dispatch_lag.get('maxMs', 0):.1f} ms"
+        )
+    else:
+        lag_summary = ""
+    figure.suptitle(
+        f"PID traffic control - {scenario} - seed {seed} - {total} requests{lag_summary}",
+        fontsize=15,
+    )
     figure.text(0.99, 0.005, f"Log: {data['log_file'].stem}", ha="right", fontsize=8, color="gray")
     figure.tight_layout(rect=(0, 0.015, 1, 0.97))
     figure.savefig(output, dpi=220, bbox_inches="tight")

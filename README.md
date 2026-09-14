@@ -116,7 +116,7 @@ Build a package and create a local tarball with `PACKAGE=core`, `shared`, `expre
 make pack-local PACKAGE=core
 ```
 
-The command prints how to add the generated `.tgz` in another local project. It uses `pnpm add --force`, so the local artifact replaces the installed version even when its version number has not changed.
+The command prints a `pnpm remove <package> && pnpm add --force <tarball>` command for another local project. It removes the installed package before adding the local artifact, so the artifact replaces it even when its version number has not changed.
 
 ## References
 

@@ -29,7 +29,11 @@ class LogsReaderTest(unittest.TestCase):
              "minimumLatency": 50, "aggregatedLatency": 75, "targetLatency": 60,
              "throughputPerSecond": 20, "inflightLimit": 3, "msg": "bucket"},
             {"time": 5_000, "event": "LATENCY_TARGET", "targetLatency": 55, "msg": "New targetLatency: 55"},
-            {"time": 6_000, "event": "SCENARIO_SUMMARY", "metadata": {"submitted": 1, "completed": 1}, "msg": "summary"},
+            {"time": 6_000, "event": "SCENARIO_SUMMARY", "metadata": {
+                "submitted": 1,
+                "completed": 1,
+                "dispatchLag": {"samples": 1, "p95Ms": 3, "maxMs": 5},
+            }, "msg": "summary"},
         ]
         with tempfile.TemporaryDirectory() as directory:
             log_file = Path(directory) / "test.log"
@@ -50,6 +54,7 @@ class LogsReaderTest(unittest.TestCase):
         self.assertEqual(data["timeout"], [(0.05, 500.0), (2.0, 30.0)])
         self.assertEqual(data["target_latency"][-1], (4.0, 55.0))
         self.assertEqual(data["summary"]["completed"], 1)
+        self.assertEqual(data["summary"]["dispatchLag"]["p95Ms"], 3)
 
     def test_keeps_legacy_message_parsing(self):
         entries = [

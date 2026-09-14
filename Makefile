@@ -68,7 +68,7 @@ pack-local: build ## build and pack PACKAGE for local installation
 	@mkdir -p "$(LOCAL_ARTIFACT_DIR)"
 	@rm -f "$(LOCAL_ARTIFACT_DIR)"/*.tgz
 	$(PNPM) --dir "$(PACKAGE_DIR)" pack --pack-destination "$(abspath $(LOCAL_ARTIFACT_DIR))"
-	@printf '\nInstall or refresh it in another project with:\n  pnpm add --save-exact --force "%s/"*.tgz\n' "$(abspath $(LOCAL_ARTIFACT_DIR))"
+	@printf '\nReinstall it in another project with:\n  pnpm remove "$(PACKAGE_NAME)" && pnpm add --save-exact --force "%s/"*.tgz\n' "$(abspath $(LOCAL_ARTIFACT_DIR))"
 
 .PHONY: test-core test-shared test-express test-nestjs
 test-core: ## test the core package

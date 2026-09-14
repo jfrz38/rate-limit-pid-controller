@@ -27,6 +27,51 @@ interface ScenarioOutcome {
   failed: number;
 }
 
+export interface DispatchLagSummary {
+  samples: number;
+  delayedRequests: number;
+  p50Ms: number;
+  p95Ms: number;
+  maxMs: number;
+}
+
+const DISPATCH_BATCH_SIZE = 100;
+const MAX_P95_DISPATCH_LAG_MS = 50;
+const MAX_DISPATCH_LAG_MS = 500;
+
+export function dispatchDelayMs(targetTime: number, currentTime: number): number {
+  return Math.max(0, targetTime - currentTime);
+}
+
+export class DispatchLagMetrics {
+  private readonly lags: number[] = [];
+
+  record(scheduledArrivalMs: number, actualArrivalMs: number): number {
+    const lag = Math.max(0, actualArrivalMs - scheduledArrivalMs);
+    this.lags.push(lag);
+    return lag;
+  }
+
+  summarize(): DispatchLagSummary {
+    if (this.lags.length === 0) {
+      return { samples: 0, delayedRequests: 0, p50Ms: 0, p95Ms: 0, maxMs: 0 };
+    }
+
+    const sorted = [...this.lags].sort((left, right) => left - right);
+    return {
+      samples: sorted.length,
+      delayedRequests: sorted.filter((lag) => lag > 1).length,
+      p50Ms: percentile(sorted, 0.5),
+      p95Ms: percentile(sorted, 0.95),
+      maxMs: sorted.at(-1) ?? 0,
+    };
+  }
+}
+
+function percentile(values: number[], percentileValue: number): number {
+  return values[Math.floor((values.length - 1) * percentileValue)];
+}
+
 export function parseScenario(content: string): ScenarioRequest[] {
   const lines = content.split(/\r?\n/).filter((line) => line.trim() !== '');
   const headers = lines.shift()?.split(',') ?? [];
@@ -99,6 +144,7 @@ export class RunScenario {
   private readonly scenariosDirectory = path.join(__dirname, '../../scenarios/generated');
   private readonly controller: PidControllerRateLimit;
   private readonly pendingRequests: Promise<unknown>[] = [];
+  private readonly dispatchLag = new DispatchLagMetrics();
   private readonly outcome: ScenarioOutcome = {
     submitted: 0,
     completed: 0,
@@ -120,45 +166,77 @@ export class RunScenario {
   }
 
   async run(scenarios: string[]): Promise<void> {
-    const startedAt = performance.now();
     try {
       if (scenarios.length !== 1) {
         throw new Error('Exactly one scenario must be provided');
       }
 
-      for (const scenarioFile of scenarios) {
-        const filePath = path.join(this.scenariosDirectory, scenarioFile);
-        const requests = parseScenario(fs.readFileSync(filePath, 'utf-8'));
-        if (requests.length === 0) {
-          throw new Error(`Scenario ${scenarioFile} contains no requests`);
+      const scenarioFile = scenarios[0];
+      const filePath = path.join(this.scenariosDirectory, scenarioFile);
+      const requests = parseScenario(fs.readFileSync(filePath, 'utf-8'));
+      if (requests.length === 0) {
+        throw new Error(`Scenario ${scenarioFile} contains no requests`);
+      }
+      const startedAt = performance.now();
+
+      this.log('SCENARIO_START', `Running scenario: ${requests[0].scenario}`, {
+        scenario: requests[0].scenario,
+        seed: requests[0].seed,
+        requests: requests.length,
+        durationMs: requests[requests.length - 1].arrivalTimeMs,
+      });
+
+      let currentPhase: string | undefined;
+      let nextRequestIndex = 0;
+      while (nextRequestIndex < requests.length) {
+        const elapsedMs = performance.now() - startedAt;
+        const request = requests[nextRequestIndex];
+        const delayMs = dispatchDelayMs(request.arrivalTimeMs, elapsedMs);
+        if (delayMs > 0) {
+          await this.sleep(delayMs);
+          continue;
         }
 
-        this.log('SCENARIO_START', `Running scenario: ${requests[0].scenario}`, {
-          scenario: requests[0].scenario,
-          seed: requests[0].seed,
-          requests: requests.length,
-          durationMs: requests[requests.length - 1].arrivalTimeMs,
-        });
-
-        let currentPhase: string | undefined;
-        for (const request of requests) {
-          await this.sleepUntil(startedAt + request.arrivalTimeMs);
-          if (request.phase !== currentPhase) {
-            currentPhase = request.phase;
+        let dispatched = 0;
+        while (nextRequestIndex < requests.length
+          && requests[nextRequestIndex].arrivalTimeMs <= performance.now() - startedAt) {
+          const dueRequest = requests[nextRequestIndex];
+          const actualArrivalTimeMs = performance.now() - startedAt;
+          const dispatchLagMs = this.dispatchLag.record(dueRequest.arrivalTimeMs, actualArrivalTimeMs);
+          if (dueRequest.phase !== currentPhase) {
+            currentPhase = dueRequest.phase;
             this.log('PHASE_START', `Phase started: ${currentPhase}`, {
               phase: currentPhase,
-              arrivalTimeMs: request.arrivalTimeMs,
+              scheduledArrivalTimeMs: dueRequest.arrivalTimeMs,
+              actualArrivalTimeMs,
+              dispatchLagMs,
             });
           }
-          this.submit(request);
+          this.submit(dueRequest);
+          nextRequestIndex++;
+          dispatched++;
+
+          if (dispatched === DISPATCH_BATCH_SIZE) {
+            await this.yieldToEventLoop();
+            break;
+          }
         }
       }
 
       await Promise.allSettled(this.pendingRequests);
+      const dispatchLag = this.dispatchLag.summarize();
       this.log('SCENARIO_SUMMARY', 'Scenario completed', {
         ...this.outcome,
         durationMs: performance.now() - startedAt,
+        dispatchLag,
       });
+      if (dispatchLag.p95Ms > MAX_P95_DISPATCH_LAG_MS || dispatchLag.maxMs > MAX_DISPATCH_LAG_MS) {
+        this.log('SCENARIO_DISPATCH_LAG', 'Scenario dispatch lag exceeds the execution budget', {
+          ...dispatchLag,
+          p95BudgetMs: MAX_P95_DISPATCH_LAG_MS,
+          maxBudgetMs: MAX_DISPATCH_LAG_MS,
+        });
+      }
     } finally {
       this.controller.shutdown();
     }
@@ -189,12 +267,12 @@ export class RunScenario {
     };
   }
 
-  private async sleepUntil(targetTime: number): Promise<void> {
-    await this.sleep(Math.max(0, targetTime - performance.now()));
-  }
-
   private sleep(milliseconds: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, Math.max(0, milliseconds)));
+  }
+
+  private yieldToEventLoop(): Promise<void> {
+    return new Promise((resolve) => setImmediate(resolve));
   }
 
   private log(event: string, msg: string, metadata: Record<string, unknown>): void {
