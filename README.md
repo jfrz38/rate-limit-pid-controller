@@ -23,12 +23,6 @@ Choose how you want to integrate the PID rate limiter:
 
 Also you can explore [simulation examples](./simulation/README.md) to see how the PID controller behaves under different traffic loads and latency scenarios..
 
-## Simulation in action
-
-The latest `aggressive_peak_10m` simulation shows the controller shedding low-priority traffic during a peak, then recovering admission as the load subsides. See the [simulation suite](./simulation/README.md) for the available scenarios and how to reproduce the report.
-
-![Latest simulation report](./simulation/scripts/runner/results/last_execution.png)
-
 ## Motivation
 
 Uber’s Cinnamon introduced a novel approach to rate limiting by combining **PID controllers** with traffic-shaping techniques.  
@@ -82,6 +76,12 @@ Standard rate limiters are static: you set 100 RPS, and it stays at 100 RPS. Thi
 4. **Self-Correction**: If the server slows down, the PID raises the threshold automatically. As it recovers, it gracefully lowers it back.
 
 The standalone core exposes priorities through a `Priority` class. Use `Priority.fromTier(0..5)` for tier-based traffic or `Priority.fromValue(0..767)` when you already have a full tier/cohort value.
+
+## Simulation in action
+
+The latest simulation report shows how the controller responds to the executed traffic pattern. See the [simulation suite](./simulation/README.md) for the available scenarios and how to reproduce the report.
+
+![Latest simulation report](./simulation/scripts/runner/results/last_execution.png)
 
 ## Packages and releases
 

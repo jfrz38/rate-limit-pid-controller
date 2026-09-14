@@ -61,7 +61,7 @@ make simulation SCENARIO=aggressive_peak_10m SEED=20260913
 
 ## Report
 
-Each simulation produces a report that shades scenario phases and plots admission outcomes, concurrency, latency signals, throughput, and adaptive queue timeout. The committed image is the latest `aggressive_peak_10m` execution; run any scenario to replace it locally:
+Each simulation produces a report that shades scenario phases and plots admission outcomes, concurrency, latency signals, throughput, and adaptive queue timeout. The committed image is the latest stored execution:
 
 ![Last execution](./scripts/runner/results/last_execution.png)
 
