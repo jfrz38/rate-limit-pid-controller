@@ -1,141 +1,127 @@
-import { beforeEach, describe, expect, test, Mocked, vi, afterEach } from 'vitest';
-import { DefaultOptions } from '../../../src/default-parameters';
+import { afterEach, beforeEach, describe, expect, test, Mocked, vi } from 'vitest';
+
 import { Event } from '../../../src/domain/events';
 import { NotEnoughStatsException } from '../../../src/domain/exceptions/not-enough-stats.exception';
-import { IntervalQueue } from '../../../src/domain/interval/interval-queue';
-import { MathUtils } from '../../../src/domain/math/math-utils';
+import { ExecutionBucket, IntervalQueue } from '../../../src/domain/interval/interval-queue';
+import { RequestInterval } from '../../../src/domain/interval/request-interval';
 import { Request } from '../../../src/domain/request';
 import { Statistics } from '../../../src/domain/statistics/statistics';
 
 describe('Statistics', () => {
+    let queue: Mocked<IntervalQueue>;
     let statistics: Statistics;
-    let intervalQueue: Mocked<IntervalQueue>;
-    const MIN_REQUESTS = 5;
 
     beforeEach(() => {
-        intervalQueue = {
+        queue = {
             add: vi.fn(),
-            getCompletedRequests: vi.fn(),
-            getLatencies: vi.fn(),
-            getLaunchedRequests: vi.fn(),
+            recordSuccessful: vi.fn(),
+            closeExecutionBucket: vi.fn(),
+            getAverageLatency: vi.fn(),
             getPriorities: vi.fn(),
         } as unknown as Mocked<IntervalQueue>;
-
-        const options = {
-            ...DefaultOptions.values.statistics,
-            minRequestsForStats: MIN_REQUESTS,
-            minRequestsForLatencyPercentile: MIN_REQUESTS,
-            latencyPercentile: 95
-        };
-
-        statistics = new Statistics(intervalQueue, options);
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
-    describe('add', () => {
-        test('should delegate adding request to intervalQueue', () => {
-            const request = {} as Request;
-            statistics.add(request);
-            expect(intervalQueue.add).toHaveBeenCalledWith(request);
+        statistics = new Statistics(queue, {
+            minRequestsForStats: 5,
+            minRequestsForLatencyPercentile: 250,
+            latencyPercentile: 90,
         });
     });
 
-    describe('getAverageProcessingTime', () => {
-        test('should throw NotEnoughStatsException if requests < minRequestsForStats', () => {
-            intervalQueue.getCompletedRequests.mockReturnValue(Array(MIN_REQUESTS - 1));
-            expect(() => statistics.getAverageProcessingTime()).toThrow(NotEnoughStatsException);
+    afterEach(() => vi.restoreAllMocks());
+
+    test('separates incoming and successful records', () => {
+        const request = {} as Request;
+        statistics.add(request);
+        statistics.recordSuccessful(request);
+        expect(queue.add).toHaveBeenCalledWith(request);
+        expect(queue.recordSuccessful).toHaveBeenCalledWith(request);
+    });
+
+    test('creates one coherent snapshot from a closed bucket', () => {
+        queue.closeExecutionBucket.mockReturnValue(bucket({
+            latencies: [10, 20, 30, 40, 50],
+            successfulRequests: 250,
+            averageLatency: 30,
+            minimumLatency: 10,
+            durationSeconds: 2,
+        }));
+
+        expect(statistics.takeSnapshot()).toEqual({
+            id: 1,
+            percentileLatency: 46,
+            minimumLatency: 10,
+            averageLatency: 30,
+            successfulRequests: 250,
+            throughputPerSecond: 125,
         });
+        expect(statistics.getSuccessfulThroughput()).toBe(250);
+        expect(statistics.getSuccessfulThroughputPerSecond()).toBe(125);
+    });
 
-        test('should calculate average based on COMPLETED and CREATED timestamps', () => {
-            const req1 = createMockRequest(100, 200);
-            const req2 = createMockRequest(100, 300);
-            const requests = [req1, req2, ...Array(MIN_REQUESTS - 2).fill(req1)];
-
-            intervalQueue.getCompletedRequests.mockReturnValue(requests);
-            const spy = vi.spyOn(MathUtils, 'average').mockReturnValue(150);
-
-            const result = statistics.getAverageProcessingTime();
-
-            expect(result).toBe(150);
-            expect(spy).toHaveBeenCalledWith(expect.arrayContaining([100, 200]));
+    test('publishes an expired bucket with enough general statistics', () => {
+        queue.closeExecutionBucket.mockReturnValue(bucket({ successfulRequests: 10 }));
+        expect(statistics.takeSnapshot()).toMatchObject({
+            successfulRequests: 10,
+            throughputPerSecond: 5,
         });
     });
 
-    describe('getPercentileLatencySuccessfulRequests', () => {
-        test('should throw if not enough latencies', () => {
-            intervalQueue.getLatencies.mockReturnValue(Array(MIN_REQUESTS - 1));
-            expect(() => statistics.getPercentileLatencySuccessfulRequests()).toThrow(NotEnoughStatsException);
+    test('does not publish an expired bucket without enough general statistics', () => {
+        queue.closeExecutionBucket.mockReturnValue(bucket({ successfulRequests: 4 }));
+        expect(statistics.takeSnapshot()).toBeNull();
+    });
+
+    test('reports an expired empty bucket as discarded', () => {
+        queue.closeExecutionBucket.mockReturnValue(null);
+        expect(statistics.takeSnapshot()).toBeNull();
+    });
+
+    test('publishes a low-throughput bucket when its maximum duration expires', () => {
+        const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+        const intervalQueue = new IntervalQueue(new RequestInterval(2, 30), 1000);
+        const lowThroughputStatistics = new Statistics(intervalQueue, {
+            minRequestsForStats: 5,
+            minRequestsForLatencyPercentile: 250,
+            latencyPercentile: 90,
         });
+        for (let index = 0; index < 5; index++) {
+            intervalQueue.recordSuccessful(completedRequest(index * 100, index * 100 + 10));
+        }
+        now.mockReturnValue(30_000);
 
-        test('should call MathUtils.percentile with configured latencyPercentile', () => {
-            const latencies = [10, 20, 30, 40, 50];
-            intervalQueue.getLatencies.mockReturnValue(latencies);
-            const spy = vi.spyOn(MathUtils, 'percentile').mockReturnValue(45);
-
-            const result = statistics.getPercentileLatencySuccessfulRequests();
-
-            expect(result).toBe(45);
-            expect(spy).toHaveBeenCalledWith(latencies, 95);
+        expect(lowThroughputStatistics.takeSnapshot()).toMatchObject({
+            percentileLatency: 10,
+            successfulRequests: 5,
+            throughputPerSecond: 5 / 30,
         });
     });
 
-    describe('getSuccessfulThroughput', () => {
-        test('should return the length of launched requests', () => {
-            intervalQueue.getLaunchedRequests.mockReturnValue([{}, {}, {}] as any);
-            expect(statistics.getSuccessfulThroughput()).toBe(3);
-        });
+    test('uses service-time average from the active bucket', () => {
+        queue.getAverageLatency.mockReturnValue(75);
+        expect(statistics.getAverageProcessingTime()).toBe(75);
+        queue.getAverageLatency.mockReturnValue(undefined);
+        expect(() => statistics.getAverageProcessingTime()).toThrow(NotEnoughStatsException);
     });
 
-    describe('getLowestLatencyForInterval', () => {
-        test('should return 0 if no latencies available', () => {
-            intervalQueue.getLatencies.mockReturnValue([]);
-            expect(statistics.getLowestLatencyForInterval()).toBe(0);
-        });
-
-        test('should return the minimum value from latencies', () => {
-            intervalQueue.getLatencies.mockReturnValue([150, 80, 200, 100]);
-            expect(statistics.getLowestLatencyForInterval()).toBe(80);
-        });
-
-        test('should handle cases where the first latency is 0', () => {
-            intervalQueue.getLatencies.mockReturnValue([0, 10, 20]);
-
-            expect(statistics.getLowestLatencyForInterval()).toBe(0);
-        });
-    });
-
-    describe('calculateCumulativePriorityDistribution', () => {
-        test('should throw if not enough priorities', () => {
-            intervalQueue.getPriorities.mockReturnValue(Array(MIN_REQUESTS - 1));
-            expect(() => statistics.calculateCumulativePriorityDistribution(50)).toThrow(NotEnoughStatsException);
-        });
-
-        test('should call MathUtils.percentile with the provided threshold', () => {
-            const priorities = [1, 2, 3, 4, 5, 6];
-            intervalQueue.getPriorities.mockReturnValue(priorities);
-            const spy = vi.spyOn(MathUtils, 'percentile').mockReturnValue(3);
-
-            const result = statistics.calculateCumulativePriorityDistribution(25);
-
-            expect(result).toBe(3);
-            expect(spy).toHaveBeenCalledWith(priorities, 25);
-        });
+    test('calculates priority percentiles from incoming samples', () => {
+        queue.getPriorities.mockReturnValue([0, 100, 200, 300, 400]);
+        expect(statistics.calculateCumulativePriorityDistribution(50)).toBe(200);
     });
 });
 
-function createMockRequest(createdTime: number, completedTime: number): Request {
+function bucket(overrides: Partial<ExecutionBucket>): ExecutionBucket {
     return {
-        getEventTimestamp: vi.fn().mockImplementation((event: Event) => {
-            if (event === Event.CREATED) {
-                return createdTime;
-            }
-            if (event === Event.COMPLETED) {
-                return completedTime;
-            }
-            return null;
-        })
-    } as unknown as Request;
+        id: 1,
+        latencies: [10],
+        successfulRequests: 250,
+        averageLatency: 10,
+        minimumLatency: 10,
+        durationSeconds: 2,
+        ...overrides,
+    };
+}
+
+function completedRequest(launched: number, completed: number): Request {
+    return {
+        getEventTimestamp: (event: Event) => event === Event.LAUNCHED ? launched : completed,
+    } as Request;
 }

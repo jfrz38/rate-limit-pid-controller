@@ -9,10 +9,19 @@ updates:
     versioning-strategy: increase
     commit-message:
       prefix: "[Dependency Update]"
+    ignore:
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
     groups:
+      typescript:
+        patterns:
+          - "typescript"
       dependencies:
         patterns:
           - "*"
+        exclude-patterns:
+          - "typescript"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

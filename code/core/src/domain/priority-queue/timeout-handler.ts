@@ -1,5 +1,5 @@
 import { getLogger } from "../../core/logging/logger";
-import { intervalManager } from "../../core/shutdown/interval-manager";
+import { IntervalManager } from "../../core/shutdown/interval-manager";
 import { NotEnoughStatsException } from "../exceptions/not-enough-stats.exception";
 import { Request } from "../request";
 import { Statistics } from "../statistics/statistics";
@@ -13,7 +13,8 @@ export class TimeoutHandler {
 
     constructor(
         private readonly statistics: Statistics,
-        parameters: Timeout
+        parameters: Timeout,
+        private readonly intervalManager: IntervalManager,
     ) {
         this._timeout = parameters.priorityQueue.value;
         this.ratio = parameters.priorityQueue.ratio;
@@ -28,7 +29,7 @@ export class TimeoutHandler {
 
     private initializeUpdateQueueTimeout() {
         const id = setInterval(() => this.updateQueueTimeout(), 1000);
-        intervalManager.add(id);
+        this.intervalManager.add(id);
     }
 
     private updateQueueTimeout() {
@@ -36,8 +37,14 @@ export class TimeoutHandler {
             const avgProcessingTime = this.statistics.getAverageProcessingTime();
             const newTimeout = Math.round(avgProcessingTime * this.ratio);
 
-            if (newTimeout !== this._timeout) {
-                this.logger.info(`Updating timeout from ${this._timeout} to ${newTimeout}`);
+            if (Number.isFinite(newTimeout) && newTimeout > 0 && newTimeout !== this._timeout) {
+                const previousTimeout = this._timeout;
+                this.logger.info({
+                    event: 'QUEUE_TIMEOUT',
+                    previousTimeout,
+                    timeout: newTimeout,
+                    averageProcessingTime: avgProcessingTime,
+                }, `Updating timeout from ${previousTimeout} to ${newTimeout}`);
                 this._timeout = newTimeout;
             }
         } catch (e: any) {

@@ -21,7 +21,10 @@ describe('Express PID Controller Middleware', () => {
     test('should create a middleware that calls handler.use', async () => {
         const options = {
             pid: {
-                config: { KP: 1, KI: 0.1 } as any,
+                config: {
+                    pid: { KP: 1, KI: 0.1 },
+                    capacity: { maxConcurrentRequests: 2 },
+                },
                 priority: { getPriority: (req: any) => 1 }
             }
         };

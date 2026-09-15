@@ -3,7 +3,12 @@ import { Request } from "../request";
 import { RequestInterval } from "./request-interval";
 
 export class IntervalQueue {
-    private readonly queue: Request[] = [];
+    private readonly priorities: number[] = [];
+    private latencies: number[] = [];
+    private successfulRequests = 0;
+    private latencyTotal = 0;
+    private bucketStartedAt = performance.now();
+    private bucketId = 0;
 
     constructor(
         private readonly requestInterval: RequestInterval,
@@ -11,59 +16,84 @@ export class IntervalQueue {
     ) { }
 
     public add(request: Request): void {
-        if (this.queue.length >= this.maxRequests) {
-            this.queue.shift();
+        if (this.priorities.length >= this.maxRequests) {
+            this.priorities.shift();
         }
-        this.queue.push(request);
+        this.priorities.push(request.priority);
     }
 
-    public getCompletedRequests(): Request[] {
-        return this.queue.filter((request: Request) => {
-            const time = request.getEventTimestamp(Event.COMPLETED);
-            if (!time) { return false; }
-            return this.requestInterval.isTimeInInterval(time);
-        });
+    public recordSuccessful(request: Request): void {
+        const launched = request.getEventTimestamp(Event.LAUNCHED);
+        const completed = request.getEventTimestamp(Event.COMPLETED);
+        if (launched === undefined || completed === undefined) {
+            return;
+        }
+
+        const latency = completed - launched;
+        if (!Number.isFinite(latency) || latency < 0) {
+            return;
+        }
+
+        this.successfulRequests++;
+        this.latencyTotal += latency;
+        if (this.latencies.length >= this.maxRequests) {
+            this.latencies.shift();
+        }
+        this.latencies.push(latency);
     }
 
-    public getLatencies(): number[] {
-        return this.getSuccessfulRequests().map((request) => {
-            const launched = request.getEventTimestamp(Event.LAUNCHED)!;
-            const completed = request.getEventTimestamp(Event.COMPLETED)!;
-            return completed - launched;
-        });
+    public closeExecutionBucket(minRequests: number): ExecutionBucket | null | undefined {
+        const now = performance.now();
+        const elapsed = now - this.bucketStartedAt;
+        const isReady = elapsed >= this.requestInterval.minimumMilliseconds && this.successfulRequests >= minRequests;
+        const hasExpired = elapsed >= this.requestInterval.maximumMilliseconds;
+
+        if (!isReady && !hasExpired) {
+            return undefined;
+        }
+
+        if (this.successfulRequests === 0) {
+            this.resetExecutionBucket(now);
+            return null;
+        }
+
+        const bucket: ExecutionBucket = {
+            id: this.bucketId++,
+            latencies: [...this.latencies],
+            successfulRequests: this.successfulRequests,
+            averageLatency: this.latencyTotal / this.successfulRequests,
+            minimumLatency: Math.min(...this.latencies),
+            durationSeconds: elapsed / 1000,
+        };
+        this.resetExecutionBucket(now);
+        return bucket;
     }
 
-
-    private getSuccessfulRequests(): Request[] {
-        return this.queue.filter((request: Request) =>
-            request.hasEventCompletedAndLaunched() &&
-            this.requestInterval.isTimeInInterval(request.getEventTimestamp(Event.LAUNCHED)!)
-        );
-    }
-
-    public getLaunchedRequests(): Request[] {
-        return this.queue.filter((request: Request) => {
-            const time = request.getEventTimestamp(Event.LAUNCHED);
-            if (!time) {
-                return false;
-            }
-            return this.requestInterval.isTimeInInterval(time);
-        });
+    public getAverageLatency(minRequests: number): number | undefined {
+        const elapsed = performance.now() - this.bucketStartedAt;
+        if (elapsed < this.requestInterval.minimumMilliseconds || this.successfulRequests < minRequests) {
+            return undefined;
+        }
+        return this.latencyTotal / this.successfulRequests;
     }
 
     public getPriorities(): number[] {
-        return this.queue.map((request) => request.priority);
+        return [...this.priorities];
     }
 
-    public getRequestsIntervalDurationSeconds(requests: Request[]): number {
-        const timestamps = requests
-            .map((request) => request.getEventTimestamp(Event.LAUNCHED))
-            .filter((time): time is number => time !== undefined);
-
-        if (timestamps.length <= 1) {
-            return 0;
-        }
-
-        return (Math.max(...timestamps) - Math.min(...timestamps)) / 1000;
+    private resetExecutionBucket(now: number): void {
+        this.bucketStartedAt = now;
+        this.latencies = [];
+        this.successfulRequests = 0;
+        this.latencyTotal = 0;
     }
 }
+
+export type ExecutionBucket = {
+    id: number;
+    latencies: number[];
+    successfulRequests: number;
+    averageLatency: number;
+    minimumLatency: number;
+    durationSeconds: number;
+};

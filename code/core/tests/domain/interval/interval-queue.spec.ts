@@ -1,172 +1,78 @@
-import { vi, describe, expect, beforeEach, Mocked } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { DefaultOptions } from "../../../src/default-parameters";
-import { IntervalQueue } from "../../../src/domain/interval/interval-queue";
-import { RequestInterval } from "../../../src/domain/interval/request-interval";
-import { Request } from "../../../src/domain/request";
-import { Event } from "../../../src/domain/events";
+import { Event } from '../../../src/domain/events';
+import { IntervalQueue } from '../../../src/domain/interval/interval-queue';
+import { RequestInterval } from '../../../src/domain/interval/request-interval';
+import { Priority } from '../../../src/domain/priority';
+import { Request } from '../../../src/domain/request';
 
-describe('IntervalQueue tests', () => {
-    let intervalQueue: IntervalQueue;
-    let requestInterval: Mocked<RequestInterval>;
-    const MAX_REQUESTS = 5;
+describe('IntervalQueue', () => {
+    afterEach(() => vi.restoreAllMocks());
 
-    beforeEach(() => {
-        requestInterval = {
-            getIntervalTime: vi.fn(),
-            isTimeInInterval: vi.fn(),
-            getInitialTime: vi.fn()
-        } as unknown as Mocked<RequestInterval>;
+    test('keeps incoming priorities independently from execution samples', () => {
+        const queue = new IntervalQueue(new RequestInterval(2, 30), 2);
+        queue.add(requestWithPriority(1));
+        queue.add(requestWithPriority(2));
+        queue.add(requestWithPriority(3));
 
-        intervalQueue = new IntervalQueue(requestInterval, DefaultOptions.values.interval.maxRequests);
+        expect(queue.getPriorities()).toEqual([256, 384]);
     });
 
-    describe('Test add', () => {
-        test('when add request and is full should remove first request and add new one', () => {
-            const request = {} as unknown as Mocked<Request>;
-            const queuedRequest = {} as unknown as Mocked<Request>;
+    test('closes after minimum duration and sample count', () => {
+        const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+        const queue = new IntervalQueue(new RequestInterval(2, 30), 1000);
+        queue.recordSuccessful(completedRequest(0, 100));
+        queue.recordSuccessful(completedRequest(100, 300));
+        now.mockReturnValue(2000);
 
-            (intervalQueue as any).maxRequests = 1;
-            (intervalQueue as any).queue = [queuedRequest];
+        const bucket = queue.closeExecutionBucket(2);
 
-            intervalQueue.add(request);
-
-            const queue = (intervalQueue as any).queue;
-
-            expect(queue.length).toBe(1);
-            expect(queue[0]).toBe(request);
-
+        expect(bucket).toMatchObject({
+            successfulRequests: 2,
+            averageLatency: 150,
+            minimumLatency: 100,
+            durationSeconds: 2,
         });
-
-        test('when add request and is not full should add without remove any request', () => {
-            const request = {} as unknown as Mocked<Request>;
-            const queuedRequest = {} as unknown as Mocked<Request>;
-
-            (intervalQueue as any).maxRequests = 2;
-            (intervalQueue as any).queue = [queuedRequest];
-
-            intervalQueue.add(request);
-
-            const queue = (intervalQueue as any).queue;
-            expect(queue.length).toBe(2);
-            expect(queue[0]).toBe(queuedRequest);
-            expect(queue[1]).toBe(request);
-        });
+        expect(bucket?.latencies).toEqual([100, 200]);
     });
 
-    describe('Add and Eviction Logic', () => {
-        test('should add requests until it reaches maxRequests', () => {
-            for (let i = 0; i < MAX_REQUESTS; i++) {
-                intervalQueue.add({ priority: i } as any);
-            }
-            expect((intervalQueue as any).queue.length).toBe(MAX_REQUESTS);
-        });
+    test('does not discard recent completions at high request rates', () => {
+        const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+        const queue = new IntervalQueue(new RequestInterval(2, 30), 1000);
+        for (let index = 0; index < 1000; index++) {
+            queue.recordSuccessful(completedRequest(index, index + 10));
+        }
+        now.mockReturnValue(2000);
 
-        test('should remove the oldest request (shift) when adding beyond maxRequests', () => {
-            const firstRequest = { id: 'first' } as any;
-            const lastRequest = { id: 'last' } as any;
-
-            const smallQueue = new IntervalQueue(requestInterval, 1);
-            smallQueue.add(firstRequest);
-            smallQueue.add(lastRequest);
-
-            const internalQueue = (smallQueue as any).queue;
-            expect(internalQueue.length).toBe(1);
-            expect(internalQueue[0]).toBe(lastRequest);
-        });
+        expect(queue.closeExecutionBucket(250)?.successfulRequests).toBe(1000);
     });
 
-    describe('Filtering and Statistics', () => {
+    test('forces rotation at maximum duration without enough samples', () => {
+        const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+        const queue = new IntervalQueue(new RequestInterval(2, 30), 1000);
+        queue.recordSuccessful(completedRequest(0, 20));
+        now.mockReturnValue(30_000);
 
-        test('getCompletedRequests should return only requests completed within the interval', () => {
-            const reqIn = createMockRequest(100, Event.COMPLETED);
-            const reqOut = createMockRequest(500, Event.COMPLETED);
-            const reqNoEvent = { getEventTimestamp: () => null } as any;
-
-            intervalQueue.add(reqIn);
-            intervalQueue.add(reqOut);
-            intervalQueue.add(reqNoEvent);
-
-            requestInterval.isTimeInInterval.mockImplementation((time) => time === 100);
-
-            const result = intervalQueue.getCompletedRequests();
-
-            expect(result).toHaveLength(1);
-            expect(result[0]).toBe(reqIn);
-        });
-
-        test('getLatencies should calculate diff between completed and launched for successful requests', () => {
-            const req = {
-                hasEventCompletedAndLaunched: () => true,
-                getEventTimestamp: vi.fn((type) => {
-                    if (type === Event.LAUNCHED) { return 100; }
-                    if (type === Event.COMPLETED) { return 150; }
-                    return null;
-                })
-            } as any;
-
-            intervalQueue.add(req);
-
-            requestInterval.isTimeInInterval.mockReturnValue(true);
-
-            const latencies = intervalQueue.getLatencies();
-
-            expect(latencies).toEqual([50]);
-        });
-
-        test('getPriorities should return all priorities in the queue regardless of interval', () => {
-            intervalQueue.add({ priority: 10 } as any);
-            intervalQueue.add({ priority: 20 } as any);
-
-            expect(intervalQueue.getPriorities()).toEqual([10, 20]);
-        });
+        expect(queue.closeExecutionBucket(250)?.successfulRequests).toBe(1);
+        expect(queue.closeExecutionBucket(250)).toBeUndefined();
     });
 
-    describe('Launched Requests', () => {
-        test('getLaunchedRequests should return only requests launched within the interval', () => {
-            const reqIn = createMockRequest(200, Event.LAUNCHED);
+    test('reports an expired empty bucket separately from an open bucket', () => {
+        const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+        const queue = new IntervalQueue(new RequestInterval(2, 30), 1000);
+        now.mockReturnValue(30_000);
 
-            const reqOut = createMockRequest(800, Event.LAUNCHED);
-
-            const reqNoEvent = {
-                getEventTimestamp: vi.fn().mockReturnValue(null),
-                priority: 1
-            } as any;
-
-            intervalQueue.add(reqIn);
-            intervalQueue.add(reqOut);
-            intervalQueue.add(reqNoEvent);
-
-            requestInterval.isTimeInInterval.mockImplementation((time) => time === 200);
-
-            const result = intervalQueue.getLaunchedRequests();
-
-            expect(result).toHaveLength(1);
-            expect(result[0]).toBe(reqIn);
-
-            expect(requestInterval.isTimeInInterval).toHaveBeenCalledWith(200);
-            expect(requestInterval.isTimeInInterval).toHaveBeenCalledWith(800);
-        });
-
-        test('getLaunchedRequests should return an empty array if no requests have been launched', () => {
-            const reqNotLaunched = {
-                getEventTimestamp: vi.fn().mockReturnValue(null),
-                priority: 1
-            } as any;
-
-            intervalQueue.add(reqNotLaunched);
-
-            const result = intervalQueue.getLaunchedRequests();
-
-            expect(result).toEqual([]);
-            expect(requestInterval.isTimeInInterval).not.toHaveBeenCalled();
-        });
+        expect(queue.closeExecutionBucket(250)).toBeNull();
+        expect(queue.closeExecutionBucket(250)).toBeUndefined();
     });
-
-    function createMockRequest(time: number, eventType: Event): Request {
-        return {
-            getEventTimestamp: vi.fn((type) => (type === eventType ? time : null)),
-            priority: 1
-        } as any;
-    }
 });
+
+function requestWithPriority(tier: number): Request {
+    return new Request(() => undefined, new Priority(tier, 0));
+}
+
+function completedRequest(launched: number, completed: number): Request {
+    return {
+        getEventTimestamp: (event: Event) => event === Event.LAUNCHED ? launched : completed,
+    } as Request;
+}

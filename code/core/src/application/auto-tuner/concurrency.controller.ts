@@ -1,5 +1,4 @@
 import { getLogger } from "../../core/logging/logger";
-import { NotEnoughStatsException } from "../../domain/exceptions/not-enough-stats.exception";
 import { Statistics } from "../../domain/statistics/statistics";
 import { Scheduler } from "../scheduler";
 import { ControllerHistory } from "./controller-history";
@@ -12,7 +11,8 @@ export class ConcurrencyController {
     private readonly a = 3;
     private readonly b = 5;
 
-    private readonly cores = require("os").cpus().length;
+    private observedInflight = 0;
+    private lowerBoundHits = 0;
 
     private logger = getLogger();
 
@@ -21,33 +21,48 @@ export class ConcurrencyController {
         private readonly statistics: Statistics,
         private readonly latencyController: LatencyController,
         private readonly history: ControllerHistory,
-        maxCores: number,
     ) {
-        this.cores = Math.max(1, Math.min(maxCores, this.cores));
-        this.inflightLimit = Math.max(this.cores, this.scheduler.maxConcurrentRequests ?? 10);
+        this.inflightLimit = this.scheduler.maxConcurrentRequests;
     }
 
     update(): void {
-        let aggregatedLatency: number;
-        try {
-            aggregatedLatency = this.statistics.getPercentileLatencySuccessfulRequests();
-        } catch (error) {
-            if (error instanceof NotEnoughStatsException) {
-                this.logger.info('Not enough stats to update inflight concurrent requests');
-            }
+        this.observedInflight = Math.max(
+            this.observedInflight,
+            this.scheduler.consumeMaxObservedConcurrentRequests(),
+            this.scheduler.processingRequests
+        );
+        const snapshot = this.statistics.takeSnapshot();
+        if (snapshot === null) {
+            this.observedInflight = this.scheduler.processingRequests;
+            this.logger.info('Closed execution bucket without enough stats to tune concurrency');
+            return;
+        }
+        if (snapshot === undefined) {
+            this.logger.info('Not enough stats to update inflight concurrent requests');
             return;
         }
 
-        const observedInflight = Math.max(
-            this.scheduler.consumeMaxObservedConcurrentRequests?.() ?? this.scheduler.processingRequests ?? 0,
-            this.scheduler.processingRequests ?? 0
-        );
-        const currentThroughput = this.statistics.getSuccessfulThroughputPerSecond?.() ?? this.statistics.getSuccessfulThroughput();
+        const observedInflight = this.observedInflight;
+        this.observedInflight = this.scheduler.processingRequests;
+        this.history.push(observedInflight, snapshot.throughputPerSecond);
 
-        this.history.push(observedInflight, currentThroughput);
-
+        const aggregatedLatency = this.latencyController.aggregate(snapshot.percentileLatency);
         const newLimit = this.calculateNewLimit(aggregatedLatency, observedInflight);
         this.applyNewLimit(newLimit);
+        this.handleLowerBound(aggregatedLatency, snapshot.id);
+        this.logger.info({
+            event: 'CONCURRENCY_BUCKET',
+            snapshotId: snapshot.id,
+            percentileLatency: snapshot.percentileLatency,
+            minimumLatency: snapshot.minimumLatency,
+            averageLatency: snapshot.averageLatency,
+            aggregatedLatency,
+            targetLatency: this.latencyController.targetLatency,
+            throughputPerSecond: snapshot.throughputPerSecond,
+            successfulRequests: snapshot.successfulRequests,
+            observedInflight,
+            inflightLimit: this.inflightLimit,
+        }, `Processed concurrency bucket ${snapshot.id}`);
     }
 
     private calculateNewLimit(aggregatedLatency: number, observedInflight: number): number {
@@ -67,8 +82,8 @@ export class ConcurrencyController {
             newLimit -= step;
         }
 
-        const upperBound = Math.max(this.cores, Math.max(1, observedInflight) * 10);
-        newLimit = Math.max(this.cores, Math.min(newLimit, upperBound));
+        const upperBound = Math.max(1, observedInflight) * 10;
+        newLimit = Math.max(1, Math.min(newLimit, upperBound));
 
         return Math.round(newLimit);
     }
@@ -83,6 +98,20 @@ export class ConcurrencyController {
             this.inflightLimit = newLimit;
             this.scheduler.updateMaxConcurrentRequests(this.inflightLimit);
             this.logger.info(`New inflightLimit: ${this.inflightLimit}`);
+        }
+
+    }
+
+    private handleLowerBound(aggregatedLatency: number, snapshotId: number): void {
+        if (this.inflightLimit === 1) {
+            this.lowerBoundHits++;
+            if (this.lowerBoundHits >= 3) {
+                this.latencyController.reset(aggregatedLatency, snapshotId);
+                this.lowerBoundHits = 0;
+                this.applyNewLimit(2);
+            }
+        } else {
+            this.lowerBoundHits = 0;
         }
     }
 }

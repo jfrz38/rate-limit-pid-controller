@@ -70,54 +70,48 @@ export class PidController {
   }
 
   private thresholdForSystemUnderused(controlError: number): number {
-    this.integral *= this.INTEGRAL_DECAY;
-    this.integral += controlError * this.DT;
+    const nextIntegral = (this.integral * this.INTEGRAL_DECAY) + (controlError * this.DT);
 
     const derivative = (controlError - this.previousError) / this.DT;
     this.previousError = controlError;
 
-    const pidOutput = -((this.KP * controlError) + (this.KI * this.integral) + (this.KD * derivative));
+    const pidOutput = -((this.KP * controlError) + (this.KI * nextIntegral) + (this.KD * derivative));
 
-    const maxDelta = this.MAX_DELTA_PERCENT * this.DT;
-    const delta = Math.max(0, Math.min(maxDelta, Math.abs(pidOutput)));
+    const delta = Math.max(0, Math.min(this.MAX_DELTA_PERCENT, Math.abs(pidOutput)));
 
     this.logger.debug(`[PID-RECOVERY] Error: ${controlError.toFixed(4)}, Integral: ${this.integral.toFixed(4)}, PIDOutput: ${pidOutput.toFixed(4)}, Delta: ${delta.toFixed(4)}, Threshold: ${this.currentThreshold.toFixed(2)} to ${(this.currentThreshold + delta).toFixed(2)}`);
 
-    if (delta > 0) {
-      this.currentThreshold += delta;
+    const nextThreshold = this.currentThreshold + delta;
+    if (nextThreshold <= this.MAX_THRESHOLD) {
+      this.integral = nextIntegral;
     }
-
-    if (this.currentThreshold > this.MAX_THRESHOLD) {
-      this.currentThreshold = this.MAX_THRESHOLD;
-      this.integral -= controlError;
-    }
+    this.currentThreshold = Math.min(this.MAX_THRESHOLD, nextThreshold);
 
     return this.currentThreshold;
   }
 
   private thresholdForSystemOverloaded(controlError: number): number {
     if (controlError < 0.01) {
+      this.previousError = controlError;
       return this.currentThreshold;
     }
 
-    this.integral += controlError * this.DT;
+    const nextIntegral = this.integral + (controlError * this.DT);
 
     const derivative = (controlError - this.previousError) / this.DT;
     this.previousError = controlError;
 
-    const pidOutput = (this.KP * controlError) + (this.KI * this.integral) + (this.KD * derivative);
+    const pidOutput = (this.KP * controlError) + (this.KI * nextIntegral) + (this.KD * derivative);
 
-    const maxDelta = this.MAX_DELTA_PERCENT * this.DT;
-    const delta = -Math.max(0, Math.min(maxDelta, pidOutput));
+    const delta = -Math.max(0, Math.min(this.MAX_DELTA_PERCENT, pidOutput));
 
     this.logger.debug(`[PID-OVERLOAD] Error: ${controlError.toFixed(4)}, Integral: ${this.integral.toFixed(4)}, PIDOutput: ${pidOutput.toFixed(4)}, Delta: ${delta.toFixed(4)}, Threshold: ${this.currentThreshold.toFixed(2)} to ${(this.currentThreshold + delta).toFixed(2)}`);
 
-    this.currentThreshold += delta;
-
-    if (this.currentThreshold < this.MIN_THRESHOLD) {
-      this.currentThreshold = this.MIN_THRESHOLD;
-      this.integral -= controlError;
+    const nextThreshold = this.currentThreshold + delta;
+    if (nextThreshold >= this.MIN_THRESHOLD) {
+      this.integral = nextIntegral;
     }
+    this.currentThreshold = Math.max(this.MIN_THRESHOLD, nextThreshold);
 
     return this.currentThreshold;
   }

@@ -1,192 +1,131 @@
-import { beforeEach, describe, expect, Mocked, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi, type Mocked } from 'vitest';
 
-import { PidController } from "../../src/application/pid-controller";
-import { Rejector } from "../../src/application/rejector";
-import { DefaultOptions } from "../../src/default-parameters";
-import { Event } from "../../src/domain/events";
-import { RejectedRequestException } from "../../src/domain/exceptions/rejected-request.exception";
-import { Priority } from "../../src/domain/priority";
-import { PriorityQueue } from "../../src/domain/priority-queue/priority-queue";
-import { Request } from "../../src/domain/request";
-import { Statistics } from "../../src/domain/statistics/statistics";
+import { PidController } from '../../src/application/pid-controller';
+import { Rejector } from '../../src/application/rejector';
+import { IntervalManager } from '../../src/core/shutdown/interval-manager';
+import { Event } from '../../src/domain/events';
+import { RejectedRequestException } from '../../src/domain/exceptions/rejected-request.exception';
+import { Priority } from '../../src/domain/priority';
+import { PriorityQueue } from '../../src/domain/priority-queue/priority-queue';
+import { Request } from '../../src/domain/request';
+import { Statistics } from '../../src/domain/statistics/statistics';
 
-vi.useFakeTimers();
-vi.mock("../../src/core/shutdown/interval-manager");
-vi.mock("../../src/core/logging/logger", () => ({
-    getLogger: vi.fn().mockReturnValue({
-        info: vi.fn()
-    }),
+vi.mock('../../src/core/logging/logger', () => ({
+  getLogger: vi.fn().mockReturnValue({
+    info: vi.fn(),
+    warn: vi.fn(),
+  }),
 }));
 
 describe('Rejector', () => {
-    let priorityQueue: Mocked<PriorityQueue>;
-    let statistics: Mocked<Statistics>;
-    let pidController: Mocked<PidController>;
-    let request: Mocked<Request>;
-    let rejector: Rejector;
+  let priorityQueue: Mocked<PriorityQueue>;
+  let statistics: Mocked<Statistics>;
+  let pidController: Mocked<PidController>;
+  let intervals: Mocked<IntervalManager>;
+  let rejector: Rejector;
 
-    const initialThreshold = DefaultOptions.values.threshold.initial;
-    const initialInterval = DefaultOptions.values.pid.interval;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    priorityQueue = {
+      add: vi.fn(),
+      getSecondsSinceLastEmpty: vi.fn().mockReturnValue(0),
+    } as unknown as Mocked<PriorityQueue>;
+    statistics = {
+      add: vi.fn(),
+      calculateCumulativePriorityDistribution: vi.fn(),
+    } as unknown as Mocked<Statistics>;
+    pidController = {
+      updateThreshold: vi.fn().mockReturnValue(100),
+    } as unknown as Mocked<PidController>;
+    intervals = {
+      add: vi.fn(),
+    } as unknown as Mocked<IntervalManager>;
+    rejector = new Rejector(priorityQueue, statistics, pidController, 768, 1_000, intervals);
+  });
 
-    const INITIAL_THRESHOLD = 1000;
-    const PID_INTERVAL = 1000;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-
-        priorityQueue = {
-            add: vi.fn(),
-            getSecondsSinceLastEmpty: vi.fn().mockReturnValue(0),
-        } as unknown as Mocked<PriorityQueue>;
-
-        statistics = {
-            add: vi.fn(),
-            calculateCumulativePriorityDistribution: vi.fn(),
-        } as unknown as Mocked<Statistics>;
-
-        pidController = {
-            updateThreshold: vi.fn().mockReturnValue(100)
-        } as unknown as Mocked<PidController>;
-
-        rejector = new Rejector(
-            priorityQueue,
-            statistics,
-            pidController,
-            INITIAL_THRESHOLD,
-            PID_INTERVAL
-        );
+  test('records and queues an accepted request in lifecycle order', () => {
+    const request = createRequest(10);
+    priorityQueue.add.mockImplementation((queued) => {
+      expect(queued.status).toBe(Event.QUEUED);
     });
 
-    describe('process', () => {
-        test('when request priority is lower than threshold should add request to statistics', () => {
-            request = {
-                priority: 10
-            } as unknown as Mocked<Request>;
+    rejector.process(request);
 
-            setThreshold(500);
+    expect(statistics.add).toHaveBeenCalledWith(request);
+    expect(priorityQueue.add).toHaveBeenCalledWith(request);
+    expect(request.status).toBe(Event.QUEUED);
+  });
 
-            rejector.process(request);
+  test('rejects a request whose priority equals the exclusive threshold', async () => {
+    const request = createRequest(100);
+    rejector.updateThreshold(100);
 
-            expect(statistics.add).toHaveBeenNthCalledWith(1, request);
-            expect(priorityQueue.add).toHaveBeenNthCalledWith(1, request);
-            expect((request as any).status).toBe(Event.QUEUED);
+    expect(() => rejector.process(request)).toThrow(RejectedRequestException);
 
-        });
+    await expect(request.promise).rejects.toBeInstanceOf(RejectedRequestException);
+    expect(statistics.add).toHaveBeenCalledWith(request);
+    expect(priorityQueue.add).not.toHaveBeenCalled();
+    expect(request.status).toBe(Event.REJECTED);
+  });
 
-        test('when request priority is higher than threshold should reject request and throw exception', () => {
-            request = {
-                priority: 999
-            } as unknown as Mocked<Request>;
+  test('converts an intermediate percentile to an exclusive threshold', () => {
+    priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(11);
+    pidController.updateThreshold.mockReturnValue(50);
+    statistics.calculateCumulativePriorityDistribution.mockReturnValue(400);
 
-            setThreshold(1);
+    vi.advanceTimersByTime(1_000);
 
-            expect(() => rejector.process(request)).toThrow(RejectedRequestException);
-            expect(statistics.add).toHaveBeenNthCalledWith(1, request);
-            expect(priorityQueue.add).not.toHaveBeenCalled();
-            expect((request as any).status).toBe(Event.REJECTED);
-        });
+    expect(statistics.calculateCumulativePriorityDistribution).toHaveBeenCalledWith(50);
+    expect(rejector['threshold']).toBe(401);
+  });
 
-        test('when priority is exactly equal to threshold should reject request', () => {
-            const exactValue = 100;
-            (rejector as any).threshold = exactValue;
-            const request = { priority: exactValue, status: undefined } as any;
+  test.each([
+    { percentage: 0, expected: 0 },
+    { percentage: 100, expected: Priority.ALLOW_ALL_THRESHOLD },
+  ])('maps $percentage percent to threshold $expected', ({ percentage, expected }) => {
+    priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(11);
+    pidController.updateThreshold.mockReturnValue(percentage);
 
-            expect(() => rejector.process(request)).toThrow(RejectedRequestException);
-            expect(request.status).toBe(Event.REJECTED);
-        });
+    vi.advanceTimersByTime(1_000);
+
+    expect(rejector['threshold']).toBe(expected);
+    expect(statistics.calculateCumulativePriorityDistribution).not.toHaveBeenCalled();
+  });
+
+  test('falls back to linear recovery when percentile statistics fail', () => {
+    priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(11);
+    pidController.updateThreshold.mockReturnValue(50);
+    statistics.calculateCumulativePriorityDistribution.mockImplementation(() => {
+      throw new Error('statistics failed');
     });
 
-    describe('Threshold Updates (Interval Logic)', () => {
-        test('should update threshold', () => {
-            const newThreshold = 400;
+    vi.advanceTimersByTime(1_000);
 
-            rejector.updateThreshold(newThreshold);
+    expect(rejector['threshold']).toBe(384);
+  });
 
-            const currentThreshold = (rejector as any).threshold;
-            expect(currentThreshold).toBeDefined();
-            expect(currentThreshold).toBe(newThreshold);
-        });
+  test('uses linear recovery while the queue is not persistently overloaded', () => {
+    pidController.updateThreshold.mockReturnValue(50);
 
-        test('when overloaded should use percentile distribution from statistics', () => {
-            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(15);
-            pidController.updateThreshold.mockReturnValue(50);
-            statistics.calculateCumulativePriorityDistribution.mockReturnValue(400);
+    vi.advanceTimersByTime(1_000);
 
-            vi.advanceTimersByTime(PID_INTERVAL);
+    expect(rejector['threshold']).toBe(384);
+    expect(statistics.calculateCumulativePriorityDistribution).not.toHaveBeenCalled();
+  });
 
-            expect(statistics.calculateCumulativePriorityDistribution).toHaveBeenCalledWith(50);
-            expect((rejector as any).threshold).toBe(400);
-        });
+  test('ignores non-finite PID output', () => {
+    pidController.updateThreshold.mockReturnValue(Number.NaN);
 
-        test('when not overloaded should use lineal recovery based on INITIAL_THRESHOLD', () => {
-            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(0);
-            pidController.updateThreshold.mockReturnValue(80);
+    vi.advanceTimersByTime(1_000);
 
-            vi.advanceTimersByTime(PID_INTERVAL);
+    expect(rejector['threshold']).toBe(768);
+  });
 
-            expect((rejector as any).threshold).toBe(800);
-            expect(statistics.calculateCumulativePriorityDistribution).not.toHaveBeenCalled();
-        });
+  test('registers its interval with the injected owner', () => {
+    expect(intervals.add).toHaveBeenCalledTimes(1);
+  });
 
-        test('when percentile calculation fails should use lineal recovery', () => {
-            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(15);
-            pidController.updateThreshold.mockReturnValue(50);
-            statistics.calculateCumulativePriorityDistribution.mockImplementation(() => {
-                throw new Error("Stats failed");
-            });
-
-            vi.advanceTimersByTime(PID_INTERVAL);
-
-            expect((rejector as any).threshold).toBe(500);
-        });
-
-        test('should not log or update if threshold has not changed', () => {
-            const spyUpdate = vi.spyOn(rejector, 'updateThreshold');
-
-            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(0);
-            pidController.updateThreshold.mockReturnValue(100);
-
-            vi.advanceTimersByTime(PID_INTERVAL);
-
-            expect(spyUpdate).toHaveBeenCalled();
-            expect((rejector as any).threshold).toBe(INITIAL_THRESHOLD);
-        });
-    });
-
-    describe('isServiceOverloaded', () => {
-        test('when time exceed should return true', () => {
-            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(11);
-            expect((rejector as any).isServiceOverloaded()).toBe(true);
-        });
-
-        test('when time is not exceed should return false', () => {
-            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(5);
-            expect((rejector as any).isServiceOverloaded()).toBe(false);
-        });
-
-        test('when other MAX_QUEUE_EMPTY_TIME should return expected result', () => {
-            const newMaxTime = 100;
-            (rejector as any).MAX_QUEUE_EMPTY_TIME = newMaxTime;
-
-            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(newMaxTime - 1);
-            expect((rejector as any).isServiceOverloaded()).toBe(false);
-
-
-            priorityQueue.getSecondsSinceLastEmpty.mockReturnValue(newMaxTime + 1);
-            expect((rejector as any).isServiceOverloaded()).toBe(true);
-        });
-    });
-
-    describe('Lifecycle', () => {
-        test('should register the interval in the intervalManager upon initialization', async () => {
-            const { intervalManager } = await import("../../src/core/shutdown/interval-manager");
-
-            expect(intervalManager.add).toHaveBeenCalled();
-        });
-    });
-
-    function setThreshold(threshold: number) {
-        (rejector as any).threshold = new Priority(threshold, 0).value;
-    }
+  function createRequest(priority: number): Request {
+    return new Request(() => undefined, Priority.fromValue(priority));
+  }
 });
-

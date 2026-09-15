@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
@@ -16,10 +16,17 @@ if (!fs.existsSync(logFolder)) fs.mkdirSync(logFolder, { recursive: true });
 console.log(`Loading scenario: ${scenarioName}`);
 
 const scriptPath = path.join(__dirname, "index.ts");
-
-execSync(
-  `ts-node "${scriptPath}" "${scenarioFile}" > "${outPath}"`,
-  { stdio: "inherit" }
-);
+const output = fs.openSync(outPath, 'w');
+const result = spawnSync(process.execPath, [
+  '--require',
+  'ts-node/register/transpile-only',
+  scriptPath,
+  scenarioFile,
+], {
+  stdio: ['ignore', output, 'inherit'],
+});
+fs.closeSync(output);
+if (result.error) throw result.error;
+if (result.status !== 0) throw new Error(`Simulation exited with status ${result.status}`);
 
 console.log("Generated log: ", outPath);

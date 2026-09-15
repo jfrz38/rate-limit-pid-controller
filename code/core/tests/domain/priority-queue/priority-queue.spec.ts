@@ -203,7 +203,9 @@ describe('PriorityQueue', () => {
     });
 
     function createRequest(priority: number): Request {
-        return new Request(() => null, new Priority(priority));
+        const request = new Request(() => null, new Priority(priority));
+        request.transitionTo(Event.QUEUED);
+        return request;
     }
 
     test('branch true: should remove request and log eviction if still in queue when timeout fires', () => {

@@ -71,6 +71,19 @@ describe('Priority', () => {
             expect(priority.value).toBe(2 * 128 + 10);
         });
 
+        test('should floor fractional tiers', () => {
+            expect(new Priority(1.9, 0).value).toBe(128);
+        });
+
+        test.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+            'should reject a non-finite tier: %s',
+            (value) => expect(() => new Priority(value, 0)).toThrow(RangeError),
+        );
+
+        test('should reject a non-finite cohort', () => {
+            expect(() => new Priority(1, Number.NaN)).toThrow(RangeError);
+        });
+
     });
 
     describe('value getter', () => {
@@ -83,6 +96,10 @@ describe('Priority', () => {
             expect(Priority.fromValue(767).value).toBe(767);
             expect(Priority.fromValue(900).value).toBe(767);
             expect(Priority.fromValue(-1).value).toBe(0);
+        });
+
+        test('should reject a non-finite full value', () => {
+            expect(() => Priority.fromValue(Number.NaN)).toThrow(RangeError);
         });
 
         

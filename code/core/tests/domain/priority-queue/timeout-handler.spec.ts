@@ -8,8 +8,8 @@ import { Statistics } from "../../../src/domain/statistics/statistics";
 import { Timeout } from "../../../src/domain/types/timeout";
 import { Request } from "../../../src/domain/request";
 import { Priority } from "../../../src/domain/priority";
+import { IntervalManager } from '../../../src/core/shutdown/interval-manager';
 
-vi.mock("../../../src/core/shutdown/interval-manager");
 vi.mock("../../../src/core/logging/logger", () => ({
     getLogger: vi.fn().mockReturnValue({
         info: vi.fn()
@@ -20,6 +20,7 @@ describe('Queue timeout handler', () => {
     let statistics: Mocked<Statistics>;
     let timeoutHandler: TimeoutHandler;
     let logger = vi.fn();
+    let intervalManager: Mocked<IntervalManager>;
 
     const timeoutParameters = DefaultOptions.values.timeout as unknown as Mocked<Timeout>;
 
@@ -29,13 +30,16 @@ describe('Queue timeout handler', () => {
         statistics = {
             getAverageProcessingTime: vi.fn(),
         } as unknown as Mocked<Statistics>;
+        intervalManager = {
+            add: vi.fn(),
+        } as unknown as Mocked<IntervalManager>;
 
         (getLogger as Mock).mockReturnValue({
             info: logger,
             warn: vi.fn(),
         });
 
-        timeoutHandler = new TimeoutHandler(statistics, timeoutParameters);
+        timeoutHandler = new TimeoutHandler(statistics, timeoutParameters, intervalManager);
     });
 
     test('updateQueueTimeout when NotEnoughStatsException is thrown should not throw exception', () => {
@@ -104,7 +108,7 @@ describe('Queue timeout handler', () => {
 
     test('should update timeout automatically when time passes (integration with setInterval)', () => {
         vi.useFakeTimers();
-        const handler = new TimeoutHandler(statistics, timeoutParameters);
+        const handler = new TimeoutHandler(statistics, timeoutParameters, intervalManager);
 
         statistics.getAverageProcessingTime.mockReturnValue(500);
         (handler as any).ratio = 1;

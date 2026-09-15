@@ -77,6 +77,12 @@ Standard rate limiters are static: you set 100 RPS, and it stays at 100 RPS. Thi
 
 The standalone core exposes priorities through a `Priority` class. Use `Priority.fromTier(0..5)` for tier-based traffic or `Priority.fromValue(0..767)` when you already have a full tier/cohort value.
 
+## Simulation in action
+
+The latest simulation report shows how the controller responds to the executed traffic pattern. See the [simulation suite](./simulation/README.md) for the available scenarios and how to reproduce the report.
+
+![Latest simulation report](./simulation/scripts/runner/results/last_execution.png)
+
 ## Packages and releases
 
 This repository contains several npm packages that are versioned and released independently:
@@ -107,6 +113,16 @@ make validate-nestjs
 ```
 
 Run `make help` to list all available targets.
+
+### Local package testing
+
+Build a package and create a local tarball with `PACKAGE=core`, `shared`, `express`, or `nestjs`:
+
+```bash
+make pack-local PACKAGE=core
+```
+
+The command prints a `pnpm remove <package> && pnpm add --force <tarball>` command for another local project. It removes the installed package before adding the local artifact, so the artifact replaces it even when its version number has not changed.
 
 ## References
 

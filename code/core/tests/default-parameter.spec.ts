@@ -1,4 +1,3 @@
-import * as os from 'os';
 import { DefaultOptions } from '../src/default-parameters';
 import { LogLevel } from '../src/domain/types/log-level';
 import { deepMerge } from '../src/domain/types/parameters';
@@ -13,7 +12,6 @@ describe('DefaultOptions', () => {
             expect(defaults.log.level).toBe('warn');
             expect(defaults.pid.KP).toBe(0.2);
             expect(defaults.pid.decayRatio).toBe(0.5);
-            expect(defaults.capacity.cores).toBe(os.cpus().length);
             expect(defaults.statistics.latencyPercentile).toBe(90);
         });
 
@@ -101,6 +99,27 @@ describe('DefaultOptions', () => {
 
             expect(result.threshold.initial).toBe(768);
             expect(result.log.level).toBe('warn');
+        });
+
+        test.each([
+            ['non-finite threshold', { threshold: { initial: Number.NaN } }],
+            ['unknown log level', { log: { level: 'verbose' } }],
+            ['negative PID gain', { pid: { KP: -1 } }],
+            ['zero PID interval', { pid: { interval: 0 } }],
+            ['out-of-range PID decay', { pid: { decayRatio: 2 } }],
+            ['zero timeout ratio', { timeout: { priorityQueue: { ratio: 0 } } }],
+            ['non-positive concurrency', { capacity: { maxConcurrentRequests: 0 } }],
+            ['out-of-range percentile', { statistics: { latencyPercentile: 101 } }],
+            ['non-positive sample capacity', { interval: { maxRequests: 0 } }],
+            ['inverted request interval', {
+                interval: { requestInterval: { minIntervalTime: 30, maxIntervalTime: 2 } },
+            }],
+            ['unreachable sample requirement', {
+                interval: { maxRequests: 10 },
+                statistics: { minRequestsForLatencyPercentile: 11 },
+            }],
+        ])('should reject %s', (_name, overrides) => {
+            expect(() => DefaultOptions.getRequiredOptions(overrides as any)).toThrow(RangeError);
         });
     });
 

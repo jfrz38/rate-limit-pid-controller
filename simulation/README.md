@@ -10,38 +10,62 @@ From the repository root:
 make install-code
 make install-simulation
 make install-simulation-runner
-make simulation SCENARIO=base
+make simulation SCENARIO=base SEED=20260913
 ```
 
 You can run each step independently:
 
 ```bash
-make simulation-generate SCENARIO=base
+make simulation-generate SCENARIO=base SEED=20260913
 make simulation-run SCENARIO=base
 make simulation-report SCENARIO=base
 ```
 
 ## Scenarios
 
-Scenarios are generated using normal distributions to create realistic variations in execution times and request intervals.
+Scenarios use deterministic phase schedules with seeded jitter, execution latency, priority tier, and priority cohort. Reusing the same scenario and `SEED` produces the same CSV trace.
 
 The following scenarios are available:
 
-| Scenario          | Requests | Description                                                                            |
-|-------------------|----------|----------------------------------------------------------------------------------------|
-| `base`            | 10,000   | Balanced priorities. Once the threshold is reached, it stays with minimal fluctuation. |
-| `aggressive_peak` | 10,000   | Fast incoming requests with very short sleep times and low importance.                 |
-| `high_latency`    | 10,000   | Simulates a slow backend where tasks take significantly longer to complete.            |
-| `high_volume`     | 10,000   | Large amount of requests with short intervals, testing the throughput limits.          |
-| `priority_spike`  | 5,000    | A sudden surge of high-priority (critical) requests.                                   |
-| `stress`          | 50,000   | Long-running high-load test to verify the stability of the PID over time.              |
-| `low_latency`     | 10,000   | Optimal conditions used as a baseline for performance.                                 |
+| Scenario            | Duration | Requests | Description                                                        |
+|---------------------|----------|----------|--------------------------------------------------------------------|
+| `base`              | 2 min    | 1,440    | Balanced, steady traffic with an 80 ms backend.                    |
+| `aggressive_peak`   | 1.5 min  | 2,400    | Warmup, a low-importance traffic peak, and recovery.               |
+| `high_latency`      | 2 min    | 960      | Steady traffic against a 300 ms backend.                           |
+| `high_volume`       | 2 min    | 4,200    | Sustained high arrival rate with mostly low-importance traffic.    |
+| `priority_spike`    | 2 min    | 2,400    | Balanced traffic interrupted by a high-importance phase.           |
+| `stress`            | 6 min    | 9,360    | Overload, backend degradation, and recovery.                       |
+| `low_latency`       | 2 min    | 1,800    | Steady traffic against a 30 ms backend.                            |
+| `adaptive_soak_10m` | 10 min   | 12,180   | Exercises capacity discovery, shedding, degradation, and recovery. |
+| `aggressive_peak_10m` | 10 min  | 29,040   | Two-minute 200 req/s peak after warmup; forces admission shedding. |
 
-## Scripts
+Generated CSV files contain absolute arrival times in milliseconds and the complete priority value used by the core: `requestId`, `scenario`, `seed`, `phase`, `arrivalTimeMs`, `executionTimeMs`, `priorityTier`, and `priorityValue`.
 
-Run PID controller and read logs to create an example image:
+### Representative cases
+
+- `aggressive_peak_10m`: verifies that low-priority traffic is rejected or evicted under a sharp peak, while more important work continues to be admitted.
+- `adaptive_soak_10m`: shows the auto-tuner discovering capacity, reacting to degradation, and recovering over several statistics buckets.
+- `high_latency`: isolates the controller response to a consistently slow backend without a high arrival rate.
+
+Use the soak scenario to observe several complete statistics buckets and auto-tuner decisions:
+
+```bash
+make simulation SCENARIO=adaptive_soak_10m SEED=20260913
+```
+
+Use the aggressive scenario to make admission rejection and queue eviction visible in the traffic panel:
+
+```bash
+make simulation SCENARIO=aggressive_peak_10m SEED=20260913
+```
+
+## Report
+
+Each simulation produces a report that shades scenario phases and plots admission outcomes, concurrency, latency signals, throughput, and adaptive queue timeout. The committed image is the latest stored execution:
 
 ![Last execution](./scripts/runner/results/last_execution.png)
+
+The report title includes dispatch-lag P95 and maximum values. Treat a run as a valid timing experiment only when P95 is at most 50 ms and maximum lag is at most 500 ms; the runner emits `SCENARIO_DISPATCH_LAG` when either budget is exceeded.
 
 > [!WARNING]  
 > To output logs it is necessary to set logger level at least `debug` which is done automatically when run for tests but not for adapters since you define your own configuration.
