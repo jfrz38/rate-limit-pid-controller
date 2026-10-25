@@ -10,11 +10,13 @@ PACKAGE_NAME_core := @jfrz38/pid-controller-core
 PACKAGE_NAME_shared := @jfrz38/pid-controller-shared
 PACKAGE_NAME_express := @jfrz38/pid-controller-express
 PACKAGE_NAME_nestjs := @jfrz38/pid-controller-nestjs
+PACKAGE_NAME_node := @jfrz38/adaptive-admission-node
 
 PACKAGE_DIR_core := code/core
 PACKAGE_DIR_shared := code/adapters/shared
 PACKAGE_DIR_express := code/adapters/express
 PACKAGE_DIR_nestjs := code/adapters/nestjs
+PACKAGE_DIR_node := code/hosts/node
 
 PACKAGE_NAME = $(PACKAGE_NAME_$(PACKAGE))
 PACKAGE_DIR = $(PACKAGE_DIR_$(PACKAGE))
@@ -50,7 +52,7 @@ clean: ## clean all workspace packages
 
 ci: install-code build test ## run the local CI pipeline
 
-.PHONY: build-core build-shared build-express build-nestjs
+.PHONY: build-core build-shared build-express build-nestjs build-node lint-node
 build-core: ## build the core package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_core)..." build
 
@@ -63,6 +65,12 @@ build-express: ## build the Express adapter package
 build-nestjs: ## build the NestJS adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_nestjs)..." build
 
+build-node: ## build the adaptive admission Node host package
+	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." build
+
+lint-node: ## lint the adaptive admission Node host package
+	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." lint
+
 .PHONY: pack-local
 pack-local: build ## build and pack PACKAGE for local installation
 	@mkdir -p "$(LOCAL_ARTIFACT_DIR)"
@@ -70,7 +78,7 @@ pack-local: build ## build and pack PACKAGE for local installation
 	$(PNPM) --dir "$(PACKAGE_DIR)" pack --pack-destination "$(abspath $(LOCAL_ARTIFACT_DIR))"
 	@printf '\nReinstall it in another project with:\n  pnpm remove "$(PACKAGE_NAME)" && pnpm add --save-exact --force "%s/"*.tgz\n' "$(abspath $(LOCAL_ARTIFACT_DIR))"
 
-.PHONY: test-core test-shared test-express test-nestjs
+.PHONY: test-core test-shared test-express test-nestjs test-node test-node-conformance test-node-package
 test-core: ## test the core package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_core)..." test
 
@@ -83,7 +91,16 @@ test-express: ## test the Express adapter package
 test-nestjs: ## test the NestJS adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_nestjs)..." test
 
-.PHONY: validate-core validate-shared validate-express validate-nestjs
+test-node: ## test the adaptive admission Node host package
+	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." test
+
+test-node-conformance: ## run conformance against the WebAssembly component from Node
+	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." test:conformance
+
+test-node-package: ## verify the installed Node host tarball and embedded Wasm assets
+	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." test:package
+
+.PHONY: validate-core validate-shared validate-express validate-nestjs validate-node
 validate-core: install-code build-core test-core ## install, build, and test core
 
 validate-shared: install-code build-shared test-shared ## install, build, and test shared
@@ -91,6 +108,8 @@ validate-shared: install-code build-shared test-shared ## install, build, and te
 validate-express: install-code build-express test-express ## install, build, and test Express
 
 validate-nestjs: install-code build-nestjs test-nestjs ## install, build, and test NestJS
+
+validate-node: install-code build-node lint-node test-node test-node-package ## install, lint, build, test, and pack the Node host
 
 .PHONY: simulation-generate simulation-run simulation-report simulation test-simulation test-simulation-python test-simulation-runner
 simulation-generate: install-simulation ## generate a simulation scenario with SCENARIO=name

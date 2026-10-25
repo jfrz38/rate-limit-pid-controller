@@ -1,0 +1,51 @@
+[
+  {
+    "name": "queue pressure lowers the exclusive admission threshold",
+    "configuration": {
+      "maxConcurrentRequests": 1,
+      "queueTimeoutMs": 10000,
+      "pid": {
+        "proportionalGain": 20,
+        "integralGain": 0,
+        "derivativeGain": 0,
+        "intervalMs": 1000,
+        "maxDeltaPercentage": 100,
+        "integralDecay": 0.5
+      }
+    },
+    "steps": [
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 0,
+        "as": "active",
+        "actions": [{ "type": "start", "request": "active" }]
+      },
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 700,
+        "as": "waiting",
+        "actions": []
+      },
+      {
+        "operation": "advance-time",
+        "atMs": 1000,
+        "actions": [{ "type": "threshold-changed", "previous": 768, "current": 614 }]
+      },
+      {
+        "operation": "submit",
+        "atMs": 1000,
+        "priority": 614,
+        "as": "rejected",
+        "actions": [
+          {
+            "type": "reject",
+            "request": "rejected",
+            "reason": { "type": "threshold", "priority": 614, "threshold": 614 }
+          }
+        ]
+      }
+    ]
+  }
+]

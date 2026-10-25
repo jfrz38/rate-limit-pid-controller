@@ -1,0 +1,100 @@
+[
+  {
+    "name": "lower numeric priorities start before earlier less important work",
+    "configuration": {
+      "maxConcurrentRequests": 1,
+      "queueTimeoutMs": 10000,
+      "pid": {
+        "proportionalGain": 0,
+        "integralGain": 0,
+        "derivativeGain": 0
+      }
+    },
+    "steps": [
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 0,
+        "as": "active",
+        "actions": [{ "type": "start", "request": "active" }]
+      },
+      {
+        "operation": "submit",
+        "atMs": 1,
+        "priority": 500,
+        "as": "less-important",
+        "actions": []
+      },
+      {
+        "operation": "submit",
+        "atMs": 2,
+        "priority": 10,
+        "as": "more-important",
+        "actions": []
+      },
+      {
+        "operation": "complete",
+        "atMs": 3,
+        "request": "active",
+        "outcome": "success",
+        "actions": [{ "type": "start", "request": "more-important" }]
+      },
+      {
+        "operation": "complete",
+        "atMs": 4,
+        "request": "more-important",
+        "outcome": "failure",
+        "actions": [{ "type": "start", "request": "less-important" }]
+      }
+    ]
+  },
+  {
+    "name": "equal priorities preserve FIFO order",
+    "configuration": {
+      "maxConcurrentRequests": 1,
+      "queueTimeoutMs": 10000,
+      "pid": {
+        "proportionalGain": 0,
+        "integralGain": 0,
+        "derivativeGain": 0
+      }
+    },
+    "steps": [
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 0,
+        "as": "active",
+        "actions": [{ "type": "start", "request": "active" }]
+      },
+      {
+        "operation": "submit",
+        "atMs": 1,
+        "priority": 100,
+        "as": "first",
+        "actions": []
+      },
+      {
+        "operation": "submit",
+        "atMs": 2,
+        "priority": 100,
+        "as": "second",
+        "actions": []
+      },
+      {
+        "operation": "complete",
+        "atMs": 3,
+        "request": "active",
+        "outcome": "success",
+        "actions": [{ "type": "start", "request": "first" }]
+      },
+      {
+        "operation": "complete",
+        "atMs": 4,
+        "request": "first",
+        "outcome": "success",
+        "actions": [{ "type": "start", "request": "second" }]
+      }
+    ]
+  }
+]

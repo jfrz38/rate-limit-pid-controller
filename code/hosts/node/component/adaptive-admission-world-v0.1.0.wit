@@ -1,0 +1,184 @@
+package jfrz38:adaptive-admission@0.1.0;
+
+interface controller {
+    record statistics-config {
+        min-window-ms: u64,
+        max-window-ms: u64,
+        min-samples: u64,
+        min-percentile-samples: u64,
+        max-samples: u64,
+        latency-percentile: u8,
+    }
+
+    record pid-config {
+        proportional-gain: f64,
+        integral-gain: f64,
+        derivative-gain: f64,
+        interval-ms: u64,
+        max-delta-percentage: f64,
+        integral-decay: f64,
+    }
+
+    record config {
+        initial-threshold: u16,
+        max-concurrent-requests: u64,
+        max-queued-requests: u64,
+        queue-timeout-ms: u64,
+        queue-timeout-ratio: f64,
+        statistics: statistics-config,
+        pid: pid-config,
+    }
+
+    record statistics-window-order {
+        minimum-ms: u64,
+        maximum-ms: u64,
+    }
+
+    record statistics-sample-limit {
+        maximum: u64,
+        required: u64,
+    }
+
+    enum pid-gain {
+        proportional,
+        integral,
+        derivative,
+    }
+
+    variant config-error {
+        threshold-out-of-range(u16),
+        zero-concurrency,
+        zero-queue-timeout,
+        queue-timeout-ratio-out-of-range,
+        zero-statistics-min-window,
+        statistics-window-order(statistics-window-order),
+        zero-statistics-min-samples,
+        zero-statistics-percentile-samples,
+        statistics-sample-limit-too-small(statistics-sample-limit),
+        statistics-percentile-out-of-range(u8),
+        invalid-pid-gain(pid-gain),
+        zero-pid-interval,
+        pid-delta-out-of-range,
+        pid-decay-out-of-range,
+        numeric-overflow(string),
+    }
+
+    record threshold-rejection {
+        priority: u16,
+        threshold: u16,
+    }
+
+    variant rejection-reason {
+        threshold(threshold-rejection),
+        queue-full,
+        shutdown,
+    }
+
+    enum eviction-reason {
+        queue-timeout,
+    }
+
+    enum cancellation-reason {
+        requested,
+        shutdown,
+    }
+
+    record threshold-change {
+        previous: u16,
+        current: u16,
+    }
+
+    record concurrency-change {
+        previous: u64,
+        current: u64,
+    }
+
+    record rejected-request {
+        request-id: u64,
+        reason: rejection-reason,
+    }
+
+    record evicted-request {
+        request-id: u64,
+        reason: eviction-reason,
+    }
+
+    record cancelled-request {
+        request-id: u64,
+        reason: cancellation-reason,
+    }
+
+    variant action {
+        threshold-changed(threshold-change),
+        concurrency-changed(concurrency-change),
+        start(u64),
+        reject(rejected-request),
+        evict(evicted-request),
+        cancel(cancelled-request),
+    }
+
+    record submission {
+        request-id: u64,
+        actions: list<action>,
+    }
+
+    enum outcome {
+        success,
+        failure,
+    }
+
+    record time-regression {
+        previous-ms: u64,
+        received-ms: u64,
+    }
+
+    record invalid-transition {
+        request-id: u64,
+        operation: string,
+        state: string,
+    }
+
+    variant controller-error {
+        time-regression(time-regression),
+        unknown-request(u64),
+        invalid-transition(invalid-transition),
+        request-id-exhausted,
+        sequence-exhausted,
+        deadline-overflow,
+    }
+
+    variant submit-error {
+        priority-out-of-range(u16),
+        controller(controller-error),
+    }
+
+    record statistics-snapshot {
+        id: u64,
+        started-at-ms: u64,
+        ended-at-ms: u64,
+        percentile-latency-ms: u64,
+        minimum-latency-ms: u64,
+        average-latency-ms: f64,
+        successful-requests: u64,
+        throughput-per-second: f64,
+        max-in-flight: u64,
+    }
+
+    resource admission-controller {
+        submit: func(priority: u16, now-ms: u64) -> result<submission, submit-error>;
+        complete: func(request-id: u64, outcome: outcome, now-ms: u64) -> result<list<action>, controller-error>;
+        cancel: func(request-id: u64, now-ms: u64) -> result<list<action>, controller-error>;
+        advance-time: func(now-ms: u64) -> result<list<action>, controller-error>;
+        shutdown: func(now-ms: u64) -> result<list<action>, controller-error>;
+        next-deadline: func() -> option<u64>;
+        latest-statistics: func() -> option<statistics-snapshot>;
+        priority-percentile: func(percentile: u8) -> option<u16>;
+    }
+
+    default-config: func() -> config;
+    create: func(configuration: config) -> result<admission-controller, config-error>;
+}
+
+world adaptive-admission {
+    export controller;
+}

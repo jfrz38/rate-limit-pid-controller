@@ -1,0 +1,91 @@
+[
+  {
+    "name": "cancellation and shutdown preserve lifecycle guarantees",
+    "configuration": {
+      "maxConcurrentRequests": 1,
+      "queueTimeoutMs": 10000,
+      "pid": {
+        "proportionalGain": 0,
+        "integralGain": 0,
+        "derivativeGain": 0
+      }
+    },
+    "steps": [
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 0,
+        "as": "active",
+        "actions": [{ "type": "start", "request": "active" }]
+      },
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 1,
+        "as": "cancelled",
+        "actions": []
+      },
+      {
+        "operation": "cancel",
+        "atMs": 1,
+        "request": "cancelled",
+        "actions": [
+          {
+            "type": "cancel",
+            "request": "cancelled",
+            "reason": "requested"
+          }
+        ]
+      },
+      {
+        "operation": "cancel",
+        "atMs": 1,
+        "request": "active",
+        "error": {
+          "type": "invalid-transition",
+          "requestId": 0,
+          "operation": "cancel",
+          "state": "started"
+        }
+      },
+      {
+        "operation": "submit",
+        "atMs": 1,
+        "priority": 2,
+        "as": "shutdown-pending",
+        "actions": []
+      },
+      {
+        "operation": "shutdown",
+        "atMs": 2,
+        "actions": [
+          {
+            "type": "cancel",
+            "request": "shutdown-pending",
+            "reason": "shutdown"
+          }
+        ]
+      },
+      {
+        "operation": "complete",
+        "atMs": 3,
+        "request": "active",
+        "outcome": "success",
+        "actions": []
+      },
+      {
+        "operation": "submit",
+        "atMs": 3,
+        "priority": 0,
+        "as": "after-shutdown",
+        "actions": [
+          {
+            "type": "reject",
+            "request": "after-shutdown",
+            "reason": { "type": "shutdown" }
+          }
+        ]
+      }
+    ]
+  }
+]

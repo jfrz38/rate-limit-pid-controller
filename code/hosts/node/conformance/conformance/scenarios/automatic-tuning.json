@@ -1,0 +1,71 @@
+[
+  {
+    "name": "low latency increases capacity and starts queued work",
+    "configuration": {
+      "maxConcurrentRequests": 2,
+      "maxQueuedRequests": 20,
+      "queueTimeoutMs": 50000,
+      "statistics": {
+        "minWindowMs": 100,
+        "maxWindowMs": 1000,
+        "minSamples": 1,
+        "minPercentileSamples": 1,
+        "maxSamples": 10,
+        "latencyPercentile": 90
+      },
+      "pid": {
+        "proportionalGain": 0,
+        "integralGain": 0,
+        "derivativeGain": 0,
+        "intervalMs": 500
+      }
+    },
+    "steps": [
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 0,
+        "as": "measured",
+        "actions": [{ "type": "start", "request": "measured" }]
+      },
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 1,
+        "as": "active",
+        "actions": [{ "type": "start", "request": "active" }]
+      },
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 2,
+        "as": "promoted",
+        "actions": []
+      },
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 3,
+        "as": "waiting",
+        "actions": []
+      },
+      {
+        "operation": "complete",
+        "atMs": 10,
+        "request": "measured",
+        "outcome": "success",
+        "actions": [{ "type": "start", "request": "promoted" }]
+      },
+      { "operation": "advance-time", "atMs": 100, "actions": [] },
+      {
+        "operation": "advance-time",
+        "atMs": 2000,
+        "actions": [
+          { "type": "concurrency-changed", "previous": 2, "current": 3 },
+          { "type": "start", "request": "waiting" }
+        ]
+      },
+      { "operation": "advance-time", "atMs": 4000, "actions": [] }
+    ]
+  }
+]
