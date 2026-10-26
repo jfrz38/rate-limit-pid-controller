@@ -23,5 +23,19 @@ const result = await controller.run(
 controller.shutdown();
 ```
 
+Operational tools can subscribe to low-volume controller diagnostics without affecting admission:
+
+```ts
+const unsubscribe = controller.onDiagnostic((event) => {
+  // threshold-changed, concurrency-changed, or statistics-published
+  console.log(event);
+});
+
+unsubscribe();
+```
+
+Listeners run after the component mutation that produced the event. They are intended for
+observability and simulations, not for admission decisions.
+
 The package is ESM-only. Each `AdaptiveAdmissionController` owns independent queue, PID, statistics,
 and timer state. Limits are not coordinated across workers or processes.
