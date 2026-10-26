@@ -1,5 +1,6 @@
 import argparse
 import json
+import math
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -112,6 +113,9 @@ def parse_log(log_file: Path) -> dict:
             result["target_latency"].append((timestamp, float(obj["targetLatency"])))
         elif event == "LATENCY_RESET":
             result["target_latency"].append((timestamp, float(obj["targetLatency"])))
+        elif event == "LATENCY_AGGREGATED":
+            value = obj.get("aggregatedLatency")
+            result["aggregated_latency"].append((timestamp, math.nan if value is None else float(value)))
         elif event == "CONCURRENCY_BUCKET":
             result["inflight"].append((timestamp, float(obj["inflightLimit"])))
             result["percentile_latency"].append((timestamp, float(obj["percentileLatency"])))

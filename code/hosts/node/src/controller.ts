@@ -19,6 +19,7 @@ import { Priority } from './priority.js';
 import type {
   ControllerDiagnosticEvent,
   ControllerDiagnosticListener,
+  ControllerDiagnostics,
   ControllerErrorPayload,
   ControllerOptions,
   StatisticsSnapshot,
@@ -67,6 +68,7 @@ export class AdaptiveAdmissionController {
   private shutdownRequested = false;
   private readonly diagnosticListeners = new Set<ControllerDiagnosticListener>();
   private latestPublishedStatisticsId: bigint | undefined;
+  private latestControllerDiagnostics: ControllerDiagnostics | undefined;
 
   constructor(
     options: ControllerOptions = {},
@@ -172,12 +174,33 @@ export class AdaptiveAdmissionController {
       diagnostics.push({ type: 'statistics-published', snapshot: statistics });
     }
     for (const diagnostic of diagnostics) {
-      for (const listener of this.diagnosticListeners) {
-        try {
-          listener(diagnostic);
-        } catch {
-          // Diagnostic consumers must not change admission or task outcomes.
-        }
+      this.publishDiagnostic(diagnostic);
+    }
+    this.publishControllerDiagnostics();
+  }
+
+  private publishControllerDiagnostics(): void {
+    const componentDiagnostics = this.component.latestDiagnostics();
+    const diagnostics: ControllerDiagnostics = {
+      threshold: componentDiagnostics.threshold,
+      concurrencyLimit: componentDiagnostics.concurrencyLimit,
+      queueTimeoutMs: componentDiagnostics.queueTimeoutMs,
+      targetLatencyMs: componentDiagnostics.targetLatencyMs,
+      aggregatedLatencyMs: componentDiagnostics.aggregatedLatencyMs,
+    };
+    if (sameDiagnostics(this.latestControllerDiagnostics, diagnostics)) {
+      return;
+    }
+    this.latestControllerDiagnostics = diagnostics;
+    this.publishDiagnostic({ type: 'controller-diagnostics', diagnostics });
+  }
+
+  private publishDiagnostic(diagnostic: ControllerDiagnosticEvent): void {
+    for (const listener of this.diagnosticListeners) {
+      try {
+        listener(diagnostic);
+      } catch {
+        // Diagnostic consumers must not change admission or task outcomes.
       }
     }
   }
@@ -311,4 +334,16 @@ function isSubmitError(payload: unknown): payload is { tag: 'controller'; val: C
     && 'tag' in payload
     && (payload as { tag: unknown }).tag === 'controller'
     && 'val' in payload;
+}
+
+function sameDiagnostics(
+  previous: ControllerDiagnostics | undefined,
+  current: ControllerDiagnostics,
+): boolean {
+  return previous !== undefined
+    && previous.threshold === current.threshold
+    && previous.concurrencyLimit === current.concurrencyLimit
+    && previous.queueTimeoutMs === current.queueTimeoutMs
+    && previous.targetLatencyMs === current.targetLatencyMs
+    && previous.aggregatedLatencyMs === current.aggregatedLatencyMs;
 }

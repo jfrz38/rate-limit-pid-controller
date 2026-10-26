@@ -11,7 +11,10 @@ import {
   RejectedRequestError,
   ThresholdRejectedError,
 } from '../../../code/hosts/node/dist/index.js';
-import type { ControllerDiagnosticEvent } from '../../../code/hosts/node/dist/index.js';
+import type {
+  ControllerDiagnosticEvent,
+  ControllerDiagnostics,
+} from '../../../code/hosts/node/dist/index.js';
 
 import { parseScenario, type ScenarioRequest } from './scenario.ts';
 
@@ -83,6 +86,7 @@ class RunRustScenario {
   };
   private activeRequests = 0;
   private maxObservedConcurrency = 0;
+  private previousDiagnostics: ControllerDiagnostics | undefined;
 
   constructor() {
     this.controller.onDiagnostic((event) => this.logDiagnostic(event));
@@ -253,6 +257,36 @@ class RunRustScenario {
           throughputPerSecond: snapshot.throughputPerSecond,
           maxInFlight: Number(snapshot.maxInFlight),
         });
+        break;
+      }
+      case 'controller-diagnostics': {
+        const current = event.diagnostics;
+        const previous = this.previousDiagnostics;
+        if (previous?.queueTimeoutMs !== current.queueTimeoutMs) {
+          this.log(
+            'QUEUE_TIMEOUT',
+            `Updating timeout from ${previous?.queueTimeoutMs ?? current.queueTimeoutMs} to ${current.queueTimeoutMs}`,
+            { previous: previous?.queueTimeoutMs?.toString(), timeout: Number(current.queueTimeoutMs) },
+            { timeout: Number(current.queueTimeoutMs) },
+          );
+        }
+        if (previous?.targetLatencyMs !== current.targetLatencyMs) {
+          this.log(
+            'LATENCY_TARGET',
+            `New targetLatency: ${current.targetLatencyMs}`,
+            { previous: previous?.targetLatencyMs, targetLatency: current.targetLatencyMs },
+            { targetLatency: current.targetLatencyMs },
+          );
+        }
+        if (previous?.aggregatedLatencyMs !== current.aggregatedLatencyMs) {
+          this.log(
+            'LATENCY_AGGREGATED',
+            `Filtered latency ${current.aggregatedLatencyMs ?? 'reset'}`,
+            { aggregatedLatency: current.aggregatedLatencyMs ?? null },
+            { aggregatedLatency: current.aggregatedLatencyMs ?? null },
+          );
+        }
+        this.previousDiagnostics = current;
         break;
       }
     }

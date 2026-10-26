@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -92,6 +93,14 @@ class LogsReaderTest(unittest.TestCase):
             {"time": 6_000, "event": "STATISTICS_SNAPSHOT", "percentileLatency": 90,
              "minimumLatency": 50, "averageLatency": 70, "throughputPerSecond": 20,
              "maxInFlight": 3, "metadata": {"snapshotId": 1}, "msg": "snapshot"},
+            {"time": 7_000, "event": "LATENCY_TARGET", "targetLatency": 80,
+             "metadata": {}, "msg": "New targetLatency: 80"},
+            {"time": 8_000, "event": "QUEUE_TIMEOUT", "timeout": 25,
+             "metadata": {}, "msg": "Updating timeout from 500 to 25"},
+            {"time": 9_000, "event": "LATENCY_AGGREGATED", "aggregatedLatency": 100,
+             "metadata": {}, "msg": "Filtered latency 100"},
+            {"time": 10_000, "event": "LATENCY_AGGREGATED", "aggregatedLatency": None,
+             "metadata": {}, "msg": "Filtered latency reset"},
         ]
         with tempfile.TemporaryDirectory() as directory:
             log_file = Path(directory) / "rust.log"
@@ -108,6 +117,10 @@ class LogsReaderTest(unittest.TestCase):
         self.assertEqual(data["minimum_latency"], [(5.0, 50.0)])
         self.assertEqual(data["average_latency"], [(5.0, 70.0)])
         self.assertEqual(data["throughput"], [(5.0, 20.0)])
+        self.assertEqual(data["target_latency"], [(6.0, 80.0)])
+        self.assertEqual(data["timeout"], [(7.0, 25.0)])
+        self.assertEqual(data["aggregated_latency"][0], (8.0, 100.0))
+        self.assertTrue(math.isnan(data["aggregated_latency"][1][1]))
 
     def test_selects_latest_log_across_typescript_and_rust_names(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -54,7 +54,19 @@ export type ControllerDiagnosticEvent =
   | {
     type: 'statistics-published';
     snapshot: StatisticsSnapshot;
+  }
+  | {
+    type: 'controller-diagnostics';
+    diagnostics: ControllerDiagnostics;
   };
+
+export interface ControllerDiagnostics {
+  threshold: number;
+  concurrencyLimit: bigint;
+  queueTimeoutMs: bigint;
+  targetLatencyMs: number;
+  aggregatedLatencyMs?: number;
+}
 
 export type ControllerDiagnosticListener = (event: ControllerDiagnosticEvent) => void;
 
