@@ -9,6 +9,7 @@ import {
   ThresholdRejectedError,
 } from '../src/index.js';
 import type { ControllerDependencies, DeadlineScheduler } from '../src/controller.js';
+import type { ControllerDiagnosticEvent } from '../src/types.js';
 
 describe('AdaptiveAdmissionController', () => {
   test('returns successful values and preserves task failures', async () => {
@@ -159,6 +160,95 @@ describe('AdaptiveAdmissionController', () => {
 
     blocker.resolve('finished');
     await expect(active).resolves.toBe('finished');
+  });
+
+  test('publishes threshold changes to diagnostic listeners', async () => {
+    const runtime = new FakeRuntime();
+    const controller = new AdaptiveAdmissionController({
+      maxConcurrentRequests: 1,
+      queueTimeoutMs: 10_000,
+      pid: { intervalMs: 10 },
+      statistics: { minWindowMs: 10_000, maxWindowMs: 20_000 },
+    }, runtime.dependencies);
+    const diagnostics: ControllerDiagnosticEvent[] = [];
+    controller.onDiagnostic((event) => diagnostics.push(event));
+    const blocker = deferred<void>();
+
+    const active = controller.run(() => blocker.promise, Priority.fromValue(0));
+    runtime.flushDeferred();
+    const queued = controller.run(() => undefined, Priority.fromValue(1));
+    runtime.advanceTo(10n);
+
+    expect(diagnostics).toContainEqual(expect.objectContaining({
+      type: 'threshold-changed',
+      previous: 768,
+      current: expect.any(Number),
+    }));
+    const thresholdChange = diagnostics.find((event) => event.type === 'threshold-changed');
+    expect(thresholdChange?.current).toBeLessThan(768);
+
+    controller.shutdown();
+    blocker.resolve();
+    await active;
+    await expect(queued).rejects.toBeInstanceOf(ControllerShutdownError);
+  });
+
+  test('publishes each statistics snapshot once', async () => {
+    const runtime = new FakeRuntime();
+    const controller = new AdaptiveAdmissionController({
+      maxConcurrentRequests: 1,
+      pid: { intervalMs: 10_000 },
+      statistics: {
+        minWindowMs: 10,
+        maxWindowMs: 20,
+        minSamples: 1,
+        minPercentileSamples: 1,
+        maxSamples: 10,
+      },
+    }, runtime.dependencies);
+    const diagnostics: ControllerDiagnosticEvent[] = [];
+    controller.onDiagnostic((event) => diagnostics.push(event));
+
+    const request = controller.run(() => undefined, Priority.fromValue(0));
+    runtime.flushDeferred();
+    await request;
+    runtime.advanceTo(10n);
+    controller.run(() => undefined, Priority.fromValue(0));
+
+    const snapshots = diagnostics.filter((event) => event.type === 'statistics-published');
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0]).toMatchObject({
+      type: 'statistics-published',
+      snapshot: { id: 0n, successfulRequests: 1n },
+    });
+
+    controller.shutdown();
+    runtime.flushDeferred();
+  });
+
+  test('diagnostic listener failures do not change task outcomes', async () => {
+    const runtime = new FakeRuntime();
+    const controller = new AdaptiveAdmissionController({
+      maxConcurrentRequests: 1,
+      pid: { intervalMs: 10 },
+      statistics: { minWindowMs: 10_000, maxWindowMs: 20_000 },
+    }, runtime.dependencies);
+    controller.onDiagnostic(() => {
+      throw new Error('diagnostic consumer failed');
+    });
+    const blocker = deferred<void>();
+
+    const active = controller.run(() => blocker.promise, Priority.fromValue(0));
+    runtime.flushDeferred();
+    const queued = controller.run(() => 'queued', Priority.fromValue(1));
+    runtime.advanceTo(10n);
+    blocker.resolve();
+    runtime.flushDeferred();
+
+    await expect(active).resolves.toBeUndefined();
+    runtime.flushDeferred();
+    await expect(queued).resolves.toBe('queued');
+    controller.shutdown();
   });
 });
 

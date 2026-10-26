@@ -1,7 +1,7 @@
 import argparse
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -63,6 +63,7 @@ def parse_log(log_file: Path) -> dict:
         "inflight": [],
         "percentile_latency": [],
         "minimum_latency": [],
+        "average_latency": [],
         "aggregated_latency": [],
         "target_latency": [],
         "throughput": [],
@@ -95,6 +96,14 @@ def parse_log(log_file: Path) -> dict:
             result["phases"].append((timestamp, metadata.get("phase", "unknown")))
         elif event == "SCENARIO_SUMMARY":
             result["summary"] = metadata
+        elif event == "REQUEST_COMPLETED" and isinstance(metadata.get("priority"), (int, float)):
+            result["completed"].append((timestamp, int(metadata["priority"])))
+        elif event == "REQUEST_REJECTED" and isinstance(metadata.get("priority"), (int, float)):
+            result["rejected"].append((timestamp, int(metadata["priority"])))
+            if isinstance(metadata.get("threshold"), (int, float)):
+                result["threshold"].append((timestamp, float(metadata["threshold"])))
+        elif event == "REQUEST_EVICTED" and isinstance(metadata.get("priority"), (int, float)):
+            result["evicted"].append((timestamp, int(metadata["priority"])))
         elif event == "ADMISSION_THRESHOLD":
             result["threshold"].append((timestamp, float(obj["threshold"])))
         elif event == "QUEUE_TIMEOUT":
@@ -110,20 +119,27 @@ def parse_log(log_file: Path) -> dict:
             result["aggregated_latency"].append((timestamp, float(obj["aggregatedLatency"])))
             result["target_latency"].append((timestamp, float(obj["targetLatency"])))
             result["throughput"].append((timestamp, float(obj["throughputPerSecond"])))
+        elif event == "CONCURRENCY_LIMIT":
+            result["inflight"].append((timestamp, float(obj["inflightLimit"])))
+        elif event == "STATISTICS_SNAPSHOT":
+            result["percentile_latency"].append((timestamp, float(obj["percentileLatency"])))
+            result["minimum_latency"].append((timestamp, float(obj["minimumLatency"])))
+            result["average_latency"].append((timestamp, float(obj["averageLatency"])))
+            result["throughput"].append((timestamp, float(obj["throughputPerSecond"])))
 
-        if match := PATTERNS["completed"].search(message):
+        if event != "REQUEST_COMPLETED" and (match := PATTERNS["completed"].search(message)):
             result["completed"].append((timestamp, int(match.group(1))))
-        if match := PATTERNS["rejected"].search(message):
+        if event != "REQUEST_REJECTED" and (match := PATTERNS["rejected"].search(message)):
             result["rejected"].append((timestamp, int(match.group(1))))
             if event != "ADMISSION_THRESHOLD":
                 result["threshold"].append((timestamp, float(match.group(2))))
-        if match := PATTERNS["evicted"].search(message):
+        if event != "REQUEST_EVICTED" and (match := PATTERNS["evicted"].search(message)):
             result["evicted"].append((timestamp, int(match.group(1))))
         if event != "ADMISSION_THRESHOLD" and (match := PATTERNS["threshold_mod"].search(message)):
             result["threshold"].append((timestamp, float(match.group(2))))
         if match := PATTERNS["threshold_init"].search(message):
             result["threshold"].insert(0, (timestamp, float(match.group(1))))
-        if event != "CONCURRENCY_BUCKET" and (match := PATTERNS["inflight"].search(message)):
+        if event not in {"CONCURRENCY_BUCKET", "CONCURRENCY_LIMIT"} and (match := PATTERNS["inflight"].search(message)):
             result["inflight"].append((timestamp, float(match.group(1))))
         if event not in {"LATENCY_TARGET", "LATENCY_RESET"} and (match := PATTERNS["target"].search(message)):
             result["target_latency"].append((timestamp, float(match.group(1))))
@@ -132,7 +148,7 @@ def parse_log(log_file: Path) -> dict:
 
     time_series = (
         "completed", "rejected", "evicted", "threshold", "inflight",
-        "percentile_latency", "minimum_latency", "aggregated_latency",
+        "percentile_latency", "minimum_latency", "average_latency", "aggregated_latency",
         "target_latency", "throughput", "timeout", "phases",
     )
     for key in time_series:
@@ -186,6 +202,7 @@ def render_report(data: dict, output: Path = DEFAULT_IMAGE, show: bool = True) -
 
     latency_series = (
         ("percentile_latency", "P90", "#c0392b"),
+        ("average_latency", "Average", "#8e44ad"),
         ("aggregated_latency", "Filtered P90", "#e67e22"),
         ("minimum_latency", "Minimum", "#16a085"),
         ("target_latency", "Target", "#2980b9"),
@@ -232,8 +249,10 @@ def render_report(data: dict, output: Path = DEFAULT_IMAGE, show: bool = True) -
         f"PID traffic control - {scenario} - seed {seed} - {total} requests{lag_summary}",
         fontsize=15,
     )
-    figure.text(0.99, 0.005, f"Log: {data['log_file'].stem}", ha="right", fontsize=8, color="gray")
-    figure.tight_layout(rect=(0, 0.015, 1, 0.97))
+    generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    figure.text(0.99, 0.018, f"Log: {data['log_file'].stem}", ha="right", fontsize=8, color="gray")
+    figure.text(0.99, 0.005, f"Generated: {generated_at} UTC", ha="right", fontsize=8, color="gray")
+    figure.tight_layout(rect=(0, 0.035, 1, 0.97))
     figure.savefig(output, dpi=220, bbox_inches="tight")
     if show:
         plt.show()
@@ -244,7 +263,8 @@ def latest_log(logs_folder: Path = LOGS_FOLDER) -> Path:
     candidates = list(logs_folder.glob("*.log"))
     if not candidates:
         raise FileNotFoundError(f"No logs found in {logs_folder}")
-    return max(candidates, key=lambda path: datetime.strptime(path.stem, DATE_FORMAT))
+    return max(candidates, key=lambda path: datetime.strptime(
+        path.stem.removesuffix("-rust"), DATE_FORMAT))
 
 
 def parse_args() -> argparse.Namespace:

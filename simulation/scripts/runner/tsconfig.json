@@ -9,5 +9,6 @@
     "moduleResolution": "node",
     "types": ["node"],
     "ignoreDeprecations": "6.0"
-  }
+  },
+  "exclude": ["index-rust.mts"]
 }

@@ -16,7 +16,13 @@ import {
   ThresholdRejectedError,
 } from './errors.js';
 import { Priority } from './priority.js';
-import type { ControllerErrorPayload, ControllerOptions, StatisticsSnapshot } from './types.js';
+import type {
+  ControllerDiagnosticEvent,
+  ControllerDiagnosticListener,
+  ControllerErrorPayload,
+  ControllerOptions,
+  StatisticsSnapshot,
+} from './types.js';
 
 interface PendingTask<T = unknown> {
   task: () => T | Promise<T>;
@@ -59,6 +65,8 @@ export class AdaptiveAdmissionController {
   private timer: unknown | undefined;
   private timerGeneration = 0;
   private shutdownRequested = false;
+  private readonly diagnosticListeners = new Set<ControllerDiagnosticListener>();
+  private latestPublishedStatisticsId: bigint | undefined;
 
   constructor(
     options: ControllerOptions = {},
@@ -116,7 +124,13 @@ export class AdaptiveAdmissionController {
     return this.component.priorityPercentile(percentile);
   }
 
+  onDiagnostic(listener: ControllerDiagnosticListener): () => void {
+    this.diagnosticListeners.add(listener);
+    return () => this.diagnosticListeners.delete(listener);
+  }
+
   private processActions(actions: ComponentAction[]): void {
+    const diagnostics: ControllerDiagnosticEvent[] = [];
     for (const action of actions) {
       switch (action.tag) {
         case 'start':
@@ -137,8 +151,33 @@ export class AdaptiveAdmissionController {
           );
           break;
         case 'threshold-changed':
-        case 'concurrency-changed':
+          diagnostics.push({
+            type: 'threshold-changed',
+            previous: action.val.previous,
+            current: action.val.current,
+          });
           break;
+        case 'concurrency-changed':
+          diagnostics.push({
+            type: 'concurrency-changed',
+            previous: action.val.previous,
+            current: action.val.current,
+          });
+          break;
+      }
+    }
+    const statistics = this.component.latestStatistics();
+    if (statistics !== undefined && statistics.id !== this.latestPublishedStatisticsId) {
+      this.latestPublishedStatisticsId = statistics.id;
+      diagnostics.push({ type: 'statistics-published', snapshot: statistics });
+    }
+    for (const diagnostic of diagnostics) {
+      for (const listener of this.diagnosticListeners) {
+        try {
+          listener(diagnostic);
+        } catch {
+          // Diagnostic consumers must not change admission or task outcomes.
+        }
       }
     }
   }

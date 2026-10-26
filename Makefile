@@ -111,17 +111,22 @@ validate-nestjs: install-code build-nestjs test-nestjs ## install, build, and te
 
 validate-node: install-code build-node lint-node test-node test-node-package ## install, lint, build, test, and pack the Node host
 
-.PHONY: simulation-generate simulation-run simulation-report simulation test-simulation test-simulation-python test-simulation-runner
+.PHONY: simulation-generate simulation-run simulation-run-rust simulation-report simulation simulation-rust test-simulation test-simulation-python test-simulation-runner
 simulation-generate: install-simulation ## generate a simulation scenario with SCENARIO=name
 	cd simulation/scenarios && $(POETRY) run python scenario_generator.py $(SCENARIO) --seed $(SEED)
 
 simulation-run: install-code install-simulation-runner ## run a generated simulation scenario with SCENARIO=name
 	cd simulation/scripts/runner && $(PNPM) exec ts-node run-log.ts $(SCENARIO)
 
+simulation-run-rust: install-code build-node install-simulation-runner ## run a generated scenario against the Rust/Wasm controller
+	cd simulation/scripts/runner && $(PNPM) run log:rust -- $(SCENARIO)
+
 simulation-report: install-simulation ## generate the simulation visual report
 	cd simulation/scripts && $(POETRY) run python logs_reader.py --no-show $(SCENARIO)
 
 simulation: simulation-generate simulation-run simulation-report ## generate, run, and render a simulation scenario
+
+simulation-rust: simulation-generate simulation-run-rust simulation-report ## generate, run with Rust/Wasm, and render a simulation scenario
 
 test-simulation-python: install-simulation ## test scenario generation and report parsing
 	cd simulation && $(POETRY) run python -m unittest discover -s tests -p "test_*.py"

@@ -40,5 +40,23 @@ export interface StatisticsSnapshot {
   maxInFlight: bigint;
 }
 
+export type ControllerDiagnosticEvent =
+  | {
+    type: 'threshold-changed';
+    previous: number;
+    current: number;
+  }
+  | {
+    type: 'concurrency-changed';
+    previous: bigint;
+    current: bigint;
+  }
+  | {
+    type: 'statistics-published';
+    snapshot: StatisticsSnapshot;
+  };
+
+export type ControllerDiagnosticListener = (event: ControllerDiagnosticEvent) => void;
+
 export type ConfigurationErrorPayload = { tag: string; val?: unknown };
 export type ControllerErrorPayload = { tag: string; val?: unknown };

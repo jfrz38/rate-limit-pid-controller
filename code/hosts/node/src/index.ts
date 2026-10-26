@@ -12,6 +12,8 @@ export {
 } from './errors.js';
 export { Priority } from './priority.js';
 export type {
+  ControllerDiagnosticEvent,
+  ControllerDiagnosticListener,
   ControllerOptions,
   PidOptions,
   StatisticsOptions,
