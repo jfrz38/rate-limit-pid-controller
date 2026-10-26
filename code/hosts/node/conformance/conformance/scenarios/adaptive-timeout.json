@@ -1,0 +1,67 @@
+[
+  {
+    "name": "published average latency changes only new queue deadlines",
+    "configuration": {
+      "maxConcurrentRequests": 1,
+      "queueTimeoutMs": 500,
+      "queueTimeoutRatio": 0.5,
+      "statistics": {
+        "minWindowMs": 100,
+        "maxWindowMs": 200,
+        "minSamples": 1,
+        "minPercentileSamples": 1,
+        "maxSamples": 10,
+        "latencyPercentile": 90
+      },
+      "pid": {
+        "proportionalGain": 0,
+        "integralGain": 0,
+        "derivativeGain": 0,
+        "intervalMs": 10000
+      }
+    },
+    "steps": [
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 0,
+        "as": "measured",
+        "actions": [{ "type": "start", "request": "measured" }]
+      },
+      {
+        "operation": "complete",
+        "atMs": 101,
+        "request": "measured",
+        "outcome": "success",
+        "actions": []
+      },
+      {
+        "operation": "submit",
+        "atMs": 101,
+        "priority": 0,
+        "as": "active",
+        "actions": [{ "type": "start", "request": "active" }]
+      },
+      {
+        "operation": "submit",
+        "atMs": 101,
+        "priority": 1,
+        "as": "waiting",
+        "actions": []
+      },
+      { "operation": "next-deadline", "expectMs": 152 },
+      { "operation": "advance-time", "atMs": 151, "actions": [] },
+      {
+        "operation": "advance-time",
+        "atMs": 152,
+        "actions": [
+          {
+            "type": "evict",
+            "request": "waiting",
+            "reason": "queue-timeout"
+          }
+        ]
+      }
+    ]
+  }
+]

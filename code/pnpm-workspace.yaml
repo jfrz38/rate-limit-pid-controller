@@ -1,6 +1,7 @@
 packages:
   - 'core'
   - 'adapters/*'
+  - 'hosts/*'
 
 allowBuilds:
   '@nestjs/core': true

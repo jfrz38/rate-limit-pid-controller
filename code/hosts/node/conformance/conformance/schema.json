@@ -1,0 +1,318 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jfrz38/adaptive-admission-controller/conformance/schema-v1.json",
+  "title": "Adaptive Admission Controller conformance scenarios, version 1",
+  "type": "array",
+  "minItems": 1,
+  "items": { "$ref": "#/$defs/scenario" },
+  "$defs": {
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "configuration": { "$ref": "#/$defs/configuration" },
+        "expectCreateError": { "$ref": "#/$defs/configError" },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/step" }
+        }
+      },
+      "oneOf": [
+        {
+          "required": ["expectCreateError"],
+          "properties": { "steps": { "maxItems": 0 } }
+        },
+        {
+          "required": ["steps"],
+          "not": { "required": ["expectCreateError"] }
+        }
+      ]
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "initialThreshold": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "maxConcurrentRequests": { "type": "integer", "minimum": 0 },
+        "maxQueuedRequests": { "type": "integer", "minimum": 0 },
+        "queueTimeoutMs": { "$ref": "#/$defs/u64" },
+        "queueTimeoutRatio": { "type": "number" },
+        "statistics": { "$ref": "#/$defs/statisticsConfig" },
+        "pid": { "$ref": "#/$defs/pidConfig" }
+      }
+    },
+    "statisticsConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minWindowMs": { "$ref": "#/$defs/u64" },
+        "maxWindowMs": { "$ref": "#/$defs/u64" },
+        "minSamples": { "type": "integer", "minimum": 0 },
+        "minPercentileSamples": { "type": "integer", "minimum": 0 },
+        "maxSamples": { "type": "integer", "minimum": 0 },
+        "latencyPercentile": { "type": "integer", "minimum": 0, "maximum": 255 }
+      }
+    },
+    "pidConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "proportionalGain": { "type": "number" },
+        "integralGain": { "type": "number" },
+        "derivativeGain": { "type": "number" },
+        "intervalMs": { "$ref": "#/$defs/u64" },
+        "maxDeltaPercentage": { "type": "number" },
+        "integralDecay": { "type": "number" }
+      }
+    },
+    "step": {
+      "oneOf": [
+        { "$ref": "#/$defs/submit" },
+        { "$ref": "#/$defs/complete" },
+        { "$ref": "#/$defs/cancel" },
+        { "$ref": "#/$defs/timestampedOperation" },
+        { "$ref": "#/$defs/nextDeadline" },
+        { "$ref": "#/$defs/latestStatistics" },
+        { "$ref": "#/$defs/priorityPercentile" }
+      ]
+    },
+    "submit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "atMs", "priority", "as"],
+      "properties": {
+        "operation": { "const": "submit" },
+        "atMs": { "$ref": "#/$defs/u64" },
+        "priority": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "as": { "$ref": "#/$defs/alias" },
+        "actions": { "$ref": "#/$defs/actions" },
+        "error": { "$ref": "#/$defs/error" }
+      },
+      "$ref": "#/$defs/resultConstraint"
+    },
+    "complete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "atMs", "request", "outcome"],
+      "properties": {
+        "operation": { "const": "complete" },
+        "atMs": { "$ref": "#/$defs/u64" },
+        "request": { "$ref": "#/$defs/request" },
+        "outcome": { "enum": ["success", "failure"] },
+        "actions": { "$ref": "#/$defs/actions" },
+        "error": { "$ref": "#/$defs/error" }
+      },
+      "$ref": "#/$defs/resultConstraint"
+    },
+    "cancel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "atMs", "request"],
+      "properties": {
+        "operation": { "const": "cancel" },
+        "atMs": { "$ref": "#/$defs/u64" },
+        "request": { "$ref": "#/$defs/request" },
+        "actions": { "$ref": "#/$defs/actions" },
+        "error": { "$ref": "#/$defs/error" }
+      },
+      "$ref": "#/$defs/resultConstraint"
+    },
+    "timestampedOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "atMs"],
+      "properties": {
+        "operation": { "enum": ["advance-time", "shutdown"] },
+        "atMs": { "$ref": "#/$defs/u64" },
+        "actions": { "$ref": "#/$defs/actions" },
+        "error": { "$ref": "#/$defs/error" }
+      },
+      "$ref": "#/$defs/resultConstraint"
+    },
+    "resultConstraint": {
+      "oneOf": [
+        { "required": ["actions"], "not": { "required": ["error"] } },
+        { "required": ["error"], "not": { "required": ["actions"] } }
+      ]
+    },
+    "nextDeadline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "expectMs"],
+      "properties": {
+        "operation": { "const": "next-deadline" },
+        "expectMs": { "oneOf": [{ "$ref": "#/$defs/u64" }, { "type": "null" }] }
+      }
+    },
+    "latestStatistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "expect"],
+      "properties": {
+        "operation": { "const": "latest-statistics" },
+        "expect": {
+          "oneOf": [{ "$ref": "#/$defs/statistics" }, { "type": "null" }]
+        }
+      }
+    },
+    "priorityPercentile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "percentile", "expect"],
+      "properties": {
+        "operation": { "const": "priority-percentile" },
+        "percentile": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "expect": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0, "maximum": 65535 },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/action" }
+    },
+    "action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "previous", "current"],
+          "properties": {
+            "type": { "enum": ["threshold-changed", "concurrency-changed"] },
+            "previous": { "type": "integer", "minimum": 0 },
+            "current": { "type": "integer", "minimum": 0 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "request"],
+          "properties": {
+            "type": { "const": "start" },
+            "request": { "$ref": "#/$defs/alias" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "request", "reason"],
+          "properties": {
+            "type": { "const": "reject" },
+            "request": { "$ref": "#/$defs/alias" },
+            "reason": { "$ref": "#/$defs/rejectionReason" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "request", "reason"],
+          "properties": {
+            "type": { "const": "evict" },
+            "request": { "$ref": "#/$defs/alias" },
+            "reason": { "const": "queue-timeout" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "request", "reason"],
+          "properties": {
+            "type": { "const": "cancel" },
+            "request": { "$ref": "#/$defs/alias" },
+            "reason": { "enum": ["requested", "shutdown"] }
+          }
+        }
+      ]
+    },
+    "rejectionReason": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "priority", "threshold"],
+          "properties": {
+            "type": { "const": "threshold" },
+            "priority": { "type": "integer", "minimum": 0, "maximum": 65535 },
+            "threshold": { "type": "integer", "minimum": 0, "maximum": 65535 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": { "type": { "enum": ["queue-full", "shutdown"] } }
+        }
+      ]
+    },
+    "statistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "startedAtMs", "endedAtMs", "percentileLatencyMs", "minimumLatencyMs",
+        "averageLatencyMs", "successfulRequests", "throughputPerSecond", "maxInFlight"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/u64" },
+        "startedAtMs": { "$ref": "#/$defs/u64" },
+        "endedAtMs": { "$ref": "#/$defs/u64" },
+        "percentileLatencyMs": { "$ref": "#/$defs/u64" },
+        "minimumLatencyMs": { "$ref": "#/$defs/u64" },
+        "averageLatencyMs": { "type": "number" },
+        "successfulRequests": { "$ref": "#/$defs/u64" },
+        "throughputPerSecond": { "type": "number" },
+        "maxInFlight": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": [
+            "priority-out-of-range", "time-regression", "unknown-request",
+            "invalid-transition", "request-id-exhausted", "sequence-exhausted",
+            "deadline-overflow"
+          ]
+        },
+        "value": { "type": "integer" },
+        "previousMs": { "$ref": "#/$defs/u64" },
+        "receivedMs": { "$ref": "#/$defs/u64" },
+        "requestId": { "$ref": "#/$defs/u64" },
+        "operation": { "type": "string" },
+        "state": { "type": "string" }
+      }
+    },
+    "configError": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": [
+            "threshold-out-of-range", "zero-concurrency", "zero-queue-timeout",
+            "queue-timeout-ratio-out-of-range", "zero-statistics-min-window",
+            "statistics-window-order", "zero-statistics-min-samples",
+            "zero-statistics-percentile-samples", "statistics-sample-limit-too-small",
+            "statistics-percentile-out-of-range", "invalid-pid-gain", "zero-pid-interval",
+            "pid-delta-out-of-range", "pid-decay-out-of-range"
+          ]
+        },
+        "value": { "type": "integer" },
+        "minimumMs": { "$ref": "#/$defs/u64" },
+        "maximumMs": { "$ref": "#/$defs/u64" },
+        "maximum": { "type": "integer", "minimum": 0 },
+        "required": { "type": "integer", "minimum": 0 },
+        "name": { "type": "string" }
+      }
+    },
+    "request": {
+      "oneOf": [{ "$ref": "#/$defs/alias" }, { "$ref": "#/$defs/u64" }]
+    },
+    "alias": { "type": "string", "minLength": 1 },
+    "u64": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+  }
+}

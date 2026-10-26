@@ -1,0 +1,51 @@
+{
+  "name": "@jfrz38/adaptive-admission-node",
+  "version": "0.1.0",
+  "description": "Node.js host SDK for the Adaptive Admission Controller WebAssembly component",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "COMPONENT.md"
+  ],
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "build": "node scripts/build.mjs",
+    "clean": "node scripts/clean.mjs",
+    "test": "pnpm generate && vitest run",
+    "test:coverage": "pnpm generate && vitest run --coverage",
+    "test:conformance": "pnpm generate && vitest run tests/conformance.spec.ts",
+    "test:package": "node scripts/package-smoke.mjs",
+    "lint": "eslint src tests --ignore-pattern src/generated/**",
+    "lint:src": "eslint src --ignore-pattern src/generated/**",
+    "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix",
+    "prepack": "pnpm build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jfrz38/rate-limit-pid-controller.git",
+    "directory": "code/hosts/node"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "admission-control",
+    "load-shedding",
+    "pid-controller",
+    "webassembly",
+    "nodejs"
+  ],
+  "devDependencies": {
+    "@bytecodealliance/jco-transpile": "0.20.0"
+  }
+}

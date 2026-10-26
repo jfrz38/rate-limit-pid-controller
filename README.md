@@ -14,6 +14,10 @@ Choose how you want to integrate the PID rate limiter:
   Use the PID controller directly in any Node.js project without HTTP protocols.  
   🔗 [Core README](./code/core/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-core)](https://www.npmjs.com/package/@jfrz38/pid-controller-core)
 
+- **WebAssembly Node Host**
+  Use the portable Rust controller from Node.js through its Promise-based host SDK.
+  🔗 [Node Host README](./code/hosts/node/README.md)
+
 - **Framework Adapters**  
   Plug the controller into your framework with minimal setup:  
   🔗 [Express Adapter](./code/adapters/express/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)  
@@ -90,6 +94,9 @@ This repository contains several npm packages that are versioned and released in
 - `@jfrz38/pid-controller-core` uses tags like `core-vX.Y.Z`.
 - `@jfrz38/pid-controller-express` uses tags like `express-vX.Y.Z`.
 - `@jfrz38/pid-controller-nestjs` uses tags like `nestjs-vX.Y.Z`.
+- `@jfrz38/adaptive-admission-node` hosts the separately released
+  `adaptive-admission-controller` WebAssembly component. Its publication workflow will be enabled
+  after the host contract is stabilized.
 
 GitHub Releases are therefore package-specific. `npm` is the source of truth for each package's `latest` version, because npm tracks the `latest` dist-tag per package while GitHub only has one repository-level latest release.
 
@@ -116,7 +123,8 @@ Run `make help` to list all available targets.
 
 ### Local package testing
 
-Build a package and create a local tarball with `PACKAGE=core`, `shared`, `express`, or `nestjs`:
+Build a package and create a local tarball with `PACKAGE=core`, `shared`, `express`, `nestjs`, or
+`node`:
 
 ```bash
 make pack-local PACKAGE=core
