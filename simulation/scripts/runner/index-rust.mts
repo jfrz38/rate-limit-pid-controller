@@ -74,6 +74,14 @@ class RunRustScenario {
   private readonly controller = new AdaptiveAdmissionController({
     maxConcurrentRequests: 2,
     pid: { intervalMs: 1_000 },
+    statistics: {
+      minWindowMs: 2_000,
+      maxWindowMs: 30_000,
+      minSamples: 5,
+      minPercentileSamples: 250,
+      maxSamples: 1_000,
+      latencyPercentile: 90,
+    },
   });
   private readonly pendingRequests: Promise<unknown>[] = [];
   private readonly dispatchLag = new DispatchLagMetrics();
