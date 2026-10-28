@@ -14,6 +14,7 @@ export { Priority } from './priority.js';
 export type {
   ControllerDiagnosticEvent,
   ControllerDiagnosticListener,
+  ControllerDiagnostics,
   ControllerOptions,
   PidOptions,
   StatisticsOptions,

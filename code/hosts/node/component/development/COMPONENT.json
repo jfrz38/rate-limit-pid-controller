@@ -1,0 +1,9 @@
+{
+  "artifact": "adaptive-admission-component.wasm",
+  "sourceRepository": "jfrz38/adaptive-admission-controller",
+  "sourceRef": "develop",
+  "sourceCommit": "bd60746f3d00c85729b41cd409e8f2ee2eb1a1a1",
+  "componentPackageVersion": "0.1.0",
+  "developmentSnapshot": true,
+  "sha256": "f15826063850c2963a64481695f8550d295dd776e871de439b2d74c0de9bb7a5"
+}
