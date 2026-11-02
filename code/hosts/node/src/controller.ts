@@ -22,6 +22,7 @@ import type {
   ControllerDiagnostics,
   ControllerErrorPayload,
   ControllerOptions,
+  RunOptions,
   StatisticsSnapshot,
 } from './types.js';
 
@@ -30,6 +31,7 @@ interface PendingTask<T = unknown> {
   resolve: (value: T | PromiseLike<T>) => void;
   reject: (reason?: unknown) => void;
   state: 'queued' | 'started';
+  abort?: { signal: AbortSignal; listener: () => void };
 }
 
 export interface MonotonicClock {
@@ -77,9 +79,16 @@ export class AdaptiveAdmissionController {
     this.component = createValidatedComponentController(options);
   }
 
-  run<T>(task: () => T | Promise<T>, priority: Priority = Priority.default()): Promise<T> {
+  run<T>(
+    task: () => T | Promise<T>,
+    priority: Priority = Priority.default(),
+    options: RunOptions = {},
+  ): Promise<T> {
     if (this.shutdownRequested) {
       return Promise.reject(new ControllerShutdownError());
+    }
+    if (options.signal?.aborted) {
+      return Promise.reject(new CancelledRequestError(undefined, 'requested'));
     }
 
     let resolve!: (value: T | PromiseLike<T>) => void;
@@ -93,6 +102,7 @@ export class AdaptiveAdmissionController {
       const submission = this.component.submit(priority.value, this.now());
       this.pending.set(submission.requestId, { task, resolve, reject, state: 'queued' });
       this.processActions(submission.actions);
+      this.observeAbort(submission.requestId, options.signal);
       this.rescheduleDeadline();
     } catch (error) {
       reject(this.translateProtocolError(error));
@@ -211,6 +221,7 @@ export class AdaptiveAdmissionController {
       throw new Error(`component started unknown or non-queued request ${requestId}`);
     }
     pending.state = 'started';
+    this.removeAbortListener(pending);
     this.dependencies.defer(() => {
       Promise.resolve()
         .then(pending.task)
@@ -272,7 +283,44 @@ export class AdaptiveAdmissionController {
       throw new Error(`component settled unknown request ${requestId}`);
     }
     this.pending.delete(requestId);
+    this.removeAbortListener(pending);
     pending.reject(error);
+  }
+
+  private observeAbort(requestId: bigint, signal: AbortSignal | undefined): void {
+    const pending = this.pending.get(requestId);
+    if (!signal || !pending || pending.state !== 'queued') {
+      return;
+    }
+    const listener = () => this.cancelQueued(requestId);
+    pending.abort = { signal, listener };
+    signal.addEventListener('abort', listener, { once: true });
+    if (signal.aborted) {
+      listener();
+    }
+  }
+
+  private cancelQueued(requestId: bigint): void {
+    const pending = this.pending.get(requestId);
+    if (!pending || pending.state !== 'queued') {
+      return;
+    }
+    try {
+      this.processActions(this.component.cancel(requestId, this.now()));
+    } catch (error) {
+      this.pending.delete(requestId);
+      this.removeAbortListener(pending);
+      pending.reject(this.translateProtocolError(error));
+    } finally {
+      this.rescheduleDeadline();
+    }
+  }
+
+  private removeAbortListener(pending: PendingTask): void {
+    if (pending.abort) {
+      pending.abort.signal.removeEventListener('abort', pending.abort.listener);
+      pending.abort = undefined;
+    }
   }
 
   private rescheduleDeadline(): void {

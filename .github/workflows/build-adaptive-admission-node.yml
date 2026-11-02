@@ -2,7 +2,7 @@ name: Build Adaptive Admission Node Host
 
 on:
     pull_request:
-        branches: [main, develop]
+        branches: [main, develop, migrate/adaptive-admission]
         paths:
             - "code/hosts/node/**"
             - "code/package.json"
@@ -33,5 +33,20 @@ jobs:
                   cache: "pnpm"
                   cache-dependency-path: code/pnpm-lock.yaml
 
-            - name: Validate Node host package
-              run: make validate-node
+            - name: Install workspace dependencies
+              run: make install-code
+
+            - name: Build Node host and validate component provenance
+              run: make build-node
+
+            - name: Lint Node host
+              run: make lint-node
+
+            - name: Test Node host
+              run: make test-node
+
+            - name: Run component conformance
+              run: make test-node-conformance
+
+            - name: Smoke test installed package tarball
+              run: make test-node-package

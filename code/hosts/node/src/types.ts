@@ -28,6 +28,10 @@ export interface ControllerOptions {
   pid?: PidOptions;
 }
 
+export interface RunOptions {
+  signal?: AbortSignal;
+}
+
 export interface StatisticsSnapshot {
   id: bigint;
   startedAtMs: bigint;

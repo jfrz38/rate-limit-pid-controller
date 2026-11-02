@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import {
   AdaptiveAdmissionController,
+  CancelledRequestError,
   ControllerShutdownError,
   EvictedRequestError,
   Priority,
@@ -41,6 +42,27 @@ describe('AdaptiveAdmissionController', () => {
 
     await Promise.all([active, lessImportant, moreImportant]);
     expect(order).toEqual(['active', 'more-important', 'less-important']);
+    controller.shutdown();
+  });
+
+  test('starts equal-priority queued work in FIFO order', async () => {
+    const controller = controllerWithSlowControlLoops();
+    const blocker = deferred<void>();
+    const started = deferred<void>();
+    const order: string[] = [];
+
+    const active = controller.run(async () => {
+      started.resolve();
+      await blocker.promise;
+    }, Priority.fromValue(0));
+    await started.promise;
+
+    const first = controller.run(() => order.push('first'), Priority.fromValue(10));
+    const second = controller.run(() => order.push('second'), Priority.fromValue(10));
+    blocker.resolve();
+
+    await Promise.all([active, first, second]);
+    expect(order).toEqual(['first', 'second']);
     controller.shutdown();
   });
 
@@ -160,6 +182,71 @@ describe('AdaptiveAdmissionController', () => {
 
     blocker.resolve('finished');
     await expect(active).resolves.toBe('finished');
+  });
+
+  test('does not submit work when its signal is already aborted', async () => {
+    const controller = controllerWithSlowControlLoops();
+    const abortController = new AbortController();
+    const task = vi.fn();
+    abortController.abort();
+
+    await expect(controller.run(
+      task,
+      Priority.fromValue(0),
+      { signal: abortController.signal },
+    )).rejects.toMatchObject({
+      name: 'CancelledRequestError',
+      requestId: undefined,
+      reason: 'requested',
+    });
+    expect(task).not.toHaveBeenCalled();
+    controller.shutdown();
+  });
+
+  test('cancels queued work through AbortSignal without affecting active work', async () => {
+    const controller = controllerWithSlowControlLoops();
+    const blocker = deferred<string>();
+    const started = deferred<void>();
+    const queuedTask = vi.fn();
+    const abortController = new AbortController();
+
+    const active = controller.run(async () => {
+      started.resolve();
+      return blocker.promise;
+    }, Priority.fromValue(0));
+    await started.promise;
+    const queued = controller.run(
+      queuedTask,
+      Priority.fromValue(1),
+      { signal: abortController.signal },
+    );
+
+    abortController.abort();
+
+    await expect(queued).rejects.toBeInstanceOf(CancelledRequestError);
+    expect(queuedTask).not.toHaveBeenCalled();
+    blocker.resolve('finished');
+    await expect(active).resolves.toBe('finished');
+    controller.shutdown();
+  });
+
+  test('does not interrupt JavaScript work that has already started', async () => {
+    const controller = controllerWithSlowControlLoops();
+    const blocker = deferred<string>();
+    const started = deferred<void>();
+    const abortController = new AbortController();
+
+    const active = controller.run(async () => {
+      started.resolve();
+      return blocker.promise;
+    }, Priority.fromValue(0), { signal: abortController.signal });
+    await started.promise;
+
+    abortController.abort();
+    blocker.resolve('finished');
+
+    await expect(active).resolves.toBe('finished');
+    controller.shutdown();
   });
 
   test('publishes threshold changes to diagnostic listeners', async () => {

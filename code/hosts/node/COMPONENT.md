@@ -1,19 +1,30 @@
-# Embedded development snapshot
+# Embedded migration snapshot
 
-This migration branch embeds a development build of the component from
-`jfrz38/adaptive-admission-controller` `develop`, commit
-`bd60746f3d00c85729b41cd409e8f2ee2eb1a1a1`.
+This branch embeds a component built from the immutable source below:
 
-It includes the read-only `latest-diagnostics` WIT operation. This is a development snapshot, not
-a published GitHub Release or npm package. Its component package version remains `0.1.0`; the exact
-source commit and artifact checksum are recorded in [`development/COMPONENT.json`](component/development/COMPONENT.json).
+| Field | Value |
+| --- | --- |
+| Repository | `https://github.com/jfrz38/adaptive-admission-controller` |
+| Informational branch | `main` |
+| Commit | `b821533645e6dfbfb611b9459345d0e5030bf83a` |
+| Component version | `0.1.0` |
+| WIT world | `jfrz38:adaptive-admission/adaptive-admission@0.1.0` |
+| Rust | `rustc 1.99.0 (b940084d7 2026-09-28)` |
+| wasm-tools | `1.262.0` |
+| jco-transpile | `0.20.0` |
 
-The component SHA-256 is:
+The checkout was clean and detached at the exact commit before running `make dist`. The resulting
+component SHA-256 is:
 
 ```text
 f15826063850c2963a64481695f8550d295dd776e871de439b2d74c0de9bb7a5
 ```
 
-`@bytecodealliance/jco-transpile` 0.20.0 transpiles that component during the package build. The
-generated JavaScript and core WebAssembly modules are shipped in `dist/generated`. The original
-published `v0.1.0` assets remain in `component/` unchanged.
+`component/COMPONENT.json` relates the source, toolchain, WIT, conformance archive, upstream
+manifest, generated artifact, and their checksums. Generation fails before transpilation when any
+checksum or required contract operation differs.
+
+This is a `git-snapshot` with `publishable: false`. Normal `pnpm pack`, release, and npm publication
+are blocked. The package smoke test uses an explicit local override solely to inspect and install a
+tarball outside the workspace. Stable publication remains disabled until the component is sourced
+from the exact crates.io version required by migration iteration 3.

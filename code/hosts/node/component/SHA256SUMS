@@ -1,3 +1,4 @@
-1ef71e6ae21d35245921049dbb51bc0abebf573d2682f887855eeec6c70a6df8  adaptive-admission-component-v0.1.0.wasm
-08c6bc6d44a42398c1e817ff36ccb29ea3e17570f845355ec5e308020e892fe2  adaptive-admission-world-v0.1.0.wit
-1eb6cbabc7cb37a66f537ba5fc5125988aabc04e56bb2437f998eccba0e6168c  adaptive-admission-conformance-v0.1.0.tar.gz
+f15826063850c2963a64481695f8550d295dd776e871de439b2d74c0de9bb7a5 *adaptive-admission-component-v0.1.0.wasm
+703d66043f9e2d2bedf92ef97a9ef2618eed1b25eef5c68e2e53fa35d9ca81da *adaptive-admission-world-v0.1.0.wit
+391fe104d81802338abe060dcb58e9977c586a292617ac1813bad74863fd855c *adaptive-admission-conformance-v0.1.0.tar.gz
+a084431091a1262202dc19883b67acbe39aa17bd3cf726bcffff9cc64581ddd2 *adaptive-admission-release-v0.1.0.json

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -11,13 +11,16 @@ const consumerDirectory = join(temporaryDirectory, 'consumer');
 const pnpm = process.env.npm_execpath;
 if (!pnpm) throw new Error('npm_execpath is required to run the package smoke test');
 const manifest = JSON.parse(await readFile(join(packageDirectory, 'package.json'), 'utf8'));
+const allowSnapshot = process.argv.includes('--allow-snapshot');
 
 try {
   await Promise.all([
     mkdir(artifactDirectory, { recursive: true }),
     mkdir(consumerDirectory, { recursive: true }),
   ]);
-  runPnpm(['pack', '--pack-destination', artifactDirectory], packageDirectory);
+  runPnpm(['pack', '--pack-destination', artifactDirectory], packageDirectory, allowSnapshot
+    ? { ADAPTIVE_ADMISSION_SNAPSHOT_PACK: 'package-smoke' }
+    : {});
 
   const artifactName = `${manifest.name.replace(/^@/, '').replace('/', '-')}-${manifest.version}.tgz`;
   const artifact = join(artifactDirectory, artifactName);
@@ -27,6 +30,16 @@ try {
     type: 'module',
   }));
   runPnpm(['add', '--ignore-workspace', artifact], consumerDirectory);
+  const installedPackage = join(consumerDirectory, 'node_modules', '@jfrz38', 'adaptive-admission-node');
+  await Promise.all([
+    access(join(installedPackage, 'component', 'COMPONENT.json')),
+    access(join(installedPackage, 'component', 'adaptive-admission-component-v0.1.0.wasm')),
+    access(join(installedPackage, 'dist', 'generated', 'adaptive-admission.js')),
+    access(join(installedPackage, 'dist', 'generated', 'adaptive-admission.core.wasm')),
+    access(join(installedPackage, 'dist', 'generated', 'adaptive-admission.core2.wasm')),
+    access(join(installedPackage, 'dist', 'generated', 'adaptive-admission.core3.wasm')),
+    access(join(installedPackage, 'COMPONENT.md')),
+  ]);
   await writeFile(join(consumerDirectory, 'smoke.mjs'), `
     import { AdaptiveAdmissionController, Priority } from '@jfrz38/adaptive-admission-node';
     const controller = new AdaptiveAdmissionController({ pid: { intervalMs: 10_000 } });
@@ -39,9 +52,10 @@ try {
   await rm(temporaryDirectory, { recursive: true, force: true });
 }
 
-function run(executable, args, cwd) {
+function run(executable, args, cwd, environment = {}) {
   const result = spawnSync(executable, args, {
     cwd,
+    env: { ...process.env, ...environment },
     encoding: 'utf8',
     stdio: 'inherit',
   });
@@ -49,10 +63,10 @@ function run(executable, args, cwd) {
   if (result.status !== 0) throw new Error(`${executable} exited with status ${result.status}`);
 }
 
-function runPnpm(args, cwd) {
+function runPnpm(args, cwd, environment = {}) {
   if (pnpm.endsWith('.exe')) {
-    run(pnpm, args, cwd);
+    run(pnpm, args, cwd, environment);
   } else {
-    run(process.execPath, [pnpm, ...args], cwd);
+    run(process.execPath, [pnpm, ...args], cwd, environment);
   }
 }

@@ -1,21 +1,13 @@
-import { createHash } from 'node:crypto';
-import { readFile, rm } from 'node:fs/promises';
+import { rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { transpile, writeFiles } from '@bytecodealliance/jco-transpile';
 
-const metadataPath = fileURLToPath(new URL('../component/development/COMPONENT.json', import.meta.url));
-const metadata = JSON.parse(await readFile(metadataPath, 'utf8'));
-if (metadata.developmentSnapshot !== true || !/^[0-9a-f]{40}$/.test(metadata.sourceCommit)) {
-  throw new Error('development component metadata must identify an exact source commit');
-}
-const componentPath = fileURLToPath(new URL(`../component/development/${metadata.artifact}`, import.meta.url));
-const outputPath = fileURLToPath(new URL('../src/generated', import.meta.url));
+import { defaultMetadataPath, loadComponentBundle } from './component-metadata.mjs';
 
-const component = await readFile(componentPath);
-const actualDigest = createHash('sha256').update(component).digest('hex');
-if (actualDigest !== metadata.sha256) {
-  throw new Error(`component checksum mismatch: expected ${metadata.sha256}, received ${actualDigest}`);
-}
+const metadataPath = process.env.ADAPTIVE_ADMISSION_COMPONENT_METADATA ?? defaultMetadataPath;
+const { artifacts } = await loadComponentBundle(metadataPath);
+const componentPath = artifacts.component.path;
+const outputPath = fileURLToPath(new URL('../src/generated', import.meta.url));
 
 await rm(outputPath, { recursive: true, force: true });
 

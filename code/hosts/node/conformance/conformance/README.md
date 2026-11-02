@@ -44,3 +44,8 @@ from these traces.
 
 JSON cannot encode non-finite numbers. Rust-native tests continue to cover `NaN`, infinity, integer
 overflow, and implementation-specific type limits.
+
+Component hosts must additionally test target-specific representation boundaries. In particular,
+the `wasm32` component reports `numeric-overflow` when a WIT `u64` collection bound cannot be
+represented as WebAssembly's 32-bit `usize`; this is intentionally not a shared scenario because the
+same value can be valid for the native 64-bit Rust runner.

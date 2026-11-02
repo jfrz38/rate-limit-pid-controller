@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "type": "git-snapshot",
+    "repository": "https://github.com/jfrz38/adaptive-admission-controller",
+    "branch": "main",
+    "commit": "b821533645e6dfbfb611b9459345d0e5030bf83a"
+  },
+  "component": {
+    "version": "0.1.0",
+    "package": "jfrz38:adaptive-admission@0.1.0",
+    "world": "adaptive-admission",
+    "artifact": "adaptive-admission-component-v0.1.0.wasm",
+    "sha256": "f15826063850c2963a64481695f8550d295dd776e871de439b2d74c0de9bb7a5"
+  },
+  "wit": {
+    "artifact": "adaptive-admission-world-v0.1.0.wit",
+    "sha256": "703d66043f9e2d2bedf92ef97a9ef2618eed1b25eef5c68e2e53fa35d9ca81da"
+  },
+  "conformance": {
+    "artifact": "adaptive-admission-conformance-v0.1.0.tar.gz",
+    "sha256": "391fe104d81802338abe060dcb58e9977c586a292617ac1813bad74863fd855c"
+  },
+  "upstreamManifest": {
+    "artifact": "adaptive-admission-release-v0.1.0.json",
+    "sha256": "a084431091a1262202dc19883b67acbe39aa17bd3cf726bcffff9cc64581ddd2"
+  },
+  "toolchain": {
+    "rust": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "wasmTools": "wasm-tools 1.262.0",
+    "jcoTranspile": "0.20.0"
+  },
+  "publishable": false
+}
