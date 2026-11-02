@@ -1,13 +1,19 @@
-# Embedded component
+# Embedded development snapshot
 
-This package embeds `adaptive-admission-component-v0.1.0.wasm` from
-[`jfrz38/adaptive-admission-controller` release `v0.1.0`](https://github.com/jfrz38/adaptive-admission-controller/releases/tag/v0.1.0).
+This migration branch embeds a development build of the component from
+`jfrz38/adaptive-admission-controller` `develop`, commit
+`bd60746f3d00c85729b41cd409e8f2ee2eb1a1a1`.
 
-SHA-256:
+It includes the read-only `latest-diagnostics` WIT operation. This is a development snapshot, not
+a published GitHub Release or npm package. Its component package version remains `0.1.0`; the exact
+source commit and artifact checksum are recorded in [`development/COMPONENT.json`](component/development/COMPONENT.json).
+
+The component SHA-256 is:
 
 ```text
-1ef71e6ae21d35245921049dbb51bc0abebf573d2682f887855eeec6c70a6df8
+f15826063850c2963a64481695f8550d295dd776e871de439b2d74c0de9bb7a5
 ```
 
 `@bytecodealliance/jco-transpile` 0.20.0 transpiles that component during the package build. The
-generated JavaScript and core WebAssembly modules are shipped in `dist/generated`.
+generated JavaScript and core WebAssembly modules are shipped in `dist/generated`. The original
+published `v0.1.0` assets remain in `component/` unchanged.

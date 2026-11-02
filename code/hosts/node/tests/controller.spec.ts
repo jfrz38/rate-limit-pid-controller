@@ -186,6 +186,10 @@ describe('AdaptiveAdmissionController', () => {
     }));
     const thresholdChange = diagnostics.find((event) => event.type === 'threshold-changed');
     expect(thresholdChange?.current).toBeLessThan(768);
+    expect(diagnostics).toContainEqual(expect.objectContaining({
+      type: 'controller-diagnostics',
+      diagnostics: expect.objectContaining({ threshold: thresholdChange?.current }),
+    }));
 
     controller.shutdown();
     blocker.resolve();
@@ -248,6 +252,59 @@ describe('AdaptiveAdmissionController', () => {
     await expect(active).resolves.toBeUndefined();
     runtime.flushDeferred();
     await expect(queued).resolves.toBe('queued');
+    controller.shutdown();
+  });
+
+  test('publishes initial and changed adaptive controller diagnostics', async () => {
+    const runtime = new FakeRuntime();
+    const controller = new AdaptiveAdmissionController({
+      maxConcurrentRequests: 1,
+      queueTimeoutMs: 500,
+      queueTimeoutRatio: 0.5,
+      pid: { intervalMs: 10_000 },
+      statistics: {
+        minWindowMs: 10,
+        maxWindowMs: 20,
+        minSamples: 1,
+        minPercentileSamples: 1,
+        maxSamples: 10,
+      },
+    }, runtime.dependencies);
+    const diagnostics: ControllerDiagnosticEvent[] = [];
+    controller.onDiagnostic((event) => diagnostics.push(event));
+    const blocker = deferred<void>();
+    const started = deferred<void>();
+
+    const active = controller.run(async () => {
+      started.resolve();
+      await blocker.promise;
+    }, Priority.fromValue(0));
+    runtime.flushDeferred();
+    await started.promise;
+
+    const initial = diagnostics.find((event) => event.type === 'controller-diagnostics');
+    expect(initial).toMatchObject({
+      type: 'controller-diagnostics',
+      diagnostics: {
+        threshold: 768,
+        concurrencyLimit: 1n,
+        queueTimeoutMs: 500n,
+        targetLatencyMs: 100,
+      },
+    });
+
+    runtime.advanceTo(10n);
+    blocker.resolve();
+    await active;
+    runtime.advanceTo(20n);
+    runtime.advanceTo(2_010n);
+
+    const snapshots = diagnostics.filter((event) => event.type === 'controller-diagnostics');
+    expect(snapshots.some((event) => event.type === 'controller-diagnostics'
+      && event.diagnostics.queueTimeoutMs === 5n)).toBe(true);
+    expect(snapshots.some((event) => event.type === 'controller-diagnostics'
+      && event.diagnostics.aggregatedLatencyMs !== undefined)).toBe(true);
+
     controller.shutdown();
   });
 });

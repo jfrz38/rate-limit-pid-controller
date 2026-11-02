@@ -27,7 +27,7 @@ Operational tools can subscribe to low-volume controller diagnostics without aff
 
 ```ts
 const unsubscribe = controller.onDiagnostic((event) => {
-  // threshold-changed, concurrency-changed, or statistics-published
+  // threshold-changed, concurrency-changed, statistics-published, or controller-diagnostics
   console.log(event);
 });
 
@@ -36,6 +36,9 @@ unsubscribe();
 
 Listeners run after the component mutation that produced the event. They are intended for
 observability and simulations, not for admission decisions.
+
+The migration branch builds against the pinned development component snapshot documented in
+[`COMPONENT.md`](./COMPONENT.md). This snapshot is not a published package or release.
 
 The package is ESM-only. Each `AdaptiveAdmissionController` owns independent queue, PID, statistics,
 and timer state. Limits are not coordinated across workers or processes.

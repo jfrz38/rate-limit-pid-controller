@@ -28,9 +28,10 @@ make simulation-run SCENARIO=aggressive_peak
 make simulation-run-rust SCENARIO=aggressive_peak
 ```
 
-Rust runner logs end in `-rust.log` and identify the backend as `rust-wasm` in the summary. Traffic
-and summary data are available for both backends. Internal threshold, target-latency, timeout, and
-concurrency-limit series remain partial for Rust until the Node host exposes those diagnostics.
+Rust runner logs end in `-rust.log` and identify the backend as `rust-wasm` in the summary. They
+include threshold, concurrency, statistics, target latency, filtered latency, and adaptive queue
+timeout diagnostics from the pinned development component snapshot. The exact source commit and
+checksum are recorded in `code/hosts/node/COMPONENT.md`.
 
 You can run each step independently:
 

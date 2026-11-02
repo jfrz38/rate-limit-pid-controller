@@ -5,6 +5,7 @@ import type {
   Action,
   AdmissionController as GeneratedController,
   Config,
+  ControllerDiagnostics,
   ControllerError,
   Outcome,
   StatisticsSnapshot,
@@ -14,6 +15,7 @@ import type {
 
 export type ComponentAction = Action;
 export type ComponentConfig = Config;
+export type ComponentControllerDiagnostics = ControllerDiagnostics;
 export type ComponentControllerError = ControllerError;
 export type ComponentOutcome = Outcome;
 export type ComponentStatisticsSnapshot = StatisticsSnapshot;
@@ -34,6 +36,10 @@ export function defaultComponentConfig(): ComponentConfig {
 
 export function createComponentController(configuration: ComponentConfig): GeneratedController {
   return component.create(configuration);
+}
+
+export function latestComponentDiagnostics(controller: GeneratedController): ComponentControllerDiagnostics {
+  return controller.latestDiagnostics();
 }
 
 export function componentErrorPayload(error: unknown): unknown {
