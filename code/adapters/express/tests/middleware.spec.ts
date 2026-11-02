@@ -1,72 +1,25 @@
-import { PidControllerRateLimit } from "@jfrz38/pid-controller-core";
-import { PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { pidControllerMiddleware } from "../src/middleware";
+import { EventEmitter } from 'node:events';
+import { describe, expect, test, vi } from 'vitest';
 
-vi.mock("@jfrz38/pid-controller-core");
-vi.mock("@jfrz38/pid-controller-shared");
+import { pidControllerMiddleware } from '../src/middleware';
 
-describe('Express PID Controller Middleware', () => {
-    let mockRequest: any;
-    let mockResponse: any;
-    let nextFunction: any;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        mockRequest = {};
-        mockResponse = {};
-        nextFunction = vi.fn();
+describe('Express adaptive admission middleware', () => {
+  test('executes an admitted request using the real Rust host', async () => {
+    const { middleware, shutdown } = pidControllerMiddleware({
+      pid: { config: { maxConcurrentRequests: 1 }, priority: { getPriority: () => 0 } },
     });
+    const req = Object.assign(new EventEmitter(), { aborted: false });
+    const res = Object.assign(new EventEmitter(), { destroyed: false });
+    const next = vi.fn(() => res.emit('finish'));
 
-    test('should create a middleware that calls handler.use', async () => {
-        const options = {
-            pid: {
-                config: {
-                    pid: { KP: 1, KI: 0.1 },
-                    capacity: { maxConcurrentRequests: 2 },
-                },
-                priority: { getPriority: (req: any) => 1 }
-            }
-        };
+    await middleware(req as any, res as any, next);
 
-        const { middleware } = pidControllerMiddleware(options);
+    expect(next).toHaveBeenCalledOnce();
+    shutdown();
+  });
 
-        await middleware(mockRequest, mockResponse, nextFunction);
-
-        expect(PidControllerRateLimit).toHaveBeenCalledWith(options.pid.config);
-
-        const mockControllerInstance = vi.mocked(PidControllerRateLimit).mock.instances[0];
-        expect(PidControllerMiddlewareHandler).toHaveBeenCalledWith(
-            mockControllerInstance,
-            options.pid.priority
-        );
-
-        const mockHandlerInstance = vi.mocked(PidControllerMiddlewareHandler).mock.instances[0];
-        expect(mockHandlerInstance.use).toHaveBeenCalledWith(
-            mockRequest,
-            mockResponse,
-            nextFunction
-        );
-    });
-
-    test('should work with undefined options', async () => {
-        const { middleware } = pidControllerMiddleware();
-
-        await middleware(mockRequest, mockResponse, nextFunction);
-
-        expect(PidControllerRateLimit).toHaveBeenCalledWith(undefined);
-        expect(PidControllerMiddlewareHandler).toHaveBeenCalled();
-
-        const mockHandlerInstance = vi.mocked(PidControllerMiddlewareHandler).mock.instances[0];
-        expect(mockHandlerInstance.use).toBeCalled();
-    });
-
-    test('should expose shutdown to cleanup controller resources', () => {
-        const { shutdown } = pidControllerMiddleware();
-
-        shutdown();
-
-        const mockControllerInstance = vi.mocked(PidControllerRateLimit).mock.instances[0];
-        expect(mockControllerInstance.shutdown).toHaveBeenCalledTimes(1);
-    });
+  test('exposes idempotent shutdown', () => {
+    const controller = pidControllerMiddleware();
+    expect(() => { controller.shutdown(); controller.shutdown(); }).not.toThrow();
+  });
 });

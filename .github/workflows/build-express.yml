@@ -1,9 +1,9 @@
 name: Build Express Adapter
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, migrate/adaptive-admission]
     paths:
-      - "code/core/**"
+      - "code/hosts/node/**"
       - "code/adapters/shared/**"
       - "code/adapters/express/**"
       - "code/package.json"
@@ -59,3 +59,8 @@ jobs:
 
       - name: Run Tests
         run: make test-express
+
+      - name: Smoke test installed consumer tarballs
+        run: make test-consumer-packages
+        env:
+          SMOKE_EXPRESS_VERSION: ${{ matrix.express_version }}

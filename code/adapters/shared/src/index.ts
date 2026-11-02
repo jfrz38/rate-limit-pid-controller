@@ -1,5 +1,7 @@
 export { PidHttpRules } from "./filter/error/pid-http-rules";
 export { ResponseError } from "./filter/error/response-error";
+export { adaptiveAdmissionHttpError } from './filter/adaptive-admission-http-error';
+export type { AdaptiveAdmissionHttpPolicy } from './filter/adaptive-admission-http-error';
 export { HttpErrorResponse } from "./filter/http-error-response";
 export { PidControllerMiddlewareHandler } from "./middleware/pid-controller-middleware-handler";
 export { PidControllerMiddlewarePriority } from "./middleware/types/pid-controller-middleware-options";

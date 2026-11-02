@@ -1,0 +1,2 @@
+# Component bundle checksums cover exact bytes; never apply platform line-ending conversion.
+code/hosts/node/component/* -text

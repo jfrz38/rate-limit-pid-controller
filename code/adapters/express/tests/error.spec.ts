@@ -1,61 +1,36 @@
-import { RejectedRequestException } from "@jfrz38/pid-controller-core";
-import { HttpErrorResponse } from "@jfrz38/pid-controller-shared";
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { CancelledRequestError, ConfigurationError, QueueFullError, ThresholdRejectedError } from '@jfrz38/adaptive-admission-node';
+import { describe, expect, test, vi } from 'vitest';
+
 import { pidControllerErrorHandler } from '../src/error';
 
-const mockFormat = vi.fn();
+function context(aborted = false) {
+  const json = vi.fn();
+  const response = { headersSent: false, destroyed: false, set: vi.fn(), status: vi.fn(() => ({ json })) };
+  return { request: { aborted }, response, json, next: vi.fn() };
+}
 
-vi.mock("@jfrz38/pid-controller-shared", () => {
-    return {
-        HttpErrorResponse: vi.fn().mockImplementation(function (this: any) {
-            this.format = mockFormat;
-            return this;
-        })
-    };
-});
+describe('Express adaptive admission error handler', () => {
+  test.each([
+    [new ThresholdRejectedError(1n, 700, 500), 429],
+    [new QueueFullError(1n), 503],
+  ])('formats controlled host errors', (error, status) => {
+    const ctx = context();
+    pidControllerErrorHandler()(error, ctx.request as any, ctx.response as any, ctx.next);
+    expect(ctx.response.status).toHaveBeenCalledWith(status);
+    expect(ctx.next).not.toHaveBeenCalled();
+  });
 
-describe('Express PID Controller Error handler', () => {
-    let mockRequest: any;
-    let mockResponse: any;
-    let nextFunction: any;
+  test('does not write a cancellation response after the client disconnects', () => {
+    const ctx = context(true);
+    pidControllerErrorHandler()(new CancelledRequestError(1n, 'requested'), ctx.request as any, ctx.response as any, ctx.next);
+    expect(ctx.response.status).not.toHaveBeenCalled();
+    expect(ctx.next).not.toHaveBeenCalled();
+  });
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-        mockRequest = {};
-        mockResponse = { headersSent: false };
-        nextFunction = vi.fn();
-    });
-
-    test('when is RejectedRequestException should call shared', () => {
-        const options = { code: 429 };
-        const handler = pidControllerErrorHandler(options);
-        const error = new RejectedRequestException(10, 5);
-
-        handler(error, mockRequest, mockResponse, nextFunction);
-
-        expect(HttpErrorResponse).toHaveBeenCalledWith(error, options);
-
-        expect(mockFormat).toHaveBeenCalledWith(mockResponse);
-    });
-
-    test('when is not a RejectedRequestException should call next(error) and not call shared', () => {
-        const handler = pidControllerErrorHandler();
-        const genericError = new Error('Other error');
-
-        handler(genericError, mockRequest, mockResponse, nextFunction);
-
-        expect(HttpErrorResponse).not.toHaveBeenCalled();
-        expect(nextFunction).toHaveBeenCalledWith(genericError);
-    });
-
-    test('when headers are sent should should call next(error)', () => {
-        const handler = pidControllerErrorHandler();
-        const error = new RejectedRequestException(0, 0);
-        mockResponse.headersSent = true;
-
-        handler(error, mockRequest, mockResponse, nextFunction);
-
-        expect(HttpErrorResponse).not.toHaveBeenCalled();
-        expect(nextFunction).toHaveBeenCalledWith(error);
-    });
+  test('propagates configuration and application errors', () => {
+    const ctx = context();
+    const error = new ConfigurationError({ tag: 'invalid' });
+    pidControllerErrorHandler()(error, ctx.request as any, ctx.response as any, ctx.next);
+    expect(ctx.next).toHaveBeenCalledWith(error);
+  });
 });
