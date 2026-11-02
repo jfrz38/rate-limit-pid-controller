@@ -23,7 +23,7 @@ try {
   writeFileSync(join(consumer, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
   const tarballs = readdirSync(artifacts).filter((name) => name.endsWith('.tgz')).map((name) => join(artifacts, name));
   run('pnpm', [
-    'add', '--save-exact', ...tarballs,
+    'add', '--save-exact', '--ignore-scripts', ...tarballs,
     `express@${expressVersion}`,
     `@nestjs/common@${nestVersion}`,
     `@nestjs/core@${nestVersion}`,
