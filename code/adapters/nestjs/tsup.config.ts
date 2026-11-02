@@ -2,7 +2,7 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/index.ts'],
-  format: ['cjs', 'esm'],
+  format: ['esm'],
   dts: {
     compilerOptions: {
       composite: false
@@ -11,7 +11,7 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ['@nestjs/common', '@nestjs/core', '@jfrz38/pid-controller-core'],
+  external: ['@nestjs/common', '@nestjs/core', '@jfrz38/adaptive-admission-node'],
   noExternal: ['@jfrz38/pid-controller-shared'],
   bundle: true
 });

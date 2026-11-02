@@ -1,85 +1,42 @@
-import { RejectedRequestException } from '@jfrz38/pid-controller-core';
-import { HttpErrorResponse } from '@jfrz38/pid-controller-shared';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { ConfigurationError, QueueFullError, ThresholdRejectedError } from '@jfrz38/adaptive-admission-node';
+import { describe, expect, test, vi } from 'vitest';
+
 import { PidExceptionFilter } from '../../src/filter/pid-exception.filter';
 
-const mockFormat = vi.fn();
+function context(type = 'http') {
+  const json = vi.fn();
+  const response = { destroyed: false, set: vi.fn(), status: vi.fn(() => ({ json })) };
+  const host = {
+    getType: vi.fn(() => type),
+    switchToHttp: vi.fn(() => ({ getResponse: () => response })),
+  };
+  return { host: host as any, response, json };
+}
 
-vi.mock('@jfrz38/pid-controller-shared', () => {
-    return {
-        HttpErrorResponse: vi.fn().mockImplementation(function (this: any) {
-            this.format = mockFormat;
-            return this;
-        })
-    };
-});
+describe('PidExceptionFilter', () => {
+  test.each([
+    [new ThresholdRejectedError(1n, 700, 500), 429],
+    [new QueueFullError(1n), 503],
+  ])('formats operational host errors', (error, status) => {
+    const ctx = context();
+    new PidExceptionFilter().catch(error, ctx.host);
+    expect(ctx.response.status).toHaveBeenCalledWith(status);
+  });
 
-describe('NestJS PID Controller Exception Filter', () => {
-    let filter: PidExceptionFilter;
-    let mockOptions: any;
-    let mockArgumentsHost: any;
-    let mockResponse: any;
+  test('rethrows errors outside HTTP contexts', () => {
+    const error = new QueueFullError(1n);
+    expect(() => new PidExceptionFilter().catch(error, context('rpc').host)).toThrow(error);
+  });
 
-    const mockException = new RejectedRequestException(100, 50);
+  test('does not convert host configuration failures', () => {
+    const error = new ConfigurationError({ tag: 'invalid' });
+    expect(() => new PidExceptionFilter().catch(error, context().host)).toThrow(error);
+  });
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-
-        mockResponse = {
-            status: vi.fn().mockReturnThis(),
-            json: vi.fn().mockReturnThis(),
-        };
-
-        mockArgumentsHost = {
-            getType: vi.fn().mockReturnValue('http'),
-            switchToHttp: vi.fn().mockReturnValue({
-                getResponse: vi.fn().mockReturnValue(mockResponse),
-            }),
-        };
-
-        mockOptions = { code: 429, hideError: false };
-        filter = new PidExceptionFilter(mockOptions);
-    });
-
-    describe('Context Validation', () => {
-        test('should rethrow the exception if the context is not HTTP (e.g., RPC or Microservice)', () => {
-            mockArgumentsHost.getType.mockReturnValue('rpc');
-
-            expect(() => filter.catch(mockException, mockArgumentsHost)).toThrow(
-                RejectedRequestException,
-            );
-
-            expect(HttpErrorResponse).not.toHaveBeenCalled();
-        });
-
-        test('should process the exception if the context is HTTP', () => {
-            filter.catch(mockException, mockArgumentsHost);
-
-            expect(mockArgumentsHost.switchToHttp).toHaveBeenCalled();
-            expect(HttpErrorResponse).toHaveBeenCalled();
-        });
-    });
-
-    describe('Delegation to Shared Library', () => {
-        test('should instantiate HttpErrorResponse with exception and options', () => {
-            filter.catch(mockException, mockArgumentsHost);
-
-            expect(HttpErrorResponse).toHaveBeenCalledWith(mockException, mockOptions);
-        });
-
-        test('should call the format method with the express response object', () => {
-            filter.catch(mockException, mockArgumentsHost);
-
-            expect(mockFormat).toHaveBeenCalledWith(mockResponse);
-        });
-
-        test('should work correctly even if options are undefined', () => {
-            const emptyFilter = new PidExceptionFilter(undefined);
-
-            emptyFilter.catch(mockException, mockArgumentsHost);
-
-            expect(HttpErrorResponse).toHaveBeenCalledWith(mockException, undefined);
-            expect(mockFormat).toHaveBeenCalled();
-        });
-    });
+  test('applies configured response overrides', () => {
+    const ctx = context();
+    new PidExceptionFilter({ code: 429, title: 'BUSY' }).catch(new QueueFullError(1n), ctx.host);
+    expect(ctx.response.status).toHaveBeenCalledWith(429);
+    expect(ctx.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'BUSY' }));
+  });
 });

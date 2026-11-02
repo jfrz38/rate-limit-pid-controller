@@ -1,9 +1,9 @@
 name: Build NestJS Adapter
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, migrate/adaptive-admission]
     paths:
-      - "code/core/**"
+      - "code/hosts/node/**"
       - "code/adapters/shared/**"
       - "code/adapters/nestjs/**"
       - "code/package.json"
@@ -54,3 +54,8 @@ jobs:
 
       - name: Run Tests
         run: make test-nestjs
+
+      - name: Smoke test installed consumer tarballs
+        run: make test-consumer-packages
+        env:
+          SMOKE_NEST_VERSION: ${{ matrix.nestjs_version }}
