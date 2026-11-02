@@ -1,0 +1,4 @@
+requestId,scenario,seed,phase,arrivalTimeMs,executionTimeMs,priorityTier,priorityValue
+1,smoke,20260913,warmup,0,5,0,0
+2,smoke,20260913,load,2,10,3,384
+3,smoke,20260913,recovery,4,5,5,640

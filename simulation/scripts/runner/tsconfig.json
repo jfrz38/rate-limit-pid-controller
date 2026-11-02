@@ -10,5 +10,5 @@
     "types": ["node"],
     "ignoreDeprecations": "6.0"
   },
-  "exclude": ["index-rust.mts"]
+  "exclude": ["index.mts"]
 }

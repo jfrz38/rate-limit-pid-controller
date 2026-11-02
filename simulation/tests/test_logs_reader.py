@@ -152,7 +152,7 @@ class LogsReaderTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             logs = Path(directory)
             older = logs / "2026-01-01T10-00-00.000Z.log"
-            newer = logs / "2026-01-01T10-00-01.000Z-rust.log"
+            newer = logs / "2026-01-01T10-00-01.000Z-typescript.log"
             older.touch()
             newer.touch()
 

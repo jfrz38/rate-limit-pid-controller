@@ -312,8 +312,11 @@ def latest_log(logs_folder: Path = LOGS_FOLDER) -> Path:
     candidates = list(logs_folder.glob("*.log"))
     if not candidates:
         raise FileNotFoundError(f"No logs found in {logs_folder}")
-    return max(candidates, key=lambda path: datetime.strptime(
-        path.stem.removesuffix("-rust"), DATE_FORMAT))
+    def timestamp(path: Path) -> datetime:
+        stem = path.stem.removesuffix("-rust").removesuffix("-typescript")
+        return datetime.strptime(stem, DATE_FORMAT)
+
+    return max(candidates, key=timestamp)
 
 
 def parse_args() -> argparse.Namespace:
