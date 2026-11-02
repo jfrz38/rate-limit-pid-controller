@@ -1,15 +1,21 @@
-import { PidControllerRateLimit, Priority } from "@jfrz38/pid-controller-core";
-import { NextFunction, Request, Response } from 'express';
-import { PidControllerMiddlewarePriority } from "./types/pid-controller-middleware-options";
+import { AdaptiveAdmissionController, Priority } from '@jfrz38/adaptive-admission-node';
+import type { NextFunction, Request, Response } from 'express';
+import type { PidControllerMiddlewarePriority } from './types/pid-controller-middleware-options';
 
 export class PidControllerMiddlewareHandler {
     constructor(
-        private readonly controller: PidControllerRateLimit,
+        private readonly controller: AdaptiveAdmissionController,
         private readonly priority: PidControllerMiddlewarePriority | undefined
     ) { }
 
-    async use(req: Request, res: Response, next: NextFunction) {
+    async use(req: Request, res: Response, next: NextFunction): Promise<void> {
         const priority = this.getPriority(req);
+        const abortController = new AbortController();
+        const onAborted = () => abortController.abort();
+        req.once('aborted', onAborted);
+        if (req.aborted) {
+            abortController.abort();
+        }
 
         try {
             await this.controller.run(() => {
@@ -30,12 +36,15 @@ export class PidControllerMiddlewareHandler {
                     try {
                         next();
                     } catch (err) {
+                        cleanup();
                         reject(err);
                     }
                 });
-            }, priority ?? Priority.default());
+            }, priority ?? Priority.default(), { signal: abortController.signal });
         } catch (error) {
             next(error);
+        } finally {
+            req.removeListener('aborted', onAborted);
         }
     }
 
@@ -49,7 +58,7 @@ export class PidControllerMiddlewareHandler {
             if (typeof value === 'number' && Number.isFinite(value)) {
                 return Priority.fromTier(value);
             }
-        } catch { }
+        } catch { /* Invalid application priorities use the default tier. */ }
 
         return undefined;
     }

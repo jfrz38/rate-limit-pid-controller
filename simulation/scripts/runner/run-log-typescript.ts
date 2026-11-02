@@ -9,13 +9,13 @@ const scenarioFile = scenarioName.endsWith('.csv') ? scenarioName : `${scenarioN
 const now = new Date();
 const timestamp = now.toISOString().replace(/:/g, "-");
 const logFolder = path.join(__dirname, "results", "logs");
-const outPath = path.join(logFolder, `${timestamp}.log`);
+const outPath = path.join(logFolder, `${timestamp}-typescript.log`);
 
 if (!fs.existsSync(logFolder)) fs.mkdirSync(logFolder, { recursive: true });
 
 console.log(`Loading scenario: ${scenarioName}`);
 
-const scriptPath = path.join(__dirname, "index.ts");
+const scriptPath = path.join(__dirname, 'index-typescript.ts');
 const output = fs.openSync(outPath, 'w');
 const result = spawnSync(process.execPath, [
   '--require',
@@ -29,4 +29,4 @@ fs.closeSync(output);
 if (result.error) throw result.error;
 if (result.status !== 0) throw new Error(`Simulation exited with status ${result.status}`);
 
-console.log("Generated log: ", outPath);
+console.log('Generated TypeScript comparison log: ', outPath);

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { DispatchLagMetrics, dispatchDelayMs, parseScenario } from '../index';
+import { DispatchLagMetrics, dispatchDelayMs } from '../dispatch';
+import { parseScenario } from '../scenario';
 
 const HEADER = 'requestId,scenario,seed,phase,arrivalTimeMs,executionTimeMs,priorityTier,priorityValue';
 

@@ -6,6 +6,6 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["index-rust.mts", "scenario.ts"],
+  "include": ["index.mts", "scenario.ts"],
   "exclude": []
 }

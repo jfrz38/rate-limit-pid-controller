@@ -6,12 +6,17 @@
 [![license](https://img.shields.io/npm/l/@jfrz38/pid-controller-nestjs)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
 [![NPM Downloads](https://img.shields.io/npm/dm/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
 
-This is the **NestJS** adapter for the [PID Controller](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/core). It provides a seamless way to integrate adaptive rate limiting and load shedding into your NestJS applications using a global _Middleware_ on each request and a _Filter_ to handle errors.
+This is the **NestJS** adapter for the Rust/WebAssembly [Adaptive Admission Node host](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/hosts/node). It integrates adaptive rate limiting and load shedding through global middleware and an exception filter.
 
-> [!NOTE]  
-> See [core project](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/core) for more information.
+> [!IMPORTANT]
+> Version `0.2.0` is an ESM-only breaking release, requires Node.js 24 or newer, and uses the host's native `ControllerOptions` configuration.
 
 ## Features
+
+- **Global Middleware**: Applies adaptive admission to configured HTTP routes.
+- **Exception Filter**: Converts operational request errors into configurable HTTP responses.
+- **Route Selection**: Supports included methods and excluded paths.
+- **Lifecycle Integration**: Shuts the controller down with the NestJS module and application.
 
 ## Installation
 
@@ -19,88 +24,130 @@ This is the **NestJS** adapter for the [PID Controller](https://github.com/jfrz3
 npm install @jfrz38/pid-controller-nestjs
 ```
 
+The Node host, NestJS, and Express are peer dependencies. npm 7 and newer install compatible peer dependencies automatically when needed; an existing NestJS application normally provides the framework dependencies already. Install them explicitly only when you want to control their versions:
+
+```bash
+npm install @jfrz38/pid-controller-nestjs @jfrz38/adaptive-admission-node @nestjs/common @nestjs/core express
+```
+
 ## Configuration
 
-Configuration objects allow three values, where `config` is the same as explained into [PID core](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/code/core/README.md#Configuration%20Reference):
+The adapter preserves the existing `pid.config` and `pid.priority` wrapper. `pid.config` now accepts the Node host's native [`ControllerOptions`](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/hosts/node#configuration); legacy TypeScript `Parameters` are not translated.
 
-| Parameter                     | Type                       | Default                     | Description                                                                  |
-|-------------------------------|----------------------------|-----------------------------|------------------------------------------------------------------------------|
-| `pid.config`                  | Parameters                 | -                           | Configuration for the PID engine. See core for more information.             |
-| `pid.priority.getPriority`    | `(req: Request) => number` | `req.headers['x-priority']` | Function to get priority from the request.                                   |
-| `http`                        | `PidHttpRules`             | -                           | HTTP policies: Response status and message error  (see below)                |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `pid.config` | `ControllerOptions` | Host defaults | Adaptive admission, queue, statistics, and PID configuration. |
+| `pid.priority.getPriority` | `(req: Request) => number \| string \| undefined` | Lowest priority tier | Extracts a tier from `0` (highest) to `5` (lowest). |
+| `http` | `PidHttpRules` | - | HTTP response policy for operational request errors. |
+| `routes` | `PidRoutesConfig` | All routes | Selects protected and excluded routes. |
 
-## Http Rules configuration
+## HTTP Rules configuration
 
-| Parameter                          | Type            | Default                                    | Description                                                                                     |
-|------------------------------------|-----------------|--------------------------------------------|-------------------------------------------------------------------------------------------------|
-| `http.error.message`               | string          | Too many requests, please try again later. | A custom descriptive message for the error                                                      |
-| `http.error.retryAfter`            | number          | -                                          | The value in seconds for the 'Retry-After' HTTP header                                          |
-| `http.error.code`                  | number          | 429                                        | The HTTP status code to return.                                                                 |
-| `http.error.response`              | object          | object with default `title` and `message`  | The custom JSON body object to be sent to the client.                                           |
-| `http.error.title`                 | string          | RATE_LIMIT_EXCEEDED                        | A short string representing the error title or category.                                        |
-| `http.error.hideError`             | boolean         | `true`                                     | If true, prevents the internal PID exception message from being included in the final response. |
-| `http.routes.excludeRoutes`        | string[]        | `[]`                                       | Routes to be ignored                                                                            |
-| `http.routes.allowedRoutes.paths`  | string          | `'*'`                                      | paths to be protected                                                                           |
-| `http.routes.allowedRoutes.method` | `RequestMethod` | `RequestMethod.ALL`                        | HTTP method where the protection applies                                                        |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `http.error.message` | `string` | Depends on the host error | Custom public error message. |
+| `http.error.retryAfter` | `number` | - | Value in seconds for the `Retry-After` header. |
+| `http.error.code` | `number` | Depends on the host error | Overrides the default HTTP status. |
+| `http.error.response` | `object` | Object with `error` and `message` | Custom JSON body. |
+| `http.error.title` | `string` | Depends on the host error | Public error category. |
+| `http.error.hideError` | `boolean` | `true` | Prevents the internal controller message from being exposed. |
+| `routes.excludeRoutes` | `string[]` | `[]` | Routes ignored by the middleware. |
+| `routes.allowedRoutes.paths` | path or paths | `'*'` | Paths protected by the middleware. |
+| `routes.allowedRoutes.method` | `RequestMethod` | `RequestMethod.ALL` | HTTP method protected by the middleware. |
 
 ## Quick Start
 
-Import the `PidControllerModule` into your `AppModule` using the forRoot static method:
+Import `PidControllerModule` into the application module using `forRoot()`:
 
 ```ts
 import { PidControllerModule } from '@jfrz38/pid-controller-nestjs';
 import { Module } from '@nestjs/common';
-import { HttpAdapterHost } from '@nestjs/core';
-import { AppController } from './app.controller';
+import { AppController } from './app.controller.js';
 
 @Module({
   imports: [
     PidControllerModule.forRoot({
       pid: {
         config: {
-          capacity: {
-            maxConcurrentRequests: 2
-          },
-          log: { level: 'debug' },
+          initialThreshold: 768,
+          maxConcurrentRequests: 2,
+          maxQueuedRequests: 1000,
+          queueTimeoutMs: 500,
           statistics: {
-            minRequestsForLatencyPercentile: 10,
-            minRequestsForStats: 10
-          }
+            minSamples: 10,
+            minPercentileSamples: 10,
+          },
         },
         priority: {
-          // Define how to extract priority from the request
-          getPriority: (req) => req.get('x-priority') || 5
+          getPriority: (req) => req.get('x-priority') ?? 5,
         },
       },
       http: {
         error: {
-            code: 503,
-            message: 'Custom message for the error'
-          }
+          message: 'Custom message for the error',
         },
-        routes: {
-          excludeRoutes: ['/excluded']
-        }
-    })
+      },
+      routes: {
+        excludeRoutes: ['/health'],
+      },
+    }),
   ],
   controllers: [AppController],
-  providers: [HttpAdapterHost],
-  exports: [HttpAdapterHost]
 })
-export class AppModule { }
+export class AppModule {}
+```
+
+Enable shutdown hooks during bootstrap so NestJS invokes application lifecycle handlers:
+
+```ts
+const app = await NestFactory.create(AppModule);
+app.enableShutdownHooks();
+await app.listen(3000);
 ```
 
 ## How it works
 
-The adapter automatically registers a global `Middleware` and `Filter`:
+The adapter automatically registers global middleware and a filter:
 
-- **Middleware**: Intercepts the request and checks with the PID engine if it should be admitted based on the current threshold. If rejected, it throws a `RejectedRequestException` which is handled by the **filter*.
-- **Filter**: If PID controller throw an exception it is handled by this filter automatically.
-- **Lifecycle**: The module implements NestJS shutdown hooks and calls `controller.shutdown()` on module/application shutdown, clearing controller timers and signal handlers.
+- **Middleware**: Waits for admission before executing the request pipeline and tracks completion through the Express response lifecycle.
+- **Filter**: Catches `AdmissionRequestError` and maps its concrete error to the configured HTTP response.
+- **Lifecycle**: `OnModuleDestroy` and `OnApplicationShutdown` call the controller's idempotent `shutdown()` method.
+- **Providers**: Existing `PID_CONTROLLER` and `PID_CONTROLLER_OPTIONS` tokens remain exported.
 
 ## Error Handling
 
-When the controller decides to reject the request due to low priority, it throws a specific internal error that is handled by an internal filter.
+| Host error | Default HTTP status |
+|---|---:|
+| `ThresholdRejectedError` | `429` |
+| `QueueFullError` | `503` |
+| `EvictedRequestError` | `503` |
+| `ControllerShutdownError` | `503` |
+| `CancelledRequestError` | `499` while the connection remains open; no response after disconnect |
 
-- **Default Behavior**: Returns `429 Too Many Request`.
-- **Customization**: You can override the status code and response body using the rules parameter during initialization.
+All these errors extend `AdmissionRequestError`. `ConfigurationError`, `ControllerProtocolError`, non-HTTP contexts, and application errors are left to NestJS instead of being converted into admission responses.
+
+## Migrating from `0.1.x`
+
+The adapter no longer accepts the TypeScript core's `Parameters` model:
+
+| TypeScript core option | `ControllerOptions` replacement |
+|---|---|
+| `threshold.initial` | `initialThreshold` |
+| `capacity.maxConcurrentRequests` | `maxConcurrentRequests` |
+| `interval.maxRequests` | `maxQueuedRequests` |
+| `timeout.priorityQueue.value` | `queueTimeoutMs` |
+| `timeout.priorityQueue.ratio` | `queueTimeoutRatio` |
+| `interval.requestInterval.minIntervalTime` (seconds) | `statistics.minWindowMs` (milliseconds) |
+| `interval.requestInterval.maxIntervalTime` (seconds) | `statistics.maxWindowMs` (milliseconds) |
+| `statistics.minRequestsForStats` | `statistics.minSamples` |
+| `statistics.minRequestsForLatencyPercentile` | `statistics.minPercentileSamples` |
+| `statistics.latencyPercentile` | `statistics.latencyPercentile` |
+| `pid.KP` | `pid.proportionalGain` |
+| `pid.KI` | `pid.integralGain` |
+| `pid.KD` | `pid.derivativeGain` |
+| `pid.interval` | `pid.intervalMs` |
+| `pid.delta` | `pid.maxDeltaPercentage` |
+| `pid.decayRatio` | `pid.integralDecay` |
+| `log` | No direct replacement; subscribe to host diagnostics. |
+
+CommonJS `require()` is no longer supported. Use ESM `import` and consult the [Node host configuration reference](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/hosts/node#configuration) for defaults and additional options.

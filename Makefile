@@ -78,7 +78,7 @@ pack-local: build ## build and pack PACKAGE for local installation
 	$(PNPM) --dir "$(PACKAGE_DIR)" pack --pack-destination "$(abspath $(LOCAL_ARTIFACT_DIR))"
 	@printf '\nReinstall it in another project with:\n  pnpm remove "$(PACKAGE_NAME)" && pnpm add --save-exact --force "%s/"*.tgz\n' "$(abspath $(LOCAL_ARTIFACT_DIR))"
 
-.PHONY: test-core test-shared test-express test-nestjs test-node test-node-conformance test-node-package
+.PHONY: test-core test-shared test-express test-nestjs test-node test-node-conformance test-node-package test-consumer-packages
 test-core: ## test the core package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_core)..." test
 
@@ -100,6 +100,9 @@ test-node-conformance: ## run conformance against the WebAssembly component from
 test-node-package: ## verify the installed Node host tarball and embedded Wasm assets
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." test:package
 
+test-consumer-packages: ## install and smoke test Node, Express, and NestJS tarballs together
+	cd code && node scripts/consumer-package-smoke.mjs
+
 .PHONY: validate-core validate-shared validate-express validate-nestjs validate-node
 validate-core: install-code build-core test-core ## install, build, and test core
 
@@ -111,34 +114,34 @@ validate-nestjs: install-code build-nestjs test-nestjs ## install, build, and te
 
 validate-node: install-code build-node lint-node test-node test-node-package ## install, lint, build, test, and pack the Node host
 
-.PHONY: simulation-generate simulation-run simulation-run-rust simulation-report simulation simulation-rust test-simulation test-simulation-python test-simulation-runner
+.PHONY: simulation-generate simulation-run simulation-run-typescript simulation-report simulation simulation-typescript test-simulation test-simulation-python test-simulation-runner
 simulation-generate: install-simulation ## generate a simulation scenario with SCENARIO=name
 	cd simulation/scenarios && $(POETRY) run python scenario_generator.py $(SCENARIO) --seed $(SEED)
 
-simulation-run: install-code install-simulation-runner ## run a generated simulation scenario with SCENARIO=name
-	cd simulation/scripts/runner && $(PNPM) exec ts-node run-log.ts $(SCENARIO)
+simulation-run: install-code build-node install-simulation-runner ## run a generated scenario against the default Rust/Wasm controller
+	cd simulation/scripts/runner && $(PNPM) run log -- $(SCENARIO)
 
-simulation-run-rust: install-code build-node install-simulation-runner ## run a generated scenario against the Rust/Wasm controller
-	cd simulation/scripts/runner && $(PNPM) run log:rust -- $(SCENARIO)
+simulation-run-typescript: install-code install-simulation-runner ## run the temporary TypeScript comparison backend
+	cd simulation/scripts/runner && $(PNPM) run log:typescript -- $(SCENARIO)
 
 simulation-report: install-simulation ## generate the simulation visual report
 	cd simulation/scripts && $(POETRY) run python logs_reader.py --no-show $(SCENARIO)
 
 simulation: simulation-generate simulation-run simulation-report ## generate, run, and render a simulation scenario
 
-simulation-rust: simulation-generate simulation-run-rust simulation-report ## generate, run with Rust/Wasm, and render a simulation scenario
+simulation-typescript: simulation-generate simulation-run-typescript simulation-report ## generate, run the TypeScript comparison, and render a report
 
 test-simulation-python: install-simulation ## test scenario generation and report parsing
 	cd simulation && $(POETRY) run python -m unittest discover -s tests -p "test_*.py"
 
-test-simulation-runner: install-simulation-runner ## test the TypeScript simulation runner
-	cd simulation/scripts/runner && $(PNPM) test && $(PNPM) typecheck
+test-simulation-runner: build-node install-simulation-runner ## test the default Rust runner and shared simulation tooling
+	cd simulation/scripts/runner && $(PNPM) test && $(PNPM) typecheck && $(PNPM) run test:smoke
 
 test-simulation: test-simulation-python test-simulation-runner ## test all simulation tooling
 
 .PHONY: simulation-express simulation-nestjs
-simulation-express: ## start the Express simulation server
+simulation-express: build-express ## start the Express simulation server
 	cd simulation/server/express && $(PNPM) start
 
-simulation-nestjs: ## start the NestJS simulation server
+simulation-nestjs: build-nestjs ## start the NestJS simulation server
 	cd simulation/server/nestjs && $(PNPM) start

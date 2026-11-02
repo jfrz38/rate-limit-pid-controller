@@ -1,7 +1,7 @@
-import { PidControllerModule } from '@jfrz38/pid-controller-nestjs';
+import { PidControllerModule } from '../../../../code/adapters/nestjs/dist/index.js';
 import { Module } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { AppController } from './app.controller';
+import { AppController } from './app.controller.js';
 
 @Module({
   imports: [
@@ -9,18 +9,11 @@ import { AppController } from './app.controller';
       {
         pid: {
           config: {
-            threshold: {
-              initial: 200
-            },
-            capacity: {
-              maxConcurrentRequests: 2
-            },
-            log: {
-              level: 'debug'
-            },
+            initialThreshold: 768,
+            maxConcurrentRequests: 2,
             statistics: {
-              minRequestsForLatencyPercentile: 10,
-              minRequestsForStats: 10
+              minPercentileSamples: 10,
+              minSamples: 10
             }
           },
           priority: {

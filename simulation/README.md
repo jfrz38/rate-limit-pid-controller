@@ -13,22 +13,16 @@ make install-simulation-runner
 make simulation SCENARIO=base SEED=20260913
 ```
 
-Run the same generated scenario against the Rust/WebAssembly controller through the Node host:
-
-```bash
-make simulation-rust SCENARIO=base SEED=20260913
-```
-
-The TypeScript and Rust runners consume the same CSV trace. To compare them without regenerating
+Rust/WebAssembly is the default backend. The temporary TypeScript comparison runner consumes the same CSV trace. To compare them without regenerating
 the input, generate once and execute both backends:
 
 ```bash
 make simulation-generate SCENARIO=aggressive_peak SEED=20260913
 make simulation-run SCENARIO=aggressive_peak
-make simulation-run-rust SCENARIO=aggressive_peak
+make simulation-run-typescript SCENARIO=aggressive_peak
 ```
 
-Rust runner logs end in `-rust.log` and identify the backend as `rust-wasm` in the summary. They
+Default runner logs identify the backend as `rust-wasm` in the summary; comparison logs end in `-typescript.log`. Rust logs
 include threshold, concurrency, statistics, target latency, filtered latency, and adaptive queue
 timeout diagnostics from the pinned development component snapshot. The exact source commit and
 checksum are recorded in `code/hosts/node/COMPONENT.md`.

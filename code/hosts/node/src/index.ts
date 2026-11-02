@@ -1,6 +1,7 @@
 export { AdaptiveAdmissionController } from './controller.js';
 export {
   AdaptiveAdmissionError,
+  AdmissionRequestError,
   CancelledRequestError,
   ConfigurationError,
   ControllerProtocolError,

@@ -47,9 +47,9 @@ importers:
 
   adapters/express:
     devDependencies:
-      '@jfrz38/pid-controller-core':
+      '@jfrz38/adaptive-admission-node':
         specifier: workspace:*
-        version: link:../../core
+        version: link:../../hosts/node
       '@jfrz38/pid-controller-shared':
         specifier: workspace:*
         version: link:../shared
@@ -65,9 +65,9 @@ importers:
 
   adapters/nestjs:
     devDependencies:
-      '@jfrz38/pid-controller-core':
+      '@jfrz38/adaptive-admission-node':
         specifier: workspace:*
-        version: link:../../core
+        version: link:../../hosts/node
       '@jfrz38/pid-controller-shared':
         specifier: workspace:*
         version: link:../shared
@@ -89,9 +89,9 @@ importers:
 
   adapters/shared:
     dependencies:
-      '@jfrz38/pid-controller-core':
+      '@jfrz38/adaptive-admission-node':
         specifier: workspace:*
-        version: link:../../core
+        version: link:../../hosts/node
     devDependencies:
       '@types/express':
         specifier: 5.0.6
