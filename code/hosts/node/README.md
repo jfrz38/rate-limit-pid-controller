@@ -106,6 +106,7 @@ values throw `RangeError`; values rejected by the component throw `Configuration
 
 | Error | Meaning |
 | --- | --- |
+| `AdmissionRequestError` | Base class for request rejection, eviction, cancellation, and shutdown errors. |
 | `ThresholdRejectedError` | Priority was outside the current admission threshold. |
 | `QueueFullError` | The bounded waiting queue was full. |
 | `EvictedRequestError` | Queued work exceeded its deadline. |
@@ -114,8 +115,9 @@ values throw `RangeError`; values rejected by the component throw `Configuration
 | `ConfigurationError` | Rust rejected the supplied configuration. |
 | `ControllerProtocolError` | The component detected an invalid lifecycle transition. |
 
-All package errors extend `AdaptiveAdmissionError`. Rejections and protocol errors are distinct
-from errors thrown by the user's task.
+All package errors extend `AdaptiveAdmissionError`. Request lifecycle errors extend
+`AdmissionRequestError`; configuration and protocol failures do not. Errors thrown by the user's
+task remain distinct and are preserved unchanged.
 
 ## Lifecycle and shutdown
 
