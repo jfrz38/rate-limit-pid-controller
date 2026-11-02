@@ -17,6 +17,7 @@ export type {
   ControllerDiagnostics,
   ControllerOptions,
   PidOptions,
+  RunOptions,
   StatisticsOptions,
   StatisticsSnapshot,
   U64Input,

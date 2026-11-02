@@ -59,7 +59,9 @@ export class EvictedRequestError extends AdaptiveAdmissionError {
 }
 
 export class CancelledRequestError extends AdaptiveAdmissionError {
-  constructor(readonly requestId: bigint, readonly reason: 'requested' | 'shutdown') {
-    super(`Request ${requestId} was cancelled: ${reason}`);
+  constructor(readonly requestId: bigint | undefined, readonly reason: 'requested' | 'shutdown') {
+    super(requestId === undefined
+      ? `Request was cancelled before submission: ${reason}`
+      : `Request ${requestId} was cancelled: ${reason}`);
   }
 }

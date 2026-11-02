@@ -13,6 +13,7 @@ on:
           - express
           - nestjs
           - shared
+          - node
       bump:
         description: Version component to bump
         required: true
@@ -68,6 +69,11 @@ jobs:
               echo "package_name=@jfrz38/pid-controller-shared" >> "$GITHUB_OUTPUT"
               echo "version_file=code/adapters/shared/package.json" >> "$GITHUB_OUTPUT"
               echo "tag_prefix=shared-v" >> "$GITHUB_OUTPUT"
+              ;;
+            node)
+              echo "package_name=@jfrz38/adaptive-admission-node" >> "$GITHUB_OUTPUT"
+              echo "version_file=code/hosts/node/package.json" >> "$GITHUB_OUTPUT"
+              echo "tag_prefix=node-v" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "Unsupported package: ${{ inputs.package }}" >&2

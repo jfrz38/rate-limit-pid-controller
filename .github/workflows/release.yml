@@ -35,6 +35,12 @@ jobs:
             package_name: "@jfrz38/pid-controller-nestjs"
             package_dir: code/adapters/nestjs
             package_file: code/adapters/nestjs/package.json
+          - release_name: node
+            package_key: node
+            tag_prefix: node-v
+            package_name: "@jfrz38/adaptive-admission-node"
+            package_dir: code/hosts/node
+            package_file: code/hosts/node/package.json
 
     steps:
       - name: Check out repository
@@ -42,8 +48,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - id: publication-policy
+        name: Check component publication policy
+        env:
+          PACKAGE_KEY: ${{ matrix.package.package_key }}
+        run: |
+          if [ "$PACKAGE_KEY" != "node" ]; then
+            echo "publishable=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PUBLISHABLE="$(node -p "require('./code/hosts/node/component/COMPONENT.json').publishable")"
+          echo "publishable=$PUBLISHABLE" >> "$GITHUB_OUTPUT"
+          if [ "$PUBLISHABLE" != "true" ]; then
+            echo "Node release skipped: the embedded component is not publishable."
+          fi
+
       - id: version-check
         name: Check version is releasable
+        if: steps.publication-policy.outputs.publishable == 'true'
         uses: jfrz38/check-version-change@v1.4.0
         with:
           file-path: ${{ matrix.package.package_file }}
@@ -52,13 +75,13 @@ jobs:
           registry: npm
 
       - name: Skip already published version
-        if: steps.version-check.outputs.changed != 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed != 'true'
         working-directory: .
         run: |
           echo "${{ matrix.package.package_name }} ${{ steps.version-check.outputs.local-version }} is already published to npm; no release to create."
 
       - name: Verify version can be released
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         working-directory: .
         run: |
           if [ -n "${{ steps.version-check.outputs.compared-version }}" ] && [ "${{ steps.version-check.outputs.is-higher }}" != "true" ]; then
@@ -67,13 +90,13 @@ jobs:
           fi
 
       - name: Install pnpm
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         uses: pnpm/action-setup@v6.1.0
         with:
           version: 11.1.3
 
       - name: Setup Node
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "24"
@@ -81,19 +104,19 @@ jobs:
           cache-dependency-path: code/pnpm-lock.yaml
 
       - name: Install dependencies
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         run: make install-code
 
       - name: Build
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         run: make build-${{ matrix.package.package_key }}
 
       - name: Run tests
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         run: make test-${{ matrix.package.package_key }}
 
       - name: Resolve release version
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         id: version
         working-directory: ${{ matrix.package.package_dir }}
         run: |
@@ -112,7 +135,7 @@ jobs:
           echo "tag=${{ matrix.package.tag_prefix }}$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}

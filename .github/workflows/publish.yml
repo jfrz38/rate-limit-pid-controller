@@ -11,6 +11,7 @@ on:
           - core
           - express
           - nestjs
+          - node
 
 permissions:
   id-token: write
@@ -54,6 +55,13 @@ jobs:
               echo "package_dir=code/adapters/nestjs" >> "$GITHUB_OUTPUT"
               echo "package_file=code/adapters/nestjs/package.json" >> "$GITHUB_OUTPUT"
               ;;
+            node)
+              echo "package_key=node" >> "$GITHUB_OUTPUT"
+              echo "tag_prefix=node-v" >> "$GITHUB_OUTPUT"
+              echo "package_name=@jfrz38/adaptive-admission-node" >> "$GITHUB_OUTPUT"
+              echo "package_dir=code/hosts/node" >> "$GITHUB_OUTPUT"
+              echo "package_file=code/hosts/node/package.json" >> "$GITHUB_OUTPUT"
+              ;;
             *)
               echo "Unsupported package: ${{ inputs.package }}" >&2
               exit 1
@@ -95,6 +103,15 @@ jobs:
           git fetch origin main --tags
           if ! git merge-base --is-ancestor "$TAG" origin/main; then
             echo "Release tag $TAG is not reachable from main" >&2
+            exit 1
+          fi
+
+      - name: Verify embedded component is publishable
+        if: steps.package.outputs.package_key == 'node'
+        run: |
+          PUBLISHABLE="$(node -p "require('./code/hosts/node/component/COMPONENT.json').publishable")"
+          if [ "$PUBLISHABLE" != "true" ]; then
+            echo "The embedded Node component is a non-publishable snapshot." >&2
             exit 1
           fi
 
