@@ -1,15 +1,12 @@
 import {
+  AdmissionRequestError,
   CancelledRequestError,
-  ControllerShutdownError,
-  EvictedRequestError,
-  QueueFullError,
-  ThresholdRejectedError,
 } from '@jfrz38/adaptive-admission-node';
 import { adaptiveAdmissionHttpError, HttpErrorResponse, ResponseError } from '@jfrz38/pid-controller-shared';
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { Response } from 'express';
 
-@Catch(ThresholdRejectedError, QueueFullError, EvictedRequestError, ControllerShutdownError, CancelledRequestError)
+@Catch(AdmissionRequestError)
 export class PidExceptionFilter implements ExceptionFilter {
 
   constructor(private error?: ResponseError) { }

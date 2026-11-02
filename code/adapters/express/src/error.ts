@@ -3,12 +3,12 @@ import { adaptiveAdmissionHttpError, HttpErrorResponse, ResponseError } from '@j
 import type { NextFunction, Request, Response } from 'express';
 
 export const pidControllerErrorHandler = (responseOptions: ResponseError = {}) => {
-    return (error: any, _: Request, res: Response, next: NextFunction) => {
+    return (error: any, req: Request, res: Response, next: NextFunction) => {
         if (res.headersSent) {
             return next(error);
         }
 
-        if (error instanceof CancelledRequestError && (_.aborted || res.destroyed)) {
+        if (error instanceof CancelledRequestError && (req.aborted || res.destroyed)) {
             return;
         }
 

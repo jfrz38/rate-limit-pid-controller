@@ -3,9 +3,9 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { pidControllerErrorHandler } from '../src/error';
 
-function context(aborted = false) {
+function context(aborted = false, destroyed = false) {
   const json = vi.fn();
-  const response = { headersSent: false, destroyed: false, set: vi.fn(), status: vi.fn(() => ({ json })) };
+  const response = { headersSent: false, destroyed, set: vi.fn(), status: vi.fn(() => ({ json })) };
   return { request: { aborted }, response, json, next: vi.fn() };
 }
 
@@ -25,6 +25,26 @@ describe('Express adaptive admission error handler', () => {
     pidControllerErrorHandler()(new CancelledRequestError(1n, 'requested'), ctx.request as any, ctx.response as any, ctx.next);
     expect(ctx.response.status).not.toHaveBeenCalled();
     expect(ctx.next).not.toHaveBeenCalled();
+  });
+
+  test('does not write a cancellation response after the response is destroyed', () => {
+    const ctx = context(false, true);
+    pidControllerErrorHandler()(new CancelledRequestError(1n, 'requested'), ctx.request as any, ctx.response as any, ctx.next);
+    expect(ctx.response.status).not.toHaveBeenCalled();
+    expect(ctx.next).not.toHaveBeenCalled();
+  });
+
+  test('returns 499 for cancellation while the connection remains open', () => {
+    const ctx = context();
+    pidControllerErrorHandler()(new CancelledRequestError(1n, 'requested'), ctx.request as any, ctx.response as any, ctx.next);
+    expect(ctx.response.status).toHaveBeenCalledWith(499);
+  });
+
+  test('propagates non-cancellation errors even when the request was aborted', () => {
+    const ctx = context(true);
+    const error = new Error('application failed');
+    pidControllerErrorHandler()(error, ctx.request as any, ctx.response as any, ctx.next);
+    expect(ctx.next).toHaveBeenCalledWith(error);
   });
 
   test('propagates configuration and application errors', () => {
