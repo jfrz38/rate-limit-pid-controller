@@ -20,6 +20,12 @@ This is the **Express** adapter for the Rust/WebAssembly [Adaptive Admission Nod
 ## Installation
 
 ```bash
+npm install @jfrz38/pid-controller-express
+```
+
+`express` and `@jfrz38/adaptive-admission-node` are peer dependencies. npm 7 and newer install compatible peer dependencies automatically when needed. Install them explicitly only when you want to control their versions:
+
+```bash
 npm install @jfrz38/pid-controller-express @jfrz38/adaptive-admission-node express
 ```
 

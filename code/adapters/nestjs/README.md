@@ -21,7 +21,13 @@ This is the **NestJS** adapter for the Rust/WebAssembly [Adaptive Admission Node
 ## Installation
 
 ```bash
-npm install @jfrz38/pid-controller-nestjs @jfrz38/adaptive-admission-node
+npm install @jfrz38/pid-controller-nestjs
+```
+
+The Node host, NestJS, and Express are peer dependencies. npm 7 and newer install compatible peer dependencies automatically when needed; an existing NestJS application normally provides the framework dependencies already. Install them explicitly only when you want to control their versions:
+
+```bash
+npm install @jfrz38/pid-controller-nestjs @jfrz38/adaptive-admission-node @nestjs/common @nestjs/core express
 ```
 
 ## Configuration
