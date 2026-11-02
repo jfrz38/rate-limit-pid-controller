@@ -7,6 +7,8 @@ export class AdaptiveAdmissionError extends Error {
   }
 }
 
+export class AdmissionRequestError extends AdaptiveAdmissionError {}
+
 export class ConfigurationError extends AdaptiveAdmissionError {
   constructor(readonly payload: ConfigurationErrorPayload) {
     super(`Invalid adaptive admission configuration: ${payload.tag}`);
@@ -19,7 +21,7 @@ export class ControllerProtocolError extends AdaptiveAdmissionError {
   }
 }
 
-export class RejectedRequestError extends AdaptiveAdmissionError {
+export class RejectedRequestError extends AdmissionRequestError {
   constructor(readonly requestId: bigint | undefined, message: string) {
     super(message);
   }
@@ -52,13 +54,13 @@ export class ControllerShutdownError extends RejectedRequestError {
   }
 }
 
-export class EvictedRequestError extends AdaptiveAdmissionError {
+export class EvictedRequestError extends AdmissionRequestError {
   constructor(readonly requestId: bigint) {
     super(`Request ${requestId} was evicted after exceeding its queue deadline`);
   }
 }
 
-export class CancelledRequestError extends AdaptiveAdmissionError {
+export class CancelledRequestError extends AdmissionRequestError {
   constructor(readonly requestId: bigint | undefined, readonly reason: 'requested' | 'shutdown') {
     super(requestId === undefined
       ? `Request was cancelled before submission: ${reason}`
