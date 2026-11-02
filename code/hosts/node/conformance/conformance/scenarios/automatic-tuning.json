@@ -65,6 +65,16 @@
           { "type": "start", "request": "waiting" }
         ]
       },
+      {
+        "operation": "latest-diagnostics",
+        "expect": {
+          "threshold": 768,
+          "concurrencyLimit": 3,
+          "queueTimeoutMs": 3,
+          "targetLatencyMs": 100.0,
+          "aggregatedLatencyMs": 10.0
+        }
+      },
       { "operation": "advance-time", "atMs": 4000, "actions": [] }
     ]
   }

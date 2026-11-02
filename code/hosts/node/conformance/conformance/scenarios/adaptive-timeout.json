@@ -36,6 +36,16 @@
         "actions": []
       },
       {
+        "operation": "latest-diagnostics",
+        "expect": {
+          "threshold": 768,
+          "concurrencyLimit": 1,
+          "queueTimeoutMs": 51,
+          "targetLatencyMs": 100.0,
+          "aggregatedLatencyMs": null
+        }
+      },
+      {
         "operation": "submit",
         "atMs": 101,
         "priority": 0,

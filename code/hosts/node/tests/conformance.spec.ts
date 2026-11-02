@@ -122,6 +122,9 @@ function executeScenario(scenario: Scenario): void {
         }
         break;
       }
+      case 'latest-diagnostics':
+        expect(normalizeDiagnostics(controller.latestDiagnostics())).toEqual(step.expect);
+        break;
       case 'priority-percentile':
         expect(controller.priorityPercentile(step.percentile) ?? null).toEqual(step.expect);
         break;
@@ -218,6 +221,13 @@ function normalizeError(payload: unknown): Record<string, unknown> | undefined {
 
 function normalizeStatistics(snapshot: Record<string, any>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(snapshot).map(([key, value]) => [key, toJsonInteger(value)]));
+}
+
+function normalizeDiagnostics(diagnostics: Record<string, any>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(diagnostics).map(([key, value]) => [
+    key,
+    value === undefined ? null : toJsonInteger(value),
+  ]));
 }
 
 function isVariant(value: unknown): value is { tag: string; val?: any } {

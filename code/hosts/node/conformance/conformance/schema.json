@@ -75,6 +75,7 @@
         { "$ref": "#/$defs/timestampedOperation" },
         { "$ref": "#/$defs/nextDeadline" },
         { "$ref": "#/$defs/latestStatistics" },
+        { "$ref": "#/$defs/latestDiagnostics" },
         { "$ref": "#/$defs/priorityPercentile" }
       ]
     },
@@ -155,6 +156,15 @@
         "expect": {
           "oneOf": [{ "$ref": "#/$defs/statistics" }, { "type": "null" }]
         }
+      }
+    },
+    "latestDiagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "expect"],
+      "properties": {
+        "operation": { "const": "latest-diagnostics" },
+        "expect": { "$ref": "#/$defs/diagnostics" }
       }
     },
     "priorityPercentile": {
@@ -268,6 +278,23 @@
         "maxInFlight": { "type": "integer", "minimum": 0 }
       }
     },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "threshold", "concurrencyLimit", "queueTimeoutMs", "targetLatencyMs",
+        "aggregatedLatencyMs"
+      ],
+      "properties": {
+        "threshold": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "concurrencyLimit": { "type": "integer", "minimum": 1 },
+        "queueTimeoutMs": { "$ref": "#/$defs/u64" },
+        "targetLatencyMs": { "type": "number", "exclusiveMinimum": 0 },
+        "aggregatedLatencyMs": {
+          "oneOf": [{ "type": "number", "exclusiveMinimum": 0 }, { "type": "null" }]
+        }
+      }
+    },
     "error": {
       "type": "object",
       "required": ["type"],
@@ -298,7 +325,7 @@
             "statistics-window-order", "zero-statistics-min-samples",
             "zero-statistics-percentile-samples", "statistics-sample-limit-too-small",
             "statistics-percentile-out-of-range", "invalid-pid-gain", "zero-pid-interval",
-            "pid-delta-out-of-range", "pid-decay-out-of-range"
+            "pid-delta-out-of-range", "pid-decay-out-of-range", "numeric-overflow"
           ]
         },
         "value": { "type": "integer" },
@@ -306,7 +333,8 @@
         "maximumMs": { "$ref": "#/$defs/u64" },
         "maximum": { "type": "integer", "minimum": 0 },
         "required": { "type": "integer", "minimum": 0 },
-        "name": { "type": "string" }
+        "name": { "type": "string" },
+        "field": { "type": "string" }
       }
     },
     "request": {

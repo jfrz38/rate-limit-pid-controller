@@ -164,6 +164,14 @@ interface controller {
         max-in-flight: u64,
     }
 
+    record controller-diagnostics {
+        threshold: u16,
+        concurrency-limit: u64,
+        queue-timeout-ms: u64,
+        target-latency-ms: f64,
+        aggregated-latency-ms: option<f64>,
+    }
+
     resource admission-controller {
         submit: func(priority: u16, now-ms: u64) -> result<submission, submit-error>;
         complete: func(request-id: u64, outcome: outcome, now-ms: u64) -> result<list<action>, controller-error>;
@@ -172,6 +180,7 @@ interface controller {
         shutdown: func(now-ms: u64) -> result<list<action>, controller-error>;
         next-deadline: func() -> option<u64>;
         latest-statistics: func() -> option<statistics-snapshot>;
+        latest-diagnostics: func() -> controller-diagnostics;
         priority-percentile: func(percentile: u8) -> option<u16>;
     }
 
