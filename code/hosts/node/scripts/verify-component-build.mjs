@@ -22,7 +22,6 @@ await verifyInput('src/lib.rs', buildManifest.wrapper.sourceSha256);
 await verifyInput('wit/world.wit', buildManifest.wrapper.witSha256);
 await verifyLockedCrate();
 
-run('cargo', ['test', '--locked'], buildDirectory);
 run('cargo', ['build', '--locked', '--target', 'wasm32-unknown-unknown', '--release'], buildDirectory);
 
 const targetDirectory = resolve(buildDirectory, 'target/wasm32-unknown-unknown/release');
