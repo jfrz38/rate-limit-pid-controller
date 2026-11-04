@@ -11,16 +11,13 @@ const consumerDirectory = join(temporaryDirectory, 'consumer');
 const pnpm = process.env.npm_execpath;
 if (!pnpm) throw new Error('npm_execpath is required to run the package smoke test');
 const manifest = JSON.parse(await readFile(join(packageDirectory, 'package.json'), 'utf8'));
-const allowSnapshot = process.argv.includes('--allow-snapshot');
 
 try {
   await Promise.all([
     mkdir(artifactDirectory, { recursive: true }),
     mkdir(consumerDirectory, { recursive: true }),
   ]);
-  runPnpm(['pack', '--pack-destination', artifactDirectory], packageDirectory, allowSnapshot
-    ? { ADAPTIVE_ADMISSION_SNAPSHOT_PACK: 'package-smoke' }
-    : {});
+  runPnpm(['pack', '--pack-destination', artifactDirectory], packageDirectory);
 
   const artifactName = `${manifest.name.replace(/^@/, '').replace('/', '-')}-${manifest.version}.tgz`;
   const artifact = join(artifactDirectory, artifactName);
@@ -33,6 +30,7 @@ try {
   const installedPackage = join(consumerDirectory, 'node_modules', '@jfrz38', 'adaptive-admission-node');
   await Promise.all([
     access(join(installedPackage, 'component', 'COMPONENT.json')),
+    access(join(installedPackage, 'component', 'adaptive-admission-build-v0.1.0.json')),
     access(join(installedPackage, 'component', 'adaptive-admission-component-v0.1.0.wasm')),
     access(join(installedPackage, 'dist', 'generated', 'adaptive-admission.js')),
     access(join(installedPackage, 'dist', 'generated', 'adaptive-admission.core.wasm')),

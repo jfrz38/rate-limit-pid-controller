@@ -2,7 +2,7 @@
   "name": "@jfrz38/pid-controller-express",
   "author": "José F. Ruiz <jrz899@inlumine.ual.es>",
   "license": "MIT",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Express adapter for the Rust/WebAssembly adaptive admission controller",
   "engines": {
     "node": ">=24"

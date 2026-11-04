@@ -8,8 +8,8 @@ The component owns admission, priority queueing, concurrency, statistics, PID fe
 timeouts, and automatic tuning. This package owns JavaScript tasks, promises, monotonic time, and
 the timer that drives component deadlines.
 
-> This migration snapshot is not publishable. Its immutable source and checksums are documented in
-> [COMPONENT.md](./COMPONENT.md).
+The embedded component is built reproducibly from the exact crates.io dependency recorded in
+[COMPONENT.md](./COMPONENT.md).
 
 ## Installation
 
@@ -150,6 +150,7 @@ task outcomes. Diagnostics are intended for observability and simulations, not a
 ## Component provenance
 
 Builds read `component/COMPONENT.json`, validate every artifact checksum, compare the embedded WIT
-export with the checked-in contract, and verify the upstream manifest before transpilation. The
-generated JavaScript and core WebAssembly modules are included in the npm tarball, so consumers do
-not need Cargo or a Rust toolchain.
+export with the checked-in contract, and verify both upstream release and local build provenance
+before transpilation. `make verify-node-component` rebuilds the committed artifact from the exact
+crates.io package, locked transitive dependencies, and pinned toolchain. Generated JavaScript and
+WebAssembly modules are included in the npm tarball, so consumers do not need Cargo or Rust.

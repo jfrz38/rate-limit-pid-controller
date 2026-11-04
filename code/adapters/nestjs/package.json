@@ -2,7 +2,7 @@
   "name": "@jfrz38/pid-controller-nestjs",
   "author": "José F. Ruiz <jrz899@inlumine.ual.es>",
   "license": "MIT",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "NestJS adapter for the Rust/WebAssembly adaptive admission controller",
   "engines": {
     "node": ">=24"

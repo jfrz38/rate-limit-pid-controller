@@ -12,17 +12,11 @@ jobs:
   create-release:
     name: Create ${{ matrix.package.release_name }} release
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
         package:
-          - release_name: core
-            package_key: core
-            tag_prefix: core-v
-            package_name: "@jfrz38/pid-controller-core"
-            package_dir: code/core
-            package_file: code/core/package.json
           - release_name: express
             package_key: express
             tag_prefix: express-v
@@ -107,13 +101,33 @@ jobs:
         if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         run: make install-code
 
+      - name: Install pinned Rust component tools
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true' && matrix.package.package_key == 'node'
+        run: make install-node-component-tools
+
+      - name: Verify stable component provenance
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true' && matrix.package.package_key == 'node'
+        run: make verify-node-component
+
       - name: Build
         if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         run: make build-${{ matrix.package.package_key }}
 
+      - name: Lint workspace
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
+        run: make lint
+
       - name: Run tests
         if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         run: make test-${{ matrix.package.package_key }}
+
+      - name: Run Node conformance and package smoke
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true' && matrix.package.package_key == 'node'
+        run: make test-node-conformance test-node-package
+
+      - name: Smoke test installed consumer tarballs
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true' && matrix.package.package_key != 'node'
+        run: make test-consumer-packages
 
       - name: Resolve release version
         if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
