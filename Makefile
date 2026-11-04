@@ -1,18 +1,20 @@
+.DEFAULT_GOAL := help
+
 SCENARIO ?= base
 SEED ?= 20260913
-PACKAGE ?= core
+PACKAGE ?= node
 POETRY ?= poetry
 PNPM ?= pnpm
 PNPM_INSTALL_FLAGS ?= --frozen-lockfile --config.confirmModulesPurge=false
 LOCAL_ARTIFACT_DIR ?= .artifacts
+RUST_TOOLCHAIN ?= 1.99.0
+WASM_TOOLS_VERSION ?= 1.262.0
 
-PACKAGE_NAME_core := @jfrz38/pid-controller-core
 PACKAGE_NAME_shared := @jfrz38/pid-controller-shared
 PACKAGE_NAME_express := @jfrz38/pid-controller-express
 PACKAGE_NAME_nestjs := @jfrz38/pid-controller-nestjs
 PACKAGE_NAME_node := @jfrz38/adaptive-admission-node
 
-PACKAGE_DIR_core := code/core
 PACKAGE_DIR_shared := code/adapters/shared
 PACKAGE_DIR_express := code/adapters/express
 PACKAGE_DIR_nestjs := code/adapters/nestjs
@@ -25,7 +27,7 @@ PACKAGE_DIR = $(PACKAGE_DIR_$(PACKAGE))
 help: ## show make targets
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf " \033[36m%-20s\033[0m  %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-.PHONY: install install-code install-simulation install-simulation-runner
+.PHONY: install install-code install-simulation install-simulation-runner install-node-component-tools
 install: install-code ## install code workspace dependencies
 
 install-code: ## install the TypeScript workspace dependencies
@@ -36,6 +38,10 @@ install-simulation: ## install Python simulation dependencies
 
 install-simulation-runner: ## install simulation runner dependencies
 	cd simulation/scripts/runner && $(PNPM) install $(PNPM_INSTALL_FLAGS)
+
+install-node-component-tools: ## install the pinned Rust component build tools
+	rustup toolchain install "$(RUST_TOOLCHAIN)" --profile minimal --target wasm32-unknown-unknown
+	cargo +$(RUST_TOOLCHAIN) install wasm-tools --version "=$(WASM_TOOLS_VERSION)" --locked
 
 .PHONY: build test lint clean ci
 build: ## build all workspace packages
@@ -50,12 +56,9 @@ lint: ## run all workspace linters
 clean: ## clean all workspace packages
 	cd code && $(PNPM) clean
 
-ci: install-code build test ## run the local CI pipeline
+ci: install-code build lint test ## run the local CI pipeline
 
-.PHONY: build-core build-shared build-express build-nestjs build-node lint-node
-build-core: ## build the core package
-	cd code && $(PNPM) --filter "$(PACKAGE_NAME_core)..." build
-
+.PHONY: build-shared build-express build-nestjs build-node lint-node verify-node-component
 build-shared: ## build the shared adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_shared)..." build
 
@@ -71,6 +74,9 @@ build-node: ## build the adaptive admission Node host package
 lint-node: ## lint the adaptive admission Node host package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." lint
 
+verify-node-component: ## rebuild and verify the crates.io WebAssembly component
+	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)" test:component-build
+
 .PHONY: pack-local
 pack-local: build ## build and pack PACKAGE for local installation
 	@mkdir -p "$(LOCAL_ARTIFACT_DIR)"
@@ -78,10 +84,7 @@ pack-local: build ## build and pack PACKAGE for local installation
 	$(PNPM) --dir "$(PACKAGE_DIR)" pack --pack-destination "$(abspath $(LOCAL_ARTIFACT_DIR))"
 	@printf '\nReinstall it in another project with:\n  pnpm remove "$(PACKAGE_NAME)" && pnpm add --save-exact --force "%s/"*.tgz\n' "$(abspath $(LOCAL_ARTIFACT_DIR))"
 
-.PHONY: test-core test-shared test-express test-nestjs test-node test-node-conformance test-node-package test-consumer-packages
-test-core: ## test the core package
-	cd code && $(PNPM) --filter "$(PACKAGE_NAME_core)..." test
-
+.PHONY: test-shared test-express test-nestjs test-node test-node-conformance test-node-package test-consumer-packages
 test-shared: ## test the shared adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_shared)..." test
 
@@ -103,33 +106,26 @@ test-node-package: ## verify the installed Node host tarball and embedded Wasm a
 test-consumer-packages: ## install and smoke test Node, Express, and NestJS tarballs together
 	cd code && node scripts/consumer-package-smoke.mjs
 
-.PHONY: validate-core validate-shared validate-express validate-nestjs validate-node
-validate-core: install-code build-core test-core ## install, build, and test core
-
+.PHONY: validate-shared validate-express validate-nestjs validate-node
 validate-shared: install-code build-shared test-shared ## install, build, and test shared
 
 validate-express: install-code build-express test-express ## install, build, and test Express
 
 validate-nestjs: install-code build-nestjs test-nestjs ## install, build, and test NestJS
 
-validate-node: install-code build-node lint-node test-node test-node-package ## install, lint, build, test, and pack the Node host
+validate-node: install-code verify-node-component build-node lint-node test-node test-node-conformance test-node-package ## verify component provenance and validate the Node host
 
-.PHONY: simulation-generate simulation-run simulation-run-typescript simulation-report simulation simulation-typescript test-simulation test-simulation-python test-simulation-runner
+.PHONY: simulation-generate simulation-run simulation-report simulation test-simulation test-simulation-python test-simulation-runner
 simulation-generate: install-simulation ## generate a simulation scenario with SCENARIO=name
 	cd simulation/scenarios && $(POETRY) run python scenario_generator.py $(SCENARIO) --seed $(SEED)
 
 simulation-run: install-code build-node install-simulation-runner ## run a generated scenario against the default Rust/Wasm controller
 	cd simulation/scripts/runner && $(PNPM) run log -- $(SCENARIO)
 
-simulation-run-typescript: install-code install-simulation-runner ## run the temporary TypeScript comparison backend
-	cd simulation/scripts/runner && $(PNPM) run log:typescript -- $(SCENARIO)
-
 simulation-report: install-simulation ## generate the simulation visual report
 	cd simulation/scripts && $(POETRY) run python logs_reader.py --no-show $(SCENARIO)
 
 simulation: simulation-generate simulation-run simulation-report ## generate, run, and render a simulation scenario
-
-simulation-typescript: simulation-generate simulation-run-typescript simulation-report ## generate, run the TypeScript comparison, and render a report
 
 test-simulation-python: install-simulation ## test scenario generation and report parsing
 	cd simulation && $(POETRY) run python -m unittest discover -s tests -p "test_*.py"

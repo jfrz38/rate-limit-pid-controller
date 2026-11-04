@@ -15,9 +15,6 @@
   },
   "references": [
     {
-      "path": "./core"
-    },
-    {
       "path": "./adapters/nestjs"
     },
     {

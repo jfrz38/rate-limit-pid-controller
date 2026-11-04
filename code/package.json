@@ -2,7 +2,7 @@
   "name": "rate-limit-pid-controller",
   "private": true,
   "version": "1.0.0",
-  "description": "Monorepo for PID-based rate limiting controller and its framework adapters.",
+  "description": "Node.js host and framework adapters for the Rust adaptive admission controller.",
   "main": "index.js",
   "scripts": {
     "install:all": "pnpm -r install",

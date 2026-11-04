@@ -1,12 +1,10 @@
 {
   "scripts": {
     "log": "node run-log.mjs",
-    "log:typescript": "ts-node run-log-typescript.ts",
     "start": "ts-node-esm index.mts",
-    "start:typescript": "ts-node index-typescript.ts",
     "test": "node --require ts-node/register/transpile-only --test tests/*.test.ts",
     "test:smoke": "ts-node-esm index.mts smoke",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.rust.json"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "24.6.2",
