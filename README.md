@@ -1,31 +1,27 @@
-# Rate Limiter PID Controller
+# Adaptive Admission Controller for Node.js
 
 [![CodeQL](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/codeql.yml/badge.svg)](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/codeql.yml)
 [![license](https://img.shields.io/github/license/jfrz38/rate-limit-pid-controller)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
 
-This project is an **opinionated implementation of a rate limiter**, inspired by Uber’s [Cinnamon blog post](https://www.uber.com/en-ES/blog/cinnamon-using-century-old-tech-to-build-a-mean-load-shedder/?uclick_id=023fa4c1-0abf-4379-ad4d-62ed0a214924).  
-It is designed to be framework-agnostic and written in plain TypeScript with zero heavy dependencies, with the goal of being easily integrated as a dependency in plain NodeJs or using a framework such as **Express** or **NestJS**.
+Node.js host and framework adapters for the Rust/WebAssembly
+[`adaptive-admission-controller`](https://github.com/jfrz38/adaptive-admission-controller).
+The controller combines priority-aware load shedding, bounded queueing, adaptive concurrency,
+statistics, and PID feedback. Node.js 24 or newer and ESM are required.
 
 ## Usage
 
-Choose how you want to integrate the PID rate limiter:
+Choose the integration boundary that matches the application:
 
-- **Standalone Core**  
-  Use the PID controller directly in any Node.js project without HTTP protocols.  
-  🔗 [Core README](./code/core/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-core)](https://www.npmjs.com/package/@jfrz38/pid-controller-core)
-
-- **WebAssembly Node Host**
-  Use the portable Rust controller from Node.js through its Promise-based host SDK.
-  🔗 [Node Host README](./code/hosts/node/README.md)
+- **Node host** — execute arbitrary JavaScript work through the Promise-based Rust/Wasm host SDK.
+  🔗 [Node Host README](./code/hosts/node/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/adaptive-admission-node)](https://www.npmjs.com/package/@jfrz38/adaptive-admission-node)
 
 - **Framework Adapters**  
   Plug the controller into your framework with minimal setup:  
   🔗 [Express Adapter](./code/adapters/express/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)  
   🔗 [NestJS Adapter](./code/adapters/nestjs/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
 
-> You can either control requests manually via the core or handle them automatically with middleware.
-
-Also you can explore [simulation examples](./simulation/README.md) to see how the PID controller behaves under different traffic loads and latency scenarios..
+Explore the [simulation examples](./simulation/README.md) to see the controller under different
+traffic loads and latency scenarios.
 
 ## Motivation
 
@@ -58,9 +54,6 @@ flowchart LR
   style Controller fill:#f4f1ff,stroke:#7a64c7,stroke-width:1.5px,color:#172033
 ```
 
-> [!NOTE]  
-> Check extended explanation into [Core project](./code/core/README.md#All%20pieces%20together).
-
 ## Features
 
 - PID-based dynamic rate limiting.
@@ -68,7 +61,7 @@ flowchart LR
 - Configurable thresholds, recovery, and overload handling.
 - Designed for **high concurrency** environments.
 - Priority-based shedding dropping background tasks during high-load periods while keeping critical requests alive.
-- Promise-based core API that propagates accepted results, rejections, evictions, and task failures.
+- Promise-based host API that propagates accepted results, rejections, evictions, and task failures.
 
 ## How it works
 
@@ -79,7 +72,8 @@ Standard rate limiters are static: you set 100 RPS, and it stays at 100 RPS. Thi
 3. **Load Shedding**: Only requests with an effective priority value below the current threshold are allowed.
 4. **Self-Correction**: If the server slows down, the PID raises the threshold automatically. As it recovers, it gracefully lowers it back.
 
-The standalone core exposes priorities through a `Priority` class. Use `Priority.fromTier(0..5)` for tier-based traffic or `Priority.fromValue(0..767)` when you already have a full tier/cohort value.
+The Node host exposes priorities through a `Priority` class. Use `Priority.fromTier(0..5)` for
+tier-based traffic or `Priority.fromValue(0..767)` for a complete tier/cohort value.
 
 ## Simulation in action
 
@@ -91,12 +85,10 @@ The latest simulation report shows how the controller responds to the executed t
 
 This repository contains several npm packages that are versioned and released independently:
 
-- `@jfrz38/pid-controller-core` uses tags like `core-vX.Y.Z`.
 - `@jfrz38/pid-controller-express` uses tags like `express-vX.Y.Z`.
 - `@jfrz38/pid-controller-nestjs` uses tags like `nestjs-vX.Y.Z`.
-- `@jfrz38/adaptive-admission-node` hosts the separately released
-  `adaptive-admission-controller` WebAssembly component. Its publication workflow will be enabled
-  after the host contract is stabilized.
+- `@jfrz38/adaptive-admission-node` uses tags like `node-vX.Y.Z` and embeds the validated
+  WebAssembly component, so npm consumers do not need Rust or Cargo.
 
 GitHub Releases are therefore package-specific. `npm` is the source of truth for each package's `latest` version, because npm tracks the `latest` dist-tag per package while GitHub only has one repository-level latest release.
 
@@ -106,6 +98,7 @@ Common project tasks are exposed through the root `Makefile`:
 
 ```bash
 make install-code
+make verify-node-component
 make build
 make test
 make ci
@@ -114,7 +107,7 @@ make ci
 Package-specific checks are also available:
 
 ```bash
-make validate-core
+make validate-node
 make validate-express
 make validate-nestjs
 ```
@@ -123,14 +116,21 @@ Run `make help` to list all available targets.
 
 ### Local package testing
 
-Build a package and create a local tarball with `PACKAGE=core`, `shared`, `express`, `nestjs`, or
-`node`:
+Build a package and create a local tarball with `PACKAGE=node`, `shared`, `express`, or `nestjs`:
 
 ```bash
-make pack-local PACKAGE=core
+make pack-local PACKAGE=node
 ```
 
 The command prints a `pnpm remove <package> && pnpm add --force <tarball>` command for another local project. It removes the installed package before adding the local artifact, so the artifact replaces it even when its version number has not changed.
+
+## Migrating from the TypeScript core
+
+`@jfrz38/pid-controller-core` is retired. Direct consumers should migrate to
+`@jfrz38/adaptive-admission-node`; Express and NestJS users should upgrade their existing adapter to
+`0.2.x`. The adapter READMEs document configuration and error changes. The old npm package will be
+deprecated only after the replacement packages have been published from a validated `main`
+release.
 
 ## References
 

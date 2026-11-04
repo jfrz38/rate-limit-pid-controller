@@ -13,19 +13,17 @@ make install-simulation-runner
 make simulation SCENARIO=base SEED=20260913
 ```
 
-Rust/WebAssembly is the default backend. The temporary TypeScript comparison runner consumes the same CSV trace. To compare them without regenerating
-the input, generate once and execute both backends:
+Rust/WebAssembly is the only controller backend. Generate and execute a deterministic trace with:
 
 ```bash
 make simulation-generate SCENARIO=aggressive_peak SEED=20260913
 make simulation-run SCENARIO=aggressive_peak
-make simulation-run-typescript SCENARIO=aggressive_peak
 ```
 
-Default runner logs identify the backend as `rust-wasm` in the summary; comparison logs end in `-typescript.log`. Rust logs
+Runner logs identify the backend as `rust-wasm` in the summary. Logs
 include threshold, concurrency, statistics, target latency, filtered latency, and adaptive queue
-timeout diagnostics from the pinned development component snapshot. The exact source commit and
-checksum are recorded in `code/hosts/node/COMPONENT.md`.
+timeout diagnostics from the stable crates.io component. Its exact crate version, upstream commit,
+toolchain, and checksum are recorded in `code/hosts/node/COMPONENT.md`.
 
 You can run each step independently:
 
@@ -53,7 +51,7 @@ The following scenarios are available:
 | `adaptive_soak_10m` | 10 min   | 12,180   | Exercises capacity discovery, shedding, degradation, and recovery. |
 | `aggressive_peak_10m` | 10 min  | 29,040   | Two-minute 200 req/s peak after warmup; forces admission shedding. |
 
-Generated CSV files contain absolute arrival times in milliseconds and the complete priority value used by the core: `requestId`, `scenario`, `seed`, `phase`, `arrivalTimeMs`, `executionTimeMs`, `priorityTier`, and `priorityValue`.
+Generated CSV files contain absolute arrival times in milliseconds and the complete priority value used by the controller: `requestId`, `scenario`, `seed`, `phase`, `arrivalTimeMs`, `executionTimeMs`, `priorityTier`, and `priorityValue`.
 
 ### Representative cases
 
@@ -90,7 +88,7 @@ Practical examples using frameworks (**Express** and **NestJS** ) and its PID ad
 
 Both server implements PID middleware and error handler. Their route and logic are the same, both accept priority in `x-priority` header and also another header to simulate latency: `execution-time`.
 
-The `x-priority` header represents a priority tier from `0` to `5`, where `0` is the most important traffic and `5` is the least important. The adapters convert this tier into the core `Priority` class before calling the controller.
+The `x-priority` header represents a priority tier from `0` to `5`, where `0` is the most important traffic and `5` is the least important. The adapters convert this tier into the Node host's `Priority` class before calling the controller.
 
 You can test any of them calling via HTTP:
 
