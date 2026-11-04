@@ -83,6 +83,16 @@ jobs:
             exit 1
           fi
 
+      - id: release-tag
+        name: Verify release tag
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
+        uses: jfrz38/verify-release-tag@d3335c1a4307cd5241653aeecb579325d92fcd8f # v0.1.0
+        with:
+          version-file: ${{ matrix.package.package_file }}
+          tag-prefix: ${{ matrix.package.tag_prefix }}
+          expected-commit: ${{ github.sha }}
+          policy: allow-missing
+
       - name: Install pnpm
         if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         uses: pnpm/action-setup@v6.1.0
@@ -129,31 +139,12 @@ jobs:
         if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true' && matrix.package.package_key != 'node'
         run: make test-consumer-packages
 
-      - name: Resolve release version
-        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
-        id: version
-        working-directory: ${{ matrix.package.package_dir }}
-        run: |
-          VERSION="$(node -p "require('./package.json').version")"
-          if [ -z "$VERSION" ]; then
-            echo "Could not resolve package version" >&2
-            exit 1
-          fi
-
-          if [ "$VERSION" != "${{ steps.version-check.outputs.local-version }}" ]; then
-            echo "Resolved version $VERSION does not match checked version ${{ steps.version-check.outputs.local-version }}" >&2
-            exit 1
-          fi
-
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=${{ matrix.package.tag_prefix }}$VERSION" >> "$GITHUB_OUTPUT"
-
       - name: Create GitHub release
         if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.release-tag.outputs.tag }}
+          VERSION: ${{ steps.release-tag.outputs.version }}
         working-directory: .
         run: |
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
