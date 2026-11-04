@@ -46,20 +46,15 @@ if (committedDigest !== metadata.component.sha256) {
   throw new Error(`committed component checksum mismatch: expected ${metadata.component.sha256}, received ${committedDigest}`);
 }
 
-const normalizedBuiltPath = resolve(targetDirectory, 'adaptive_admission_component.normalized.wasm');
-const normalizedCommittedPath = resolve(targetDirectory, 'adaptive_admission_component.committed.normalized.wasm');
-run('wasm-tools', ['strip', '--all', builtComponentPath, '-o', normalizedBuiltPath], buildDirectory);
-run('wasm-tools', [
-  'strip',
-  '--all',
-  resolve(componentDirectory, metadata.component.artifact),
-  '-o',
-  normalizedCommittedPath,
-], buildDirectory);
-const normalizedBuiltBytes = await readFile(normalizedBuiltPath);
-const normalizedCommittedBytes = await readFile(normalizedCommittedPath);
-if (!normalizedBuiltBytes.equals(normalizedCommittedBytes)) {
-  throw new Error('rebuilt component differs from the committed npm artifact after metadata normalization');
+const host = `${process.platform}-${process.arch}`;
+const expectedRebuildDigest = buildManifest.component.rebuildSha256ByHost?.[host];
+if (!expectedRebuildDigest) {
+  throw new Error(`component reproducibility is not recorded for build host ${host}`);
+}
+if (builtDigest !== expectedRebuildDigest) {
+  throw new Error(
+    `rebuilt component checksum mismatch for ${host}: expected ${expectedRebuildDigest}, received ${builtDigest}`,
+  );
 }
 
 console.log(

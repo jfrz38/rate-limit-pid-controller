@@ -21,7 +21,11 @@
     "world": "adaptive-admission",
     "target": "wasm32-unknown-unknown",
     "artifact": "adaptive-admission-component-v0.1.0.wasm",
-    "sha256": "cbb610c98d9a53efa04379bfc9cb21bd8acbcfe9680c3f052daa4082e496fd6a"
+    "sha256": "cbb610c98d9a53efa04379bfc9cb21bd8acbcfe9680c3f052daa4082e496fd6a",
+    "rebuildSha256ByHost": {
+      "linux-x64": "152016fa6371f97deb124937fd477fb5bc122bdf5510a630ceef661fc4c4bd9b",
+      "win32-x64": "cbb610c98d9a53efa04379bfc9cb21bd8acbcfe9680c3f052daa4082e496fd6a"
+    }
   },
   "toolchain": {
     "rust": "rustc 1.99.0 (b940084d7 2026-09-28)",

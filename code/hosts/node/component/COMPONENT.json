@@ -31,7 +31,7 @@
   },
   "buildManifest": {
     "artifact": "adaptive-admission-build-v0.1.0.json",
-    "sha256": "b0cfc5020eafb823701560e6fe8a224c24e06eaa7e3fe70075742019c8c6b60a"
+    "sha256": "1eb7005a204f0911c2d1bfe38edcaac1a5542fc63355ea30ceb7092c8b7a7981"
   },
   "toolchain": {
     "rust": "rustc 1.99.0 (b940084d7 2026-09-28)",
