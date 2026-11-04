@@ -28,9 +28,9 @@ cbb610c98d9a53efa04379bfc9cb21bd8acbcfe9680c3f052daa4082e496fd6a
 `component/COMPONENT.json` relates the crate, build manifest, upstream release manifest, WIT,
 conformance suite, toolchain, and generated artifact. Host generation fails before transpilation if
 any checksum or required contract operation differs. `make verify-node-component` additionally
-rebuilds the component and requires equality with the npm artifact after removing non-contractual
-custom metadata sections that can vary between build hosts. The committed npm artifact's exact
-checksum is always verified separately.
+rebuilds the component and requires equality with the npm artifact after removing custom metadata
+sections that can vary between build hosts. The component contract is validated before normalization,
+and the committed npm artifact's exact checksum is always verified separately.
 
 ## Updating the component
 

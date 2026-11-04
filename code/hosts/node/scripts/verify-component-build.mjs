@@ -48,9 +48,10 @@ if (committedDigest !== metadata.component.sha256) {
 
 const normalizedBuiltPath = resolve(targetDirectory, 'adaptive_admission_component.normalized.wasm');
 const normalizedCommittedPath = resolve(targetDirectory, 'adaptive_admission_component.committed.normalized.wasm');
-run('wasm-tools', ['strip', builtComponentPath, '-o', normalizedBuiltPath], buildDirectory);
+run('wasm-tools', ['strip', '--all', builtComponentPath, '-o', normalizedBuiltPath], buildDirectory);
 run('wasm-tools', [
   'strip',
+  '--all',
   resolve(componentDirectory, metadata.component.artifact),
   '-o',
   normalizedCommittedPath,
