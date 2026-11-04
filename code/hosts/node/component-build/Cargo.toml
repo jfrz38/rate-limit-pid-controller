@@ -1,0 +1,16 @@
+[package]
+name = "adaptive-admission-component"
+version = "0.1.0"
+description = "Reproducible WebAssembly component wrapper for adaptive-admission-core"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/jfrz38/rate-limit-pid-controller"
+rust-version = "1.99"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+adaptive-admission-core = "=0.1.0"
+wit-bindgen = "=0.63.0"

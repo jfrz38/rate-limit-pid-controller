@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "registry": "https://crates.io",
+    "crate": "adaptive-admission-core",
+    "version": "0.1.0",
+    "checksum": "823b1ca077228a3fd229aad05e958e585663072571f0f7709bdbfb70f28dab90",
+    "owner": "jfrz38",
+    "repository": "https://github.com/jfrz38/adaptive-admission-controller",
+    "commit": "b821533645e6dfbfb611b9459345d0e5030bf83a"
+  },
+  "wrapper": {
+    "upstreamCommit": "b821533645e6dfbfb611b9459345d0e5030bf83a",
+    "manifestSha256": "33e9fabd95792ea4233b5adcf2b041e52fb0b49837a801dd794b55863a8b8e9b",
+    "cargoLockSha256": "13ae2c79f61c6e45585e61578e31dcb358a90437aed90384c8a4f36a1baa5c8c",
+    "sourceSha256": "cfb85affd709c29d4b39afd2f76064f9acc60e94a0a48efd6d261d9ca6dec6e9",
+    "witSha256": "703d66043f9e2d2bedf92ef97a9ef2618eed1b25eef5c68e2e53fa35d9ca81da"
+  },
+  "component": {
+    "package": "jfrz38:adaptive-admission@0.1.0",
+    "world": "adaptive-admission",
+    "target": "wasm32-unknown-unknown",
+    "artifact": "adaptive-admission-component-v0.1.0.wasm",
+    "sha256": "cbb610c98d9a53efa04379bfc9cb21bd8acbcfe9680c3f052daa4082e496fd6a"
+  },
+  "toolchain": {
+    "rust": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+    "wasmTools": "wasm-tools 1.262.0",
+    "witBindgen": "0.63.0"
+  }
+}

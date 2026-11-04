@@ -12,16 +12,18 @@ const componentDirectory = new URL('../component/', import.meta.url);
 const metadataUrl = new URL('COMPONENT.json', componentDirectory);
 
 describe('component metadata', () => {
-  test('validates the pinned main snapshot and its embedded contract', async () => {
+  test('validates the pinned crates.io component and its embedded contract', async () => {
     const bundle = await loadComponentBundle(metadataUrl);
 
     expect(bundle.metadata).toMatchObject({
       source: {
-        type: 'git-snapshot',
-        branch: 'main',
+        type: 'crates-io',
+        crate: 'adaptive-admission-core',
+        version: '0.1.0',
+        checksum: '823b1ca077228a3fd229aad05e958e585663072571f0f7709bdbfb70f28dab90',
         commit: 'b821533645e6dfbfb611b9459345d0e5030bf83a',
       },
-      publishable: false,
+      publishable: true,
     });
   });
 
@@ -48,16 +50,18 @@ describe('component metadata', () => {
     });
   });
 
-  test('blocks snapshot pack and publish unless the smoke override is explicit', async () => {
+  test('allows stable component pack and publication', async () => {
     const { metadata } = await loadComponentBundle(metadataUrl);
 
-    expect(() => assertPackagePolicy(metadata, 'pack', {})).toThrow('pack is forbidden');
-    expect(() => assertPackagePolicy(metadata, 'publish', {
-      ADAPTIVE_ADMISSION_SNAPSHOT_PACK: 'package-smoke',
-    })).toThrow('publish is forbidden');
-    expect(() => assertPackagePolicy(metadata, 'pack', {
-      ADAPTIVE_ADMISSION_SNAPSHOT_PACK: 'package-smoke',
-    })).not.toThrow();
+    expect(() => assertPackagePolicy(metadata, 'pack')).not.toThrow();
+    expect(() => assertPackagePolicy(metadata, 'publish')).not.toThrow();
+  });
+
+  test('continues to reject non-publishable component metadata', () => {
+    expect(() => assertPackagePolicy({
+      source: { type: 'git-snapshot' },
+      publishable: false,
+    }, 'publish')).toThrow('publish is forbidden');
   });
 });
 
@@ -71,7 +75,8 @@ async function withComponentFixture(
       metadata.component.artifact,
       metadata.wit.artifact,
       metadata.conformance.artifact,
-      metadata.upstreamManifest.artifact,
+      metadata.upstreamRelease.artifact,
+      metadata.buildManifest.artifact,
     ].map((artifact: string) => cp(new URL(artifact, componentDirectory), join(directory, artifact))));
     await operation(directory, metadata);
   } finally {
