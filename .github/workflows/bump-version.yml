@@ -6,10 +6,9 @@ on:
       package:
         description: Package to bump
         required: true
-        default: core
+        default: node
         type: choice
         options:
-          - core
           - express
           - nestjs
           - shared
@@ -50,11 +49,6 @@ jobs:
         id: package
         run: |
           case "${{ inputs.package }}" in
-            core)
-              echo "package_name=@jfrz38/pid-controller-core" >> "$GITHUB_OUTPUT"
-              echo "version_file=code/core/package.json" >> "$GITHUB_OUTPUT"
-              echo "tag_prefix=core-v" >> "$GITHUB_OUTPUT"
-              ;;
             express)
               echo "package_name=@jfrz38/pid-controller-express" >> "$GITHUB_OUTPUT"
               echo "version_file=code/adapters/express/package.json" >> "$GITHUB_OUTPUT"

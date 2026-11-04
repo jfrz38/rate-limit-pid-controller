@@ -19,7 +19,7 @@ permissions:
 jobs:
     validate:
         runs-on: ubuntu-24.04
-        timeout-minutes: 20
+        timeout-minutes: 35
         steps:
             - uses: actions/checkout@v7
 
@@ -35,6 +35,12 @@ jobs:
 
             - name: Install workspace dependencies
               run: make install-code
+
+            - name: Install pinned Rust component tools
+              run: make install-node-component-tools
+
+            - name: Rebuild stable crates.io component
+              run: make verify-node-component
 
             - name: Build Node host and validate component provenance
               run: make build-node

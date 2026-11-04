@@ -13,9 +13,7 @@ const nestVersion = process.env.SMOKE_NEST_VERSION ?? '12.1.0';
 try {
   run('pnpm', ['--filter', '@jfrz38/pid-controller-express...', 'build'], codeDirectory);
   run('pnpm', ['--filter', '@jfrz38/pid-controller-nestjs...', 'build'], codeDirectory);
-  run('pnpm', ['pack', '--pack-destination', artifacts], join(codeDirectory, 'hosts/node'), {
-    ADAPTIVE_ADMISSION_SNAPSHOT_PACK: 'package-smoke',
-  });
+  run('pnpm', ['pack', '--pack-destination', artifacts], join(codeDirectory, 'hosts/node'));
   run('pnpm', ['pack', '--pack-destination', artifacts], join(codeDirectory, 'adapters/express'));
   run('pnpm', ['pack', '--pack-destination', artifacts], join(codeDirectory, 'adapters/nestjs'));
 
@@ -63,12 +61,10 @@ await nest.close();
 }
 
 function run(command, args, cwd, extraEnvironment = {}) {
-  const executable = process.platform === 'win32' && command === 'pnpm' ? 'pnpm.cmd' : command;
-  const result = spawnSync(executable, args, {
+  const result = spawnSync(command, args, {
     cwd,
     env: { ...process.env, ...extraEnvironment },
     stdio: 'inherit',
-    shell: process.platform === 'win32',
   });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`${command} exited with status ${result.status}`);

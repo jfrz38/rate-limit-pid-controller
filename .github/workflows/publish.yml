@@ -8,7 +8,6 @@ on:
         required: true
         type: choice
         options:
-          - core
           - express
           - nestjs
           - node
@@ -34,13 +33,6 @@ jobs:
         id: package
         run: |
           case "${{ inputs.package }}" in
-            core)
-              echo "package_key=core" >> "$GITHUB_OUTPUT"
-              echo "tag_prefix=core-v" >> "$GITHUB_OUTPUT"
-              echo "package_name=@jfrz38/pid-controller-core" >> "$GITHUB_OUTPUT"
-              echo "package_dir=code/core" >> "$GITHUB_OUTPUT"
-              echo "package_file=code/core/package.json" >> "$GITHUB_OUTPUT"
-              ;;
             express)
               echo "package_key=express" >> "$GITHUB_OUTPUT"
               echo "tag_prefix=express-v" >> "$GITHUB_OUTPUT"
@@ -80,7 +72,7 @@ jobs:
             exit 1
           fi
 
-          VERSION="${TAG#${TAG_PREFIX}}"
+          VERSION="${TAG#"$TAG_PREFIX"}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
@@ -111,7 +103,7 @@ jobs:
         run: |
           PUBLISHABLE="$(node -p "require('./code/hosts/node/component/COMPONENT.json').publishable")"
           if [ "$PUBLISHABLE" != "true" ]; then
-            echo "The embedded Node component is a non-publishable snapshot." >&2
+            echo "The embedded Node component does not have publishable stable provenance." >&2
             exit 1
           fi
 
