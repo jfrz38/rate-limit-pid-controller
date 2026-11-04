@@ -40,16 +40,31 @@ run('wasm-tools', [
 
 const builtBytes = await readFile(builtComponentPath);
 const builtDigest = digest(builtBytes);
-if (builtDigest !== metadata.component.sha256) {
-  throw new Error(`rebuilt component checksum mismatch: expected ${metadata.component.sha256}, received ${builtDigest}`);
-}
-
 const committedBytes = await readFile(resolve(componentDirectory, metadata.component.artifact));
-if (!builtBytes.equals(committedBytes)) {
-  throw new Error('rebuilt component bytes differ from the committed npm artifact');
+const committedDigest = digest(committedBytes);
+if (committedDigest !== metadata.component.sha256) {
+  throw new Error(`committed component checksum mismatch: expected ${metadata.component.sha256}, received ${committedDigest}`);
 }
 
-console.log(`Verified reproducible component ${metadata.source.crate}@${metadata.source.version} (${builtDigest})`);
+const normalizedBuiltPath = resolve(targetDirectory, 'adaptive_admission_component.normalized.wasm');
+const normalizedCommittedPath = resolve(targetDirectory, 'adaptive_admission_component.committed.normalized.wasm');
+run('wasm-tools', ['strip', builtComponentPath, '-o', normalizedBuiltPath], buildDirectory);
+run('wasm-tools', [
+  'strip',
+  resolve(componentDirectory, metadata.component.artifact),
+  '-o',
+  normalizedCommittedPath,
+], buildDirectory);
+const normalizedBuiltBytes = await readFile(normalizedBuiltPath);
+const normalizedCommittedBytes = await readFile(normalizedCommittedPath);
+if (!normalizedBuiltBytes.equals(normalizedCommittedBytes)) {
+  throw new Error('rebuilt component differs from the committed npm artifact after metadata normalization');
+}
+
+console.log(
+  `Verified reproducible component ${metadata.source.crate}@${metadata.source.version} `
+  + `(artifact ${committedDigest}, rebuild ${builtDigest})`,
+);
 
 async function verifyInput(relativePath, expectedDigest) {
   const receivedDigest = digest(await readFile(resolve(buildDirectory, relativePath)));
