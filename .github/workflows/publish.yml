@@ -88,6 +88,16 @@ jobs:
           ref: ${{ steps.version.outputs.tag }}
           fetch-depth: 0
 
+      - id: release-tag
+        name: Verify release tag
+        uses: jfrz38/verify-release-tag@d3335c1a4307cd5241653aeecb579325d92fcd8f # v0.1.0
+        with:
+          version-file: ${{ steps.package.outputs.package_file }}
+          tag-prefix: ${{ steps.package.outputs.tag_prefix }}
+          tag: ${{ steps.version.outputs.tag }}
+          expected-commit: HEAD
+          policy: require-existing
+
       - name: Verify release tag is on main
         env:
           TAG: ${{ steps.version.outputs.tag }}
@@ -104,17 +114,6 @@ jobs:
           PUBLISHABLE="$(node -p "require('./code/hosts/node/component/COMPONENT.json').publishable")"
           if [ "$PUBLISHABLE" != "true" ]; then
             echo "The embedded Node component does not have publishable stable provenance." >&2
-            exit 1
-          fi
-
-      - name: Verify package version matches release
-        working-directory: ${{ steps.package.outputs.package_dir }}
-        env:
-          EXPECTED_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          if [ "$PACKAGE_VERSION" != "$EXPECTED_VERSION" ]; then
-            echo "Release version $EXPECTED_VERSION does not match package version $PACKAGE_VERSION" >&2
             exit 1
           fi
 
