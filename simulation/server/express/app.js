@@ -18,9 +18,26 @@ const { middleware, shutdown } = pidControllerMiddleware({
 const app = express();
 app.use(middleware);
 
+const DEFAULT_EXECUTION_TIME_MS = 100;
+const MAX_EXECUTION_TIME_MS = 60_000;
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 app.get('/test', async (request, response) => {
-  const executionTime = Number(request.headers['execution-time']) || 100;
+  const executionTimeHeader = request.get('execution-time');
+  const executionTime =
+    executionTimeHeader === undefined
+      ? DEFAULT_EXECUTION_TIME_MS
+      : Number(executionTimeHeader);
+
+  if (
+    !Number.isFinite(executionTime) ||
+    executionTime < 0 ||
+    executionTime > MAX_EXECUTION_TIME_MS
+  ) {
+    return response.status(400).json({
+      error: `execution-time must be between 0 and ${MAX_EXECUTION_TIME_MS}`,
+    });
+  }
+
   await sleep(executionTime);
   response.json({ ok: true, simulatedDelay: executionTime });
 });
