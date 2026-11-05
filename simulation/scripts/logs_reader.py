@@ -202,6 +202,29 @@ def extended_state_series(
     return extended
 
 
+def latest_statistics_timestamp(data: dict) -> float | None:
+    timestamps = [
+        timestamp
+        for key in ("percentile_latency", "minimum_latency", "average_latency", "throughput")
+        for timestamp, _ in data[key]
+    ]
+    return max(timestamps, default=None)
+
+
+def shade_incomplete_statistics_window(axes, data: dict) -> None:
+    start = latest_statistics_timestamp(data)
+    duration = data["duration"]
+    if start is None or start >= duration:
+        return
+
+    for axis in axes:
+        axis.axvspan(start, duration, facecolor="#7f8c8d", alpha=0.10,
+                     hatch="//", edgecolor="#7f8c8d", linewidth=0, zorder=0.5)
+        axis.text((start + duration) / 2, 0.5, "No closed statistics window",
+                  ha="center", va="center", rotation=90, fontsize=8, color="#626567",
+                  transform=axis.get_xaxis_transform(), zorder=3)
+
+
 def shade_phases(axes, phases: list[tuple[float, str]], duration: float) -> None:
     colors = ("#dceef8", "#f9e4c8")
     for index, (start, name) in enumerate(phases):
@@ -275,6 +298,7 @@ def render_report(data: dict, output: Path = DEFAULT_IMAGE, show: bool = True) -
         throughput_axis.legend(lines, [line.get_label() for line in lines], loc="upper right", fontsize=8)
 
     shade_phases(axes, data["phases"], data["duration"])
+    shade_incomplete_statistics_window((latency_axis, throughput_axis), data)
     for axis in axes:
         axis.grid(True, linestyle="--", alpha=0.35)
         axis.set_xlim(0, max(1, data["duration"]))

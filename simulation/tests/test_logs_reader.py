@@ -148,6 +148,26 @@ class LogsReaderTest(unittest.TestCase):
 
         self.assertEqual(result, [(2.0, 2.0), (5.0, 4.0), (10.0, 4.0)])
 
+    def test_finds_latest_closed_statistics_timestamp(self):
+        data = {
+            "percentile_latency": [(3.0, 80.0), (5.0, 90.0)],
+            "minimum_latency": [(3.0, 50.0), (5.0, 60.0)],
+            "average_latency": [(3.0, 65.0), (5.0, 75.0)],
+            "throughput": [(3.0, 20.0), (5.0, 25.0)],
+        }
+
+        self.assertEqual(logs_reader.latest_statistics_timestamp(data), 5.0)
+
+    def test_latest_statistics_timestamp_is_absent_without_snapshots(self):
+        data = {
+            "percentile_latency": [],
+            "minimum_latency": [],
+            "average_latency": [],
+            "throughput": [],
+        }
+
+        self.assertIsNone(logs_reader.latest_statistics_timestamp(data))
+
     def test_selects_latest_log_across_typescript_and_rust_names(self):
         with tempfile.TemporaryDirectory() as directory:
             logs = Path(directory)
