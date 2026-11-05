@@ -16,6 +16,14 @@ on:
 permissions:
     contents: read
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+env:
+    RUST_TOOLCHAIN: "1.99.0"
+    WASM_TOOLS_VERSION: "1.262.0"
+
 jobs:
     validate:
         runs-on: ubuntu-24.04
@@ -32,6 +40,12 @@ jobs:
                   node-version: "24"
                   cache: "pnpm"
                   cache-dependency-path: code/pnpm-lock.yaml
+
+            - name: Cache pinned wasm-tools binary
+              uses: actions/cache@v5
+              with:
+                  path: ~/.cargo/bin/wasm-tools
+                  key: wasm-tools-${{ runner.os }}-${{ runner.arch }}-rust-${{ env.RUST_TOOLCHAIN }}-${{ env.WASM_TOOLS_VERSION }}
 
             - name: Install workspace dependencies
               run: make install-code

@@ -41,7 +41,11 @@ install-simulation-runner: ## install simulation runner dependencies
 
 install-node-component-tools: ## install the pinned Rust component build tools
 	rustup toolchain install "$(RUST_TOOLCHAIN)" --profile minimal --target wasm32-unknown-unknown
-	cargo +$(RUST_TOOLCHAIN) install wasm-tools --version "=$(WASM_TOOLS_VERSION)" --locked
+	@if ! command -v wasm-tools >/dev/null 2>&1 || [ "$$(wasm-tools --version)" != "wasm-tools $(WASM_TOOLS_VERSION)" ]; then \
+		cargo +$(RUST_TOOLCHAIN) install wasm-tools --version "=$(WASM_TOOLS_VERSION)" --locked; \
+	else \
+		echo "wasm-tools $(WASM_TOOLS_VERSION) is already installed"; \
+	fi
 
 .PHONY: build test lint clean ci
 build: ## build all workspace packages
