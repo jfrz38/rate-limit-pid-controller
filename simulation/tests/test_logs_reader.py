@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -26,7 +27,7 @@ class LogsReaderTest(unittest.TestCase):
             {"time": 2_000, "event": "ADMISSION_THRESHOLD", "threshold": 400, "msg": "Threshold modified from 768 to: 400"},
             {"time": 3_000, "event": "QUEUE_TIMEOUT", "timeout": 30, "msg": "Updating timeout from 500 to 30"},
             {"time": 4_000, "event": "CONCURRENCY_BUCKET", "snapshotId": 1, "percentileLatency": 80,
-             "minimumLatency": 50, "aggregatedLatency": 75, "targetLatency": 60,
+             "minimumLatency": 50, "averageLatency": 65, "aggregatedLatency": 75, "targetLatency": 60,
              "throughputPerSecond": 20, "inflightLimit": 3, "msg": "bucket"},
             {"time": 5_000, "event": "LATENCY_TARGET", "targetLatency": 55, "msg": "New targetLatency: 55"},
             {"time": 6_000, "event": "SCENARIO_SUMMARY", "metadata": {
@@ -50,6 +51,7 @@ class LogsReaderTest(unittest.TestCase):
         self.assertEqual(data["threshold"][-1], (1.0, 400.0))
         self.assertEqual(data["inflight"], [(0.05, 2.0), (3.0, 3.0)])
         self.assertEqual(data["percentile_latency"], [(3.0, 80.0)])
+        self.assertEqual(data["average_latency"], [(3.0, 65.0)])
         self.assertEqual(data["throughput"], [(3.0, 20.0)])
         self.assertEqual(data["timeout"], [(0.05, 500.0), (2.0, 30.0)])
         self.assertEqual(data["target_latency"][-1], (4.0, 55.0))
@@ -72,6 +74,109 @@ class LogsReaderTest(unittest.TestCase):
         self.assertEqual(data["inflight"], [(1.0, 4.0)])
         self.assertEqual(data["target_latency"], [(2.0, 70.0)])
         self.assertEqual(data["timeout"], [(3.0, 25.0)])
+
+    def test_parses_rust_runner_outcomes_without_duplicating_compatible_messages(self):
+        entries = [
+            {"time": 1_000, "event": "SCENARIO_START", "metadata": {
+                "backend": "rust-wasm", "scenario": "base", "seed": 7,
+            }, "msg": "start"},
+            {"time": 2_000, "event": "REQUEST_COMPLETED", "metadata": {
+                "requestId": 1, "priority": 10,
+            }, "msg": "Completed request 1: Priority 10"},
+            {"time": 3_000, "event": "REQUEST_REJECTED", "metadata": {
+                "requestId": 2, "priority": 500, "threshold": 400,
+            }, "msg": "Rejected request 2: Priority 500"},
+            {"time": 4_000, "event": "REQUEST_EVICTED", "metadata": {
+                "requestId": 3, "priority": 600,
+            }, "msg": "Evicted request 3: Priority 600"},
+            {"time": 5_000, "event": "CONCURRENCY_LIMIT", "inflightLimit": 3,
+             "metadata": {"previous": 2, "current": 3}, "msg": "New inflightLimit: 3"},
+            {"time": 6_000, "event": "STATISTICS_SNAPSHOT", "percentileLatency": 90,
+             "minimumLatency": 50, "averageLatency": 70, "throughputPerSecond": 20,
+             "maxInFlight": 3, "metadata": {"snapshotId": 1}, "msg": "snapshot"},
+            {"time": 7_000, "event": "LATENCY_TARGET", "targetLatency": 80,
+             "metadata": {}, "msg": "New targetLatency: 80"},
+            {"time": 8_000, "event": "QUEUE_TIMEOUT", "timeout": 25,
+             "metadata": {}, "msg": "Updating timeout from 500 to 25"},
+            {"time": 9_000, "event": "LATENCY_AGGREGATED", "aggregatedLatency": 100,
+             "metadata": {}, "msg": "Filtered latency 100"},
+            {"time": 10_000, "event": "LATENCY_AGGREGATED", "aggregatedLatency": None,
+             "metadata": {}, "msg": "Filtered latency reset"},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            log_file = Path(directory) / "rust.log"
+            log_file.write_text("\n".join(json.dumps(entry) for entry in entries), encoding="utf-8")
+
+            data = logs_reader.parse_log(log_file)
+
+        self.assertEqual(data["completed"], [(1.0, 10)])
+        self.assertEqual(data["rejected"], [(2.0, 500)])
+        self.assertEqual(data["evicted"], [(3.0, 600)])
+        self.assertEqual(data["threshold"], [(2.0, 400.0)])
+        self.assertEqual(data["inflight"], [(4.0, 3.0)])
+        self.assertEqual(data["percentile_latency"], [(5.0, 90.0)])
+        self.assertEqual(data["minimum_latency"], [(5.0, 50.0)])
+        self.assertEqual(data["average_latency"], [(5.0, 70.0)])
+        self.assertEqual(data["throughput"], [(5.0, 20.0)])
+        self.assertEqual(data["target_latency"], [(6.0, 80.0)])
+        self.assertEqual(data["timeout"], [(7.0, 25.0)])
+        self.assertEqual(data["aggregated_latency"][0], (8.0, 100.0))
+        self.assertTrue(math.isnan(data["aggregated_latency"][1][1]))
+
+    def test_prefers_threshold_change_events_over_rejection_observations(self):
+        entries = [
+            {"time": 1_000, "msg": "Initial threshold: 768"},
+            {"time": 2_000, "event": "ADMISSION_THRESHOLD", "threshold": 600,
+             "metadata": {"previous": 768, "current": 600},
+             "msg": "Threshold modified from 768 to: 600"},
+            {"time": 3_000, "event": "REQUEST_REJECTED", "metadata": {
+                "requestId": 1, "priority": 700, "threshold": 600,
+            }, "msg": "Rejected request 1: Priority 700"},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            log_file = Path(directory) / "threshold.log"
+            log_file.write_text("\n".join(json.dumps(entry) for entry in entries), encoding="utf-8")
+
+            data = logs_reader.parse_log(log_file)
+
+        self.assertEqual(data["threshold"], [(0.0, 768.0), (1.0, 600.0)])
+
+    def test_compacts_and_extends_state_series_to_report_duration(self):
+        series = [(2.0, 2.0), (3.0, 2.0), (5.0, 3.0), (5.0, 4.0)]
+
+        result = logs_reader.extended_state_series(series, 10.0)
+
+        self.assertEqual(result, [(2.0, 2.0), (5.0, 4.0), (10.0, 4.0)])
+
+    def test_finds_latest_closed_statistics_timestamp(self):
+        data = {
+            "percentile_latency": [(3.0, 80.0), (5.0, 90.0)],
+            "minimum_latency": [(3.0, 50.0), (5.0, 60.0)],
+            "average_latency": [(3.0, 65.0), (5.0, 75.0)],
+            "throughput": [(3.0, 20.0), (5.0, 25.0)],
+        }
+
+        self.assertEqual(logs_reader.latest_statistics_timestamp(data), 5.0)
+
+    def test_latest_statistics_timestamp_is_absent_without_snapshots(self):
+        data = {
+            "percentile_latency": [],
+            "minimum_latency": [],
+            "average_latency": [],
+            "throughput": [],
+        }
+
+        self.assertIsNone(logs_reader.latest_statistics_timestamp(data))
+
+    def test_selects_latest_log_across_typescript_and_rust_names(self):
+        with tempfile.TemporaryDirectory() as directory:
+            logs = Path(directory)
+            older = logs / "2026-01-01T10-00-00.000Z.log"
+            newer = logs / "2026-01-01T10-00-01.000Z-typescript.log"
+            older.touch()
+            newer.touch()
+
+            self.assertEqual(logs_reader.latest_log(logs), newer)
 
 
 if __name__ == "__main__":

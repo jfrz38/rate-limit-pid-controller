@@ -1,0 +1,85 @@
+[
+  {
+    "name": "threshold and queue capacity reject new submissions",
+    "configuration": {
+      "initialThreshold": 100,
+      "maxConcurrentRequests": 1,
+      "maxQueuedRequests": 1,
+      "queueTimeoutMs": 1000,
+      "statistics": {
+        "minSamples": 4,
+        "minPercentileSamples": 4,
+        "maxSamples": 10
+      },
+      "pid": {
+        "proportionalGain": 0,
+        "integralGain": 0,
+        "derivativeGain": 0
+      }
+    },
+    "steps": [
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 99,
+        "as": "active",
+        "actions": [{ "type": "start", "request": "active" }]
+      },
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 100,
+        "as": "threshold-rejected",
+        "actions": [
+          {
+            "type": "reject",
+            "request": "threshold-rejected",
+            "reason": { "type": "threshold", "priority": 100, "threshold": 100 }
+          }
+        ]
+      },
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 50,
+        "as": "waiting",
+        "actions": []
+      },
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 10,
+        "as": "queue-rejected",
+        "actions": [
+          {
+            "type": "reject",
+            "request": "queue-rejected",
+            "reason": { "type": "queue-full" }
+          }
+        ]
+      },
+      {
+        "operation": "priority-percentile",
+        "percentile": 100,
+        "expect": 100
+      }
+    ]
+  },
+  {
+    "name": "raw priorities outside the portable range fail submission",
+    "steps": [
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 768,
+        "as": "invalid",
+        "error": { "type": "priority-out-of-range", "value": 768 }
+      }
+    ]
+  },
+  {
+    "name": "invalid configuration fails controller creation",
+    "configuration": { "initialThreshold": 769 },
+    "expectCreateError": { "type": "threshold-out-of-range", "value": 769 }
+  }
+]

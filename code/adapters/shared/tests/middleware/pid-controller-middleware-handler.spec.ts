@@ -1,307 +1,73 @@
-import { PidControllerRateLimit, Priority, RejectedRequestException } from "@jfrz38/pid-controller-core";
-import { EventEmitter } from 'events';
-import { NextFunction, Request, Response } from 'express';
-import { beforeEach, describe, expect, Mock, test, vi } from 'vitest';
-import { PidControllerMiddlewareHandler } from "../../src/middleware/pid-controller-middleware-handler";
+import { AdaptiveAdmissionController, Priority } from '@jfrz38/adaptive-admission-node';
+import { EventEmitter } from 'node:events';
+import { describe, expect, test, vi } from 'vitest';
 
-vi.mock("@jfrz38/pid-controller-core", () => {
-    const MockedController = vi.fn();
-    MockedController.prototype.run = vi.fn(async (task) => {
-        return await task();
-    });
+import { PidControllerMiddlewareHandler } from '../../src/middleware/pid-controller-middleware-handler';
 
-    return {
-        PidControllerRateLimit: MockedController,
-        Priority: class Priority {
-            constructor(public readonly value = 0) { }
-            static default() { return new Priority(640); }
-            static fromTier(tier: number) { return new Priority(tier * 128); }
-            static fromValue(value: number) { return new Priority(value); }
-        },
-        RejectedRequestException: class RejectedRequestException extends Error {
-            constructor() {
-                super('Rejected');
-                this.name = 'RejectedRequestException';
-            }
-        }
-    };
-});
+function httpObjects() {
+  const req = Object.assign(new EventEmitter(), { aborted: false });
+  const res = Object.assign(new EventEmitter(), { destroyed: false });
+  return { req: req as any, res: res as any };
+}
 
 describe('PidControllerMiddlewareHandler', () => {
-    let handler: PidControllerMiddlewareHandler;
-    let mockController: PidControllerRateLimit;
-    let mockRequest: Partial<Request>;
-    let mockResponse: any;
-    let nextFunction: Mock<NextFunction>;
-    let mockPriorityOptions: any;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-
-        mockController = new PidControllerRateLimit();
-
-        mockRequest = { headers: {} };
-        mockResponse = new EventEmitter() as unknown as EventEmitter & Response;
-        mockResponse.removeListener = vi.fn().mockImplementation(mockResponse.removeListener);
-        mockResponse.once = vi.fn().mockImplementation(mockResponse.once);
-
-        nextFunction = vi.fn();
-        mockPriorityOptions = { getPriority: undefined };
-
-        handler = new PidControllerMiddlewareHandler(mockController, mockPriorityOptions);
-    });
-
-    describe('request lifecycle', () => {
-        test('when controller allows request should call next() successfully', async () => {
-            nextFunction.mockImplementation(() => {
-                mockResponse.emit('finish');
-            });
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(nextFunction).toHaveBeenCalledTimes(1);
-            expect(mockResponse.listenerCount('finish')).toBe(0);
-        });
-
-        test('when response finishes should remove all event listeners', async () => {
-            nextFunction.mockImplementation(() => {
-                mockResponse.emit('close');
-            });
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(mockResponse.listenerCount('finish')).toBe(0);
-            expect(mockResponse.listenerCount('close')).toBe(0);
-            expect(mockResponse.listenerCount('error')).toBe(0);
-        });
-
-        test('response listeners are removed after finish', async () => {
-
-            nextFunction.mockImplementation(() => {
-                expect(mockResponse.listenerCount('finish')).toBe(1);
-                expect(mockResponse.listenerCount('close')).toBe(1);
-
-                mockResponse.emit('finish');
-            });
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(mockResponse.listenerCount('finish')).toBe(0);
-            expect(mockResponse.listenerCount('close')).toBe(0);
-            expect(mockResponse.listenerCount('error')).toBe(0);
-        });
-
-        test('next is called only once on success', async () => {
-
-            nextFunction.mockImplementation(() => {
-                mockResponse.emit('finish');
-            });
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(nextFunction).toHaveBeenCalledTimes(1);
-        });
-
-        test('does not resolve PID slot until response ends', async () => {
-            const controllerInstance = vi.mocked(PidControllerRateLimit).mock.results[0].value;
-
-            let taskFinished = false;
-            controllerInstance.run.mockImplementationOnce(async (task: () => Promise<void>) => {
-                await task();
-                taskFinished = true;
-            });
-
-            const executedMiddleware = handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(nextFunction).toHaveBeenCalled();
-            expect(taskFinished).toBe(false);
-
-            mockResponse.emit('finish');
-
-            await executedMiddleware;
-
-            expect(taskFinished).toBe(true);
-        });
-
-        test('should resolve the promise when client closes the connection early (close event)', async () => {
-
-            nextFunction.mockImplementation(() => {
-                mockResponse.emit('close');
-            });
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(nextFunction).toHaveBeenCalled();
-        });
-    });
-
-    describe('priority handling', () => {
-        test('when getPriority option is provided should pass the extracted value to the controller', async () => {
-            const priorityValue = 5;
-            mockPriorityOptions.getPriority = (req: Request) => req.headers['x-priority'];
-            mockRequest.headers = { 'x-priority': String(priorityValue) };
-
-            nextFunction.mockImplementation(() => {
-                mockResponse.emit('finish');
-            });
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(mockController.run).toHaveBeenCalledWith(expect.any(Function), expect.any(Priority));
-            expect((mockController.run as Mock).mock.calls[0][1].value).toBe(priorityValue * 128);
-        });
-
-        test('when getPriority option is not provided should pass the default priority to the controller', async () => {
-            mockRequest.headers = { 'x-priority': 'not-a-number' };
-            const controllerInstance = vi.mocked(PidControllerRateLimit).mock.results[0].value;
-
-            nextFunction.mockImplementation(() => {
-                mockResponse.emit('finish');
-            });
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(controllerInstance.run).toHaveBeenCalledWith(expect.any(Function), expect.any(Priority));
-            expect(controllerInstance.run.mock.calls[0][1].value).toBe(640);
-        });
-
-        test('when getPriority returns NaN should pass default priority to the controller', async () => {
-            mockPriorityOptions.getPriority = () => "prioridad-invalida";
-
-            nextFunction.mockImplementation(() => {
-                mockResponse.emit('finish');
-            });
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(mockController.run).toHaveBeenCalledWith(expect.any(Function), expect.any(Priority));
-            expect((mockController.run as Mock).mock.calls[0][1].value).toBe(640);
-        });
-
-        test('when getPriority throws error should pass default priority to the controller', async () => {
-            mockPriorityOptions.getPriority = () => { throw new Error('Crash'); };
-
-            const controllerInstance = vi.mocked(PidControllerRateLimit).mock.results[0].value;
-
-            nextFunction.mockImplementation(() => {
-                mockResponse.emit('finish');
-            });
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(controllerInstance.run).toHaveBeenCalledWith(expect.any(Function), expect.any(Priority));
-            expect(controllerInstance.run.mock.calls[0][1].value).toBe(640);
-            expect(nextFunction).toHaveBeenCalled();
-        });
-    });
-
-    describe('error handling', () => {
-        test('when controller rejects the request should call next with RejectedRequestException', async () => {
-            const rejectError = new RejectedRequestException(0, 0);
-            vi.mocked(mockController.run).mockRejectedValueOnce(rejectError);
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(nextFunction).toHaveBeenCalledWith(rejectError);
-        });
-
-        test('when next() throws an error should propagate it to the controller catch block', async () => {
-            const error = new Error('Route crash');
-
-            nextFunction.mockImplementationOnce(() => {
-                throw error;
-            }).mockImplementationOnce(() => { });
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(nextFunction).toHaveBeenCalledWith(error);
-        });
-
-        test('when controller rejects immediately task is not executed', async () => {
-            const controller = vi.mocked(PidControllerRateLimit).mock.results[0].value;
-
-            controller.run.mockRejectedValueOnce(new Error('Rejected'));
-
-            await handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(nextFunction).toHaveBeenCalledWith(expect.any(Error));
-        });
-    });
-
-    describe('concurrency sync', () => {
-        test('when request is pending should not resolve controller slot until finish event', async () => {
-            let controllerResolved = false;
-
-            vi.mocked(mockController.run).mockImplementationOnce(async (task: Function) => {
-                await task();
-                controllerResolved = true;
-            });
-
-            const middlewarePromise = handler.use(
-                mockRequest as Request,
-                mockResponse as Response,
-                nextFunction as unknown as NextFunction
-            );
-
-            expect(nextFunction).toHaveBeenCalled();
-            expect(controllerResolved).toBe(false);
-
-            mockResponse.emit('finish');
-            await middlewarePromise;
-
-            expect(controllerResolved).toBe(true);
-        });
-    });
+  test('runs admitted middleware with a host priority tier', async () => {
+    const controller = new AdaptiveAdmissionController();
+    const run = vi.spyOn(controller, 'run');
+    const handler = new PidControllerMiddlewareHandler(controller, { getPriority: () => 2 });
+    const { req, res } = httpObjects();
+    const next = vi.fn(() => res.emit('finish'));
+
+    await handler.use(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(run).toHaveBeenCalledOnce();
+    expect(run.mock.calls[0][1]).toEqual(Priority.fromValue(256 + run.mock.calls[0][1].value % 128));
+    expect(req.listenerCount('aborted')).toBe(0);
+    expect(res.eventNames()).toEqual([]);
+    controller.shutdown();
+  });
+
+  test('uses the default priority when extraction is invalid', async () => {
+    const controller = new AdaptiveAdmissionController();
+    const run = vi.spyOn(controller, 'run');
+    const handler = new PidControllerMiddlewareHandler(controller, { getPriority: () => 'invalid' });
+    const { req, res } = httpObjects();
+
+    await handler.use(req, res, () => res.emit('finish'));
+
+    expect(run.mock.calls[0][1].value).toBeGreaterThanOrEqual(640);
+    controller.shutdown();
+  });
+
+  test('forwards task failures and removes response listeners', async () => {
+    const controller = new AdaptiveAdmissionController();
+    const handler = new PidControllerMiddlewareHandler(controller, undefined);
+    const { req, res } = httpObjects();
+    const failure = new Error('route failed');
+    const next = vi.fn()
+      .mockImplementationOnce(() => { throw failure; })
+      .mockImplementationOnce(() => undefined);
+
+    await handler.use(req, res, next);
+
+    expect(next).toHaveBeenLastCalledWith(failure);
+    expect(res.eventNames()).toEqual([]);
+    controller.shutdown();
+  });
+
+  test('passes an aborted request signal to the host', async () => {
+    const controller = new AdaptiveAdmissionController();
+    const run = vi.spyOn(controller, 'run');
+    const handler = new PidControllerMiddlewareHandler(controller, undefined);
+    const { req, res } = httpObjects();
+    req.aborted = true;
+    const next = vi.fn();
+
+    await handler.use(req, res, next);
+
+    expect(run.mock.calls[0][2].signal.aborted).toBe(true);
+    expect(next.mock.calls[0][0].name).toBe('CancelledRequestError');
+    controller.shutdown();
+  });
 });

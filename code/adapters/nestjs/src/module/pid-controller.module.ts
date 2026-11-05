@@ -1,4 +1,4 @@
-import { PidControllerRateLimit } from '@jfrz38/pid-controller-core';
+import { AdaptiveAdmissionController } from '@jfrz38/adaptive-admission-node';
 import { PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
 import { DynamicModule, Global, Inject, MiddlewareConsumer, Module, OnApplicationShutdown, OnModuleDestroy, Optional } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
@@ -23,7 +23,7 @@ export class PidControllerModule implements OnModuleDestroy, OnApplicationShutdo
         },
         {
           provide: 'PID_CONTROLLER',
-          useFactory: () => new PidControllerRateLimit(options.pid?.config),
+          useFactory: () => new AdaptiveAdmissionController(options.pid?.config),
         },
         {
           provide: APP_FILTER,
@@ -31,8 +31,8 @@ export class PidControllerModule implements OnModuleDestroy, OnApplicationShutdo
         },
         {
           provide: PidControllerMiddlewareHandler,
-          useFactory: (controller: PidControllerRateLimit) => new PidControllerMiddlewareHandler(controller, options.pid?.priority),
-          inject: ['PID_CONTROLLER', 'PID_CONTROLLER_OPTIONS']
+          useFactory: (controller: AdaptiveAdmissionController) => new PidControllerMiddlewareHandler(controller, options.pid?.priority),
+          inject: ['PID_CONTROLLER']
         }
       ],
       exports: ['PID_CONTROLLER', 'PID_CONTROLLER_OPTIONS'],
@@ -41,7 +41,7 @@ export class PidControllerModule implements OnModuleDestroy, OnApplicationShutdo
 
   constructor(
     @Inject('PID_CONTROLLER_OPTIONS') options: NestPidModuleOptions,
-    @Optional() @Inject('PID_CONTROLLER') private readonly controller?: PidControllerRateLimit
+    @Optional() @Inject('PID_CONTROLLER') private readonly controller?: AdaptiveAdmissionController
   ) {
     this.options = options;
   }

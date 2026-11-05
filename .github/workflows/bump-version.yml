@@ -6,13 +6,13 @@ on:
       package:
         description: Package to bump
         required: true
-        default: core
+        default: node
         type: choice
         options:
-          - core
           - express
           - nestjs
           - shared
+          - node
       bump:
         description: Version component to bump
         required: true
@@ -49,11 +49,6 @@ jobs:
         id: package
         run: |
           case "${{ inputs.package }}" in
-            core)
-              echo "package_name=@jfrz38/pid-controller-core" >> "$GITHUB_OUTPUT"
-              echo "version_file=code/core/package.json" >> "$GITHUB_OUTPUT"
-              echo "tag_prefix=core-v" >> "$GITHUB_OUTPUT"
-              ;;
             express)
               echo "package_name=@jfrz38/pid-controller-express" >> "$GITHUB_OUTPUT"
               echo "version_file=code/adapters/express/package.json" >> "$GITHUB_OUTPUT"
@@ -68,6 +63,11 @@ jobs:
               echo "package_name=@jfrz38/pid-controller-shared" >> "$GITHUB_OUTPUT"
               echo "version_file=code/adapters/shared/package.json" >> "$GITHUB_OUTPUT"
               echo "tag_prefix=shared-v" >> "$GITHUB_OUTPUT"
+              ;;
+            node)
+              echo "package_name=@jfrz38/adaptive-admission-node" >> "$GITHUB_OUTPUT"
+              echo "version_file=code/hosts/node/package.json" >> "$GITHUB_OUTPUT"
+              echo "tag_prefix=node-v" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "Unsupported package: ${{ inputs.package }}" >&2

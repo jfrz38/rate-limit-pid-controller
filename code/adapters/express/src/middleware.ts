@@ -1,10 +1,10 @@
-import { PidControllerRateLimit } from "@jfrz38/pid-controller-core";
+import { AdaptiveAdmissionController } from '@jfrz38/adaptive-admission-node';
 import { HttpPidControllerOptions, PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
 import { NextFunction, Request, Response } from "express";
 
 
 export const pidControllerMiddleware = (options?: HttpPidControllerOptions) => {
-    const controller = new PidControllerRateLimit(options?.pid?.config);
+    const controller = new AdaptiveAdmissionController(options?.pid?.config);
     const handler = new PidControllerMiddlewareHandler(controller, options?.pid?.priority);
     const middleware = createPidControllerMiddleware(handler);
     return {

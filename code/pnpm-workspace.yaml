@@ -1,6 +1,6 @@
 packages:
-  - 'core'
   - 'adapters/*'
+  - 'hosts/*'
 
 allowBuilds:
   '@nestjs/core': true
@@ -8,4 +8,14 @@ allowBuilds:
 
 enablePrePostScripts: false
 minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - esbuild@0.28.1
+  - glob@14.0.2
+  - minimatch@11.0.1
+  - vite@7.3.7
+overrides:
+  esbuild: 0.28.1
+  glob: 14.0.2
+  minimatch: 11.0.1
+  vite: 7.3.7
 saveExact: true

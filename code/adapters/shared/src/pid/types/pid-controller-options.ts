@@ -1,4 +1,4 @@
-import { Parameters } from "@jfrz38/pid-controller-core";
+import type { ControllerOptions } from '@jfrz38/adaptive-admission-node';
 import { PidControllerMiddlewarePriority } from "../../middleware/types/pid-controller-middleware-options";
 
 /**
@@ -6,15 +6,14 @@ import { PidControllerMiddlewarePriority } from "../../middleware/types/pid-cont
  */
 export interface PidControllerOptions {
   /**
-   * The core PID algorithm parameters.
-   * Defines how the controller reacts to latency changes.
+   * Native Rust adaptive admission controller configuration.
    * @example
    * ```ts
-   * config: { pid: { KI: 0.1 }, threshold: { initial: 400 } }
+   * config: { pid: { integralGain: 0.1 }, initialThreshold: 400 }
    * ```
-   * @see {@link Parameters}
+   * @see {@link ControllerOptions}
    */
-  config?: Parameters;
+  config?: ControllerOptions;
   /**
    * Request priority.
    */

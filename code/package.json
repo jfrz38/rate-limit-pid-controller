@@ -2,7 +2,7 @@
   "name": "rate-limit-pid-controller",
   "private": true,
   "version": "1.0.0",
-  "description": "Monorepo for PID-based rate limiting controller and its framework adapters.",
+  "description": "Node.js host and framework adapters for the Rust adaptive admission controller.",
   "main": "index.js",
   "scripts": {
     "install:all": "pnpm -r install",
@@ -18,17 +18,17 @@
   "license": "ISC",
   "packageManager": "pnpm@11.1.3",
   "devDependencies": {
-    "@types/node": "26.3.0",
-    "@typescript-eslint/eslint-plugin": "8.68.0",
-    "@typescript-eslint/parser": "8.68.0",
-    "@vitest/coverage-v8": "4.1.11",
-    "@vitest/ui": "4.1.11",
-    "eslint": "10.9.1",
+    "@types/node": "26.6.6",
+    "@typescript-eslint/eslint-plugin": "8.72.1",
+    "@typescript-eslint/parser": "8.72.1",
+    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/ui": "5.0.5",
+    "eslint": "10.13.0",
     "rimraf": "6.1.3",
     "ts-node": "10.9.2",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.68.0",
+    "typescript-eslint": "8.72.1",
     "vite-tsconfig-paths": "6.1.1",
-    "vitest": "4.1.11"
+    "vitest": "5.0.5"
   }
 }

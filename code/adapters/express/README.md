@@ -6,16 +6,16 @@
 [![license](https://img.shields.io/npm/l/@jfrz38/pid-controller-express)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
 [![NPM Downloads](https://img.shields.io/npm/dm/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)
 
-This is the **Express** adapter for the [PID Controller](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/core). It allows you to easily integrate adaptive rate limiting and load shedding into your Express applications as a standard middleware.
+This is the **Express** adapter for the Rust/WebAssembly [Adaptive Admission Node host](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/hosts/node). It allows you to integrate adaptive rate limiting and load shedding into Express applications as standard middleware.
 
-> [!NOTE]  
-> See [core project](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/core) for more information.
+> [!IMPORTANT]
+> Version `0.2.0` is an ESM-only breaking release, requires Node.js 24 or newer, and uses the host's native `ControllerOptions` configuration.
 
 ## Features
 
-- **Middleware Integration**: Seamlessly injects the PID control loop into your request pipeline.
-- **Automatic Error Handling**: Includes a specialized error handler to manage `rejected` requests.
-- **Priority Extraction**: Flexible configuration to determine request priority from headers, tokens, or any part of the express `request` object.
+- **Middleware Integration**: Seamlessly injects the adaptive admission control loop into your request pipeline.
+- **Automatic Error Handling**: Includes a specialized error handler for rejection, eviction, cancellation, and shutdown.
+- **Priority Extraction**: Flexible configuration to determine request priority from headers, tokens, or any part of the Express `request` object.
 
 ## Installation
 
@@ -23,90 +23,130 @@ This is the **Express** adapter for the [PID Controller](https://github.com/jfrz
 npm install @jfrz38/pid-controller-express
 ```
 
+`express` and `@jfrz38/adaptive-admission-node` are peer dependencies. npm 7 and newer install compatible peer dependencies automatically when needed. Install them explicitly only when you want to control their versions:
+
+```bash
+npm install @jfrz38/pid-controller-express @jfrz38/adaptive-admission-node express
+```
+
 ## Configuration
 
-Configuration objects allow three values, where `config` is the same as explained into [PID core](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/code/core/README.md#Configuration%20Reference):
+The adapter preserves the existing `pid.config` and `pid.priority` wrapper. `pid.config` now accepts the Node host's native [`ControllerOptions`](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/hosts/node#configuration); legacy TypeScript `Parameters` are not translated.
 
-| Parameter                  | Type                       | Default                     | Description                                                                  |
-|----------------------------|----------------------------|-----------------------------|------------------------------------------------------------------------------|
-| `pid.config`               | Parameters                 | -                           | Configuration for the PID engine. See core for more information.             |
-| `pid.priority.getPriority` | `(req: Request) => number` | `req.headers['x-priority']` | Function to get priority from the request.                                   |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `pid.config` | `ControllerOptions` | Host defaults | Adaptive admission, queue, statistics, and PID configuration. |
+| `pid.priority.getPriority` | `(req: Request) => number \| string \| undefined` | Lowest priority tier | Extracts a tier from `0` (highest) to `5` (lowest). |
 
 ## Error Handler configuration
 
-| Parameter    | Type    | Default                                    | Description                                                                                     |
-|--------------|---------|--------------------------------------------|-------------------------------------------------------------------------------------------------|
-| `message`    | string  | Too many requests, please try again later. | A custom descriptive message for the error                                                      |
-| `retryAfter` | number  | -                                          | The value in seconds for the 'Retry-After' HTTP header                                          |
-| `code`       | number  | 429                                        | The HTTP status code to return.                                                                 |
-| `response`   | object  | object with default `title` and `message`  | The custom JSON body object to be sent to the client.                                           |
-| `title`      | string  | RATE_LIMIT_EXCEEDED                        | A short string representing the error title or category.                                        |
-| `hideError`  | boolean | `true`                                     | If true, prevents the internal PID exception message from being included in the final response. |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `message` | `string` | Depends on the host error | Custom public error message. |
+| `retryAfter` | `number` | - | Value in seconds for the `Retry-After` header. |
+| `code` | `number` | Depends on the host error | Overrides the default HTTP status. |
+| `response` | `object` | Object with `error` and `message` | Custom JSON body. |
+| `title` | `string` | Depends on the host error | Public error category. |
+| `hideError` | `boolean` | `true` | Prevents the internal controller message from being exposed. |
 
 ## Quick Start
 
-The adapter provides a **middleware** to intercept requests and an **error handler** to manage shedding events:
+The adapter provides middleware to intercept requests and an error handler to manage controller outcomes:
 
 ```js
-const express = require('express');
-const { pidControllerMiddleware, pidControllerErrorHandler } = require('@jfrz38/pid-controller-express')
+import express from 'express';
+import {
+  pidControllerErrorHandler,
+  pidControllerMiddleware,
+} from '@jfrz38/pid-controller-express';
 
-// Initialize the middleware with your configuration. Check pid-controller-core for more information
-const { middleware, shutdown } = pidControllerMiddleware(
-    {
-    pid: {
-      config: {
-        threshold: {
-          initial: 200
-        },
-        capacity: {
-          maxConcurrentRequests: 2
-        },
-        log: {
-          level: 'debug'
-        },
-        statistics: {
-          minRequestsForLatencyPercentile: 10,
-          minRequestsForStats: 10
-        }
+const { middleware, shutdown } = pidControllerMiddleware({
+  pid: {
+    config: {
+      initialThreshold: 768,
+      maxConcurrentRequests: 2,
+      maxQueuedRequests: 1000,
+      queueTimeoutMs: 500,
+      statistics: {
+        minSamples: 10,
+        minPercentileSamples: 10,
       },
-      priority: {
-        getPriority: (req) => req.get('x-priority')
-      },
-    }
-  }
-);
+    },
+    priority: {
+      getPriority: (req) => req.get('x-priority'),
+    },
+  },
+});
 
 const app = express();
-
-// Use middleware and/or error handler
 app.use(middleware);
+
+app.get('/test', async (_req, res) => {
+  res.json({ ok: true });
+});
+
 app.use(pidControllerErrorHandler({
-  code: 503,
-  message: 'Custom message for the error'
-}))
+  message: 'Custom message for the error',
+}));
 
-app.get('/test', async (req, res) => {
-    res.json({ ok: true });
+const server = app.listen(3000);
+process.once('SIGTERM', () => {
+  shutdown();
+  server.close();
 });
-
-const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Try: curl -H "x-priority: 4" http://localhost:3000/test`);
-});
-
-// If you close/recreate the server manually, call shutdown() to clear controller timers and signal handlers.
-// process.on('SIGTERM', () => { shutdown(); server.close(); });
 ```
 
 ## Error Handling
 
-When the controller decides to reject the request due to low priority, it throws a specific internal error that `pidControllerErrorHandler()` handle.
+| Host error | Default HTTP status |
+|---|---:|
+| `ThresholdRejectedError` | `429` |
+| `QueueFullError` | `503` |
+| `EvictedRequestError` | `503` |
+| `ControllerShutdownError` | `503` |
+| `CancelledRequestError` | `499` while the connection remains open; no response after disconnect |
 
-- **Default Behavior**: Returns `429 Too Many Request`.
-- **Customization**: You can override the status code and response body using the rules parameter during initialization.
+`ConfigurationError`, `ControllerProtocolError`, and application errors are passed to the next Express error handler. Controlled responses can be customized with `pidControllerErrorHandler()`.
+
+## Migrating from `0.1.x`
+
+The adapter no longer accepts the TypeScript core's `Parameters` model:
+
+| TypeScript core option | `ControllerOptions` replacement |
+|---|---|
+| `threshold.initial` | `initialThreshold` |
+| `capacity.maxConcurrentRequests` | `maxConcurrentRequests` |
+| `interval.maxRequests` | `maxQueuedRequests` |
+| `timeout.priorityQueue.value` | `queueTimeoutMs` |
+| `timeout.priorityQueue.ratio` | `queueTimeoutRatio` |
+| `interval.requestInterval.minIntervalTime` (seconds) | `statistics.minWindowMs` (milliseconds) |
+| `interval.requestInterval.maxIntervalTime` (seconds) | `statistics.maxWindowMs` (milliseconds) |
+| `statistics.minRequestsForStats` | `statistics.minSamples` |
+| `statistics.minRequestsForLatencyPercentile` | `statistics.minPercentileSamples` |
+| `statistics.latencyPercentile` | `statistics.latencyPercentile` |
+| `pid.KP` | `pid.proportionalGain` |
+| `pid.KI` | `pid.integralGain` |
+| `pid.KD` | `pid.derivativeGain` |
+| `pid.interval` | `pid.intervalMs` |
+| `pid.delta` | `pid.maxDeltaPercentage` |
+| `pid.decayRatio` | `pid.integralDecay` |
+| `log` | No direct replacement; subscribe to host diagnostics. |
+
+CommonJS `require()` is no longer supported. Use ESM `import` and consult the [Node host configuration reference](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/hosts/node#configuration) for defaults and additional options.
 
 ## Shutdown
 
-The core controller listens to process signals and cleans itself up on `SIGINT`/`SIGTERM`. Express does not provide a middleware lifecycle hook, so `pidControllerMiddleware()` also returns `shutdown()` for tests, hot reload, or applications that close and recreate servers without ending the process.
+Express does not provide a middleware lifecycle hook. Always call the returned `shutdown()` function when the application stops or replaces the middleware instance. It is idempotent, rejects new work, cancels queued work, and allows already-started handlers to finish.
+
+## More information
+
+For an overview of the PID-based admission-control strategy, motivation, and references, see the
+[main project documentation](https://github.com/jfrz38/rate-limit-pid-controller).
+
+For controller configuration, lifecycle, diagnostics, and errors, see the
+[Node host documentation](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/hosts/node).
+
+## License
+
+Distributed under the
+[MIT License](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE).

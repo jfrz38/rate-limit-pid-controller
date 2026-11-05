@@ -1,0 +1,5 @@
+# Component bundle checksums cover exact bytes; never apply platform line-ending conversion.
+code/hosts/node/component/* -text
+
+# Reproducible Rust build inputs are hashed and must use the same bytes on every platform.
+code/hosts/node/component-build/** text eol=lf
