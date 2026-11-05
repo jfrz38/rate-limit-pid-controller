@@ -137,3 +137,16 @@ CommonJS `require()` is no longer supported. Use ESM `import` and consult the [N
 ## Shutdown
 
 Express does not provide a middleware lifecycle hook. Always call the returned `shutdown()` function when the application stops or replaces the middleware instance. It is idempotent, rejects new work, cancels queued work, and allows already-started handlers to finish.
+
+## More information
+
+For an overview of the PID-based admission-control strategy, motivation, and references, see the
+[main project documentation](https://github.com/jfrz38/rate-limit-pid-controller).
+
+For controller configuration, lifecycle, diagnostics, and errors, see the
+[Node host documentation](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/hosts/node).
+
+## License
+
+Distributed under the
+[MIT License](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE).

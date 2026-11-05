@@ -1,5 +1,11 @@
 # Adaptive Admission Controller for Node.js
 
+[![npm](https://img.shields.io/npm/v/@jfrz38/adaptive-admission-node)](https://www.npmjs.com/package/@jfrz38/adaptive-admission-node)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jfrz38/rate-limit-pid-controller/build-adaptive-admission-node.yml)](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/build-adaptive-admission-node.yml)
+[![types](https://img.shields.io/npm/types/@jfrz38/adaptive-admission-node)](https://www.npmjs.com/package/@jfrz38/adaptive-admission-node)
+[![license](https://img.shields.io/npm/l/@jfrz38/adaptive-admission-node)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
+[![NPM Downloads](https://img.shields.io/npm/dm/@jfrz38/adaptive-admission-node)](https://www.npmjs.com/package/@jfrz38/adaptive-admission-node)
+
 ESM-only Node.js host for the portable
 [`adaptive-admission-controller`](https://github.com/jfrz38/adaptive-admission-controller)
 WebAssembly component. Node.js 24 or newer is required.
@@ -154,3 +160,13 @@ export with the checked-in contract, and verify both upstream release and local 
 before transpilation. `make verify-node-component` rebuilds the committed artifact from the exact
 crates.io package, locked transitive dependencies, and pinned toolchain. Generated JavaScript and
 WebAssembly modules are included in the npm tarball, so consumers do not need Cargo or Rust.
+
+## More information
+
+For an overview of the PID-based admission-control strategy, motivation, and references, see the
+[main project documentation](https://github.com/jfrz38/rate-limit-pid-controller).
+
+## License
+
+Distributed under the
+[MIT License](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE).

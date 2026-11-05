@@ -151,3 +151,16 @@ The adapter no longer accepts the TypeScript core's `Parameters` model:
 | `log` | No direct replacement; subscribe to host diagnostics. |
 
 CommonJS `require()` is no longer supported. Use ESM `import` and consult the [Node host configuration reference](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/hosts/node#configuration) for defaults and additional options.
+
+## More information
+
+For an overview of the PID-based admission-control strategy, motivation, and references, see the
+[main project documentation](https://github.com/jfrz38/rate-limit-pid-controller).
+
+For controller configuration, lifecycle, diagnostics, and errors, see the
+[Node host documentation](https://github.com/jfrz38/rate-limit-pid-controller/tree/main/code/hosts/node).
+
+## License
+
+Distributed under the
+[MIT License](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE).
