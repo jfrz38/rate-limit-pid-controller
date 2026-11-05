@@ -53,6 +53,6 @@
     "nodejs"
   ],
   "devDependencies": {
-    "@bytecodealliance/jco-transpile": "0.20.0"
+    "@bytecodealliance/jco-transpile": "0.21.0"
   }
 }
