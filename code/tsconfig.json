@@ -15,9 +15,6 @@
   },
   "references": [
     {
-      "path": "./core"
-    },
-    {
       "path": "./adapters/nestjs"
     },
     {
@@ -25,6 +22,9 @@
     },
     {
       "path": "./adapters/shared"
+    },
+    {
+      "path": "./hosts/node"
     }
   ]
 }

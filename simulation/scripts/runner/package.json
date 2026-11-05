@@ -1,8 +1,9 @@
 {
   "scripts": {
-    "log": "npm run start",
-    "start": "ts-node run-log.ts",
+    "log": "node run-log.mjs",
+    "start": "ts-node-esm index.mts",
     "test": "node --require ts-node/register/transpile-only --test tests/*.test.ts",
+    "test:smoke": "ts-node-esm index.mts smoke",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

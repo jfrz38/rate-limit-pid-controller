@@ -1,0 +1,67 @@
+[
+  {
+    "name": "successful service times publish one coherent snapshot",
+    "configuration": {
+      "maxConcurrentRequests": 1,
+      "queueTimeoutMs": 10000,
+      "statistics": {
+        "minWindowMs": 100,
+        "maxWindowMs": 1000,
+        "minSamples": 2,
+        "minPercentileSamples": 2,
+        "maxSamples": 10,
+        "latencyPercentile": 90
+      },
+      "pid": {
+        "proportionalGain": 0,
+        "integralGain": 0,
+        "derivativeGain": 0
+      }
+    },
+    "steps": [
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 0,
+        "as": "first",
+        "actions": [{ "type": "start", "request": "first" }]
+      },
+      {
+        "operation": "submit",
+        "atMs": 10,
+        "priority": 1,
+        "as": "second",
+        "actions": []
+      },
+      { "operation": "latest-statistics", "expect": null },
+      {
+        "operation": "complete",
+        "atMs": 100,
+        "request": "first",
+        "outcome": "success",
+        "actions": [{ "type": "start", "request": "second" }]
+      },
+      {
+        "operation": "complete",
+        "atMs": 300,
+        "request": "second",
+        "outcome": "success",
+        "actions": []
+      },
+      {
+        "operation": "latest-statistics",
+        "expect": {
+          "id": 0,
+          "startedAtMs": 0,
+          "endedAtMs": 300,
+          "percentileLatencyMs": 190,
+          "minimumLatencyMs": 100,
+          "averageLatencyMs": 150,
+          "successfulRequests": 2,
+          "throughputPerSecond": 6.666666666666667,
+          "maxInFlight": 1
+        }
+      }
+    ]
+  }
+]

@@ -12,17 +12,11 @@ jobs:
   create-release:
     name: Create ${{ matrix.package.release_name }} release
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
         package:
-          - release_name: core
-            package_key: core
-            tag_prefix: core-v
-            package_name: "@jfrz38/pid-controller-core"
-            package_dir: code/core
-            package_file: code/core/package.json
           - release_name: express
             package_key: express
             tag_prefix: express-v
@@ -35,6 +29,12 @@ jobs:
             package_name: "@jfrz38/pid-controller-nestjs"
             package_dir: code/adapters/nestjs
             package_file: code/adapters/nestjs/package.json
+          - release_name: node
+            package_key: node
+            tag_prefix: node-v
+            package_name: "@jfrz38/adaptive-admission-node"
+            package_dir: code/hosts/node
+            package_file: code/hosts/node/package.json
 
     steps:
       - name: Check out repository
@@ -42,8 +42,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - id: publication-policy
+        name: Check component publication policy
+        env:
+          PACKAGE_KEY: ${{ matrix.package.package_key }}
+        run: |
+          if [ "$PACKAGE_KEY" != "node" ]; then
+            echo "publishable=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PUBLISHABLE="$(node -p "require('./code/hosts/node/component/COMPONENT.json').publishable")"
+          echo "publishable=$PUBLISHABLE" >> "$GITHUB_OUTPUT"
+          if [ "$PUBLISHABLE" != "true" ]; then
+            echo "Node release skipped: the embedded component is not publishable."
+          fi
+
       - id: version-check
         name: Check version is releasable
+        if: steps.publication-policy.outputs.publishable == 'true'
         uses: jfrz38/check-version-change@v1.5.0
         with:
           file-path: ${{ matrix.package.package_file }}
@@ -52,13 +69,13 @@ jobs:
           registry: npm
 
       - name: Skip already published version
-        if: steps.version-check.outputs.changed != 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed != 'true'
         working-directory: .
         run: |
           echo "${{ matrix.package.package_name }} ${{ steps.version-check.outputs.local-version }} is already published to npm; no release to create."
 
       - name: Verify version can be released
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         working-directory: .
         run: |
           if [ -n "${{ steps.version-check.outputs.compared-version }}" ] && [ "${{ steps.version-check.outputs.is-higher }}" != "true" ]; then
@@ -66,14 +83,24 @@ jobs:
             exit 1
           fi
 
+      - id: release-tag
+        name: Verify release tag
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
+        uses: jfrz38/verify-release-tag@d3335c1a4307cd5241653aeecb579325d92fcd8f # v0.1.0
+        with:
+          version-file: ${{ matrix.package.package_file }}
+          tag-prefix: ${{ matrix.package.tag_prefix }}
+          expected-commit: ${{ github.sha }}
+          policy: allow-missing
+
       - name: Install pnpm
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         uses: pnpm/action-setup@v6.1.0
         with:
           version: 11.1.3
 
       - name: Setup Node
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "24"
@@ -81,42 +108,43 @@ jobs:
           cache-dependency-path: code/pnpm-lock.yaml
 
       - name: Install dependencies
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         run: make install-code
 
+      - name: Install pinned Rust component tools
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true' && matrix.package.package_key == 'node'
+        run: make install-node-component-tools
+
+      - name: Verify stable component provenance
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true' && matrix.package.package_key == 'node'
+        run: make verify-node-component
+
       - name: Build
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         run: make build-${{ matrix.package.package_key }}
 
+      - name: Lint workspace
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
+        run: make lint
+
       - name: Run tests
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         run: make test-${{ matrix.package.package_key }}
 
-      - name: Resolve release version
-        if: steps.version-check.outputs.changed == 'true'
-        id: version
-        working-directory: ${{ matrix.package.package_dir }}
-        run: |
-          VERSION="$(node -p "require('./package.json').version")"
-          if [ -z "$VERSION" ]; then
-            echo "Could not resolve package version" >&2
-            exit 1
-          fi
+      - name: Run Node conformance and package smoke
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true' && matrix.package.package_key == 'node'
+        run: make test-node-conformance test-node-package
 
-          if [ "$VERSION" != "${{ steps.version-check.outputs.local-version }}" ]; then
-            echo "Resolved version $VERSION does not match checked version ${{ steps.version-check.outputs.local-version }}" >&2
-            exit 1
-          fi
-
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=${{ matrix.package.tag_prefix }}$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Smoke test installed consumer tarballs
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true' && matrix.package.package_key != 'node'
+        run: make test-consumer-packages
 
       - name: Create GitHub release
-        if: steps.version-check.outputs.changed == 'true'
+        if: steps.publication-policy.outputs.publishable == 'true' && steps.version-check.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.release-tag.outputs.tag }}
+          VERSION: ${{ steps.release-tag.outputs.version }}
         working-directory: .
         run: |
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then

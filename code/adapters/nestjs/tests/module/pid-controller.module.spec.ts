@@ -16,8 +16,8 @@ describe('PidControllerModule', () => {
         mockOptions = {
             pid: {
                 config: {
-                    pid: { KP: 0.1, KI: 0.01, KD: 0 },
-                    capacity: { maxConcurrentRequests: 2 },
+                    pid: { proportionalGain: 0.1, integralGain: 0.01, derivativeGain: 0 },
+                    maxConcurrentRequests: 2,
                 },
             },
             routes: {

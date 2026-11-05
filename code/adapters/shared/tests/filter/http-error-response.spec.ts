@@ -1,97 +1,39 @@
-import { RejectedRequestException } from "@jfrz38/pid-controller-core";
-import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { HttpErrorResponse } from "../../src/filter/http-error-response";
+import {
+  ControllerShutdownError,
+  EvictedRequestError,
+  QueueFullError,
+  ThresholdRejectedError,
+} from '@jfrz38/adaptive-admission-node';
+import { describe, expect, test, vi } from 'vitest';
+
+import { HttpErrorResponse } from '../../src/filter/http-error-response';
+
+function response() {
+  const json = vi.fn();
+  const status = vi.fn(() => ({ json }));
+  const set = vi.fn();
+  return { response: { status, set }, status, json, set };
+}
 
 describe('HttpErrorResponse', () => {
-    let mockExpressResponse: any;
-    const mockException = new RejectedRequestException(10, 50);
-    const DEFAULT_ERROR_TITLE = 'RATE_LIMIT_EXCEEDED';
-    const DEFAULT_ERROR_MESSAGE = 'Too many requests, please try again later.';
+  test.each([
+    [new ThresholdRejectedError(1n, 700, 500), 429, 'RATE_LIMIT_EXCEEDED'],
+    [new QueueFullError(1n), 503, 'ADMISSION_QUEUE_FULL'],
+    [new EvictedRequestError(1n), 503, 'REQUEST_EVICTED'],
+    [new ControllerShutdownError(1n), 503, 'CONTROLLER_UNAVAILABLE'],
+  ])('maps %s to its HTTP policy', (error, code, title) => {
+    const target = response();
+    new HttpErrorResponse(error, undefined).format(target.response);
+    expect(target.status).toHaveBeenCalledWith(code);
+    expect(target.json).toHaveBeenCalledWith(expect.objectContaining({ error: title }));
+  });
 
-    beforeEach(() => {
-        mockExpressResponse = {
-            status: vi.fn().mockReturnThis(),
-            json: vi.fn().mockReturnThis(),
-            set: vi.fn().mockReturnThis(),
-        };
-    });
-
-    describe('error message visibility and custom body', () => {
-        test.each([
-            { hideError: true, customResponse: undefined, expectedMessage: DEFAULT_ERROR_MESSAGE },
-            { hideError: false, customResponse: undefined, expectedMessage: mockException.message },
-            { hideError: undefined, customResponse: undefined, expectedMessage: DEFAULT_ERROR_MESSAGE },
-            { hideError: true, customResponse: { message: 'Custom Block' }, expectedMessage: 'Custom Block' },
-            { hideError: false, customResponse: { message: 'Custom Block' }, expectedMessage: mockException.message },
-        ])('when hideError is $hideError, should result in message: $expectedMessage', ({ hideError, customResponse, expectedMessage }) => {
-            const responseError = {
-                hideError,
-                response: customResponse,
-                title: DEFAULT_ERROR_TITLE,
-                message: DEFAULT_ERROR_MESSAGE
-            };
-
-            const httpErrorResponse = new HttpErrorResponse(mockException, responseError as any);
-            httpErrorResponse.format(mockExpressResponse);
-
-            const sentBody = mockExpressResponse.json.mock.calls[0][0];
-            expect(sentBody.message).toBe(expectedMessage);
-        });
-    });
-
-    describe('headers and status codes', () => {
-        test('should include Retry-After header if provided in responseError', () => {
-            const responseError = { retryAfter: 60 };
-            const httpErrorResponse = new HttpErrorResponse(mockException, responseError as any);
-
-            httpErrorResponse.format(mockExpressResponse);
-
-            expect(mockExpressResponse.set).toHaveBeenCalledWith('Retry-After', '60');
-        });
-
-        test('should use default status code 429 if none provided', () => {
-            const httpErrorResponse = new HttpErrorResponse(mockException, undefined);
-
-            httpErrorResponse.format(mockExpressResponse);
-
-            expect(mockExpressResponse.status).toHaveBeenCalledWith(429);
-        });
-
-        test('should use custom status code if provided', () => {
-            const responseError = { code: 503 };
-            const httpErrorResponse = new HttpErrorResponse(mockException, responseError as any);
-
-            httpErrorResponse.format(mockExpressResponse);
-
-            expect(mockExpressResponse.status).toHaveBeenCalledWith(503);
-        });
-    });
-
-    describe('inheritance and structure', () => {
-        test('should use DEFAULT_RESPONSE_BODY when no custom response is provided', () => {
-            const responseError = { title: 'REJECTED', message: 'Wait' };
-            const httpErrorResponse = new HttpErrorResponse(mockException, responseError as any);
-
-            httpErrorResponse.format(mockExpressResponse);
-
-            const sentBody = mockExpressResponse.json.mock.calls[0][0];
-            expect(sentBody).toHaveProperty('error');
-            expect(sentBody).toHaveProperty('message');
-        });
-
-        test('should not modify custom response body if hidePidMessage is true', () => {
-            const customBody = { custom_err: 'foo', message: 'do not touch' };
-            const responseError = { 
-                response: customBody,
-                hideError: true 
-            };
-
-            const httpErrorResponse = new HttpErrorResponse(mockException, responseError as any);
-            httpErrorResponse.format(mockExpressResponse);
-
-            const sentBody = mockExpressResponse.json.mock.calls[0][0];
-            expect(sentBody.message).toBe('do not touch');
-            expect(sentBody.custom_err).toBe('foo');
-        });
-    });
+  test('allows response overrides without exposing the internal error by default', () => {
+    const target = response();
+    new HttpErrorResponse(new QueueFullError(1n), { code: 429, retryAfter: 2, message: 'Later' })
+      .format(target.response);
+    expect(target.set).toHaveBeenCalledWith('Retry-After', '2');
+    expect(target.status).toHaveBeenCalledWith(429);
+    expect(target.json).toHaveBeenCalledWith({ error: 'ADMISSION_QUEUE_FULL', message: 'Later' });
+  });
 });

@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -16,12 +17,7 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false,
-    "paths": {
-      "@jfrz38/pid-controller-core": ["../../../code/core/src/index"],
-      "@jfrz38/pid-controller-shared": ["../../../code/adapters/shared/src/index"],
-      "@jfrz38/pid-controller-nestjs": ["../../../code/adapters/nestjs/src/index"]
-    }
+    "noFallthroughCasesInSwitch": false
   },
   "include": ["src/**/*"]
 }

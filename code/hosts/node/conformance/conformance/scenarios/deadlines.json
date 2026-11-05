@@ -1,0 +1,90 @@
+[
+  {
+    "name": "inclusive expiration wins before newly available capacity",
+    "configuration": {
+      "maxConcurrentRequests": 1,
+      "queueTimeoutMs": 100,
+      "pid": {
+        "proportionalGain": 0,
+        "integralGain": 0,
+        "derivativeGain": 0
+      }
+    },
+    "steps": [
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 0,
+        "as": "active",
+        "actions": [{ "type": "start", "request": "active" }]
+      },
+      {
+        "operation": "submit",
+        "atMs": 0,
+        "priority": 1,
+        "as": "expiring",
+        "actions": []
+      },
+      {
+        "operation": "submit",
+        "atMs": 50,
+        "priority": 2,
+        "as": "next",
+        "actions": []
+      },
+      { "operation": "next-deadline", "expectMs": 100 },
+      {
+        "operation": "complete",
+        "atMs": 100,
+        "request": "active",
+        "outcome": "success",
+        "actions": [
+          {
+            "type": "evict",
+            "request": "expiring",
+            "reason": "queue-timeout"
+          },
+          { "type": "start", "request": "next" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "regressing time is rejected without changing state",
+    "configuration": {
+      "pid": {
+        "proportionalGain": 0,
+        "integralGain": 0,
+        "derivativeGain": 0
+      }
+    },
+    "steps": [
+      {
+        "operation": "submit",
+        "atMs": 10,
+        "priority": 0,
+        "as": "active",
+        "actions": [{ "type": "start", "request": "active" }]
+      },
+      {
+        "operation": "advance-time",
+        "atMs": 9,
+        "error": { "type": "time-regression", "previousMs": 10, "receivedMs": 9 }
+      },
+      {
+        "operation": "complete",
+        "atMs": 10,
+        "request": "active",
+        "outcome": "success",
+        "actions": []
+      },
+      {
+        "operation": "complete",
+        "atMs": 10,
+        "request": "active",
+        "outcome": "success",
+        "error": { "type": "unknown-request", "requestId": 0 }
+      }
+    ]
+  }
+]
