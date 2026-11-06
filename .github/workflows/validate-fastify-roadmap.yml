@@ -1,0 +1,117 @@
+name: Validate Fastify Roadmap
+
+on:
+  pull_request:
+    branches: [feat/fastify-and-nest-multiplatform]
+    paths:
+      - "code/hosts/node/**"
+      - "code/adapters/shared/**"
+      - "code/adapters/express/**"
+      - "code/adapters/nestjs/**"
+      - "code/adapters/fastify/**"
+      - "code/package.json"
+      - "code/pnpm-lock.yaml"
+      - "code/pnpm-workspace.yaml"
+      - "Makefile"
+      - ".github/workflows/validate-fastify-roadmap.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  express:
+    name: Express ${{ matrix.express }} characterization
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - express: 4
+            express_version: 4.22.1
+            express_types_version: 4.17.25
+          - express: 5
+            express_version: 5.2.1
+            express_types_version: 5.0.6
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6.1.0
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: code/pnpm-lock.yaml
+      - name: Install workspace dependencies
+        run: make install-code
+      - name: Select Express compatibility version
+        run: >-
+          pnpm --dir code --filter "@jfrz38/pid-controller-express" add --save-dev --save-exact
+          express@${{ matrix.express_version }}
+          @types/express@${{ matrix.express_types_version }}
+      - name: Select shared Express types
+        run: >-
+          pnpm --dir code --filter "@jfrz38/pid-controller-shared" add --save-dev --save-exact
+          @types/express@${{ matrix.express_types_version }}
+      - name: Validate Express
+        run: make validate-express PNPM_INSTALL_FLAGS="--no-frozen-lockfile --config.confirmModulesPurge=false"
+
+  nestjs-express:
+    name: NestJS ${{ matrix.nestjs }} Express characterization
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nestjs: 10
+            nestjs_version: 10.4.22
+          - nestjs: 11
+            nestjs_version: 11.2.3
+          - nestjs: 12
+            nestjs_version: 12.0.1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6.1.0
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: code/pnpm-lock.yaml
+      - name: Install workspace dependencies
+        run: make install-code
+      - name: Select NestJS compatibility version
+        run: >-
+          pnpm --dir code --filter "@jfrz38/pid-controller-nestjs" add --save-dev --save-exact
+          @nestjs/common@${{ matrix.nestjs_version }}
+          @nestjs/core@${{ matrix.nestjs_version }}
+          @nestjs/platform-express@${{ matrix.nestjs_version }}
+      - name: Validate NestJS on Express
+        run: make validate-nestjs PNPM_INSTALL_FLAGS="--no-frozen-lockfile --config.confirmModulesPurge=false"
+
+  fastify-spike:
+    name: Fastify 5 run spike
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6.1.0
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: code/pnpm-lock.yaml
+      - name: Install workspace dependencies
+        run: make install-code
+      - name: Run Fastify integration spike
+        run: make test-fastify-spike
