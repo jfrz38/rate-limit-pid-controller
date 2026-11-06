@@ -4,6 +4,6 @@ import baseConfig from '../../vitest.config';
 
 export default mergeConfig(baseConfig, {
   test: {
-    name: 'fastify-run-spike',
+    name: 'fastify-adapter',
   },
 });
