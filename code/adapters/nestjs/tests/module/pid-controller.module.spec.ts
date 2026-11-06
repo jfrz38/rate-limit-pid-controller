@@ -5,6 +5,7 @@ import { PidControllerModule } from '../../src/module/pid-controller.module';
 import { PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
 import { APP_FILTER } from '@nestjs/core';
 import { PidExceptionFilter } from '../../src/filter/pid-exception.filter';
+import { PidControllerMiddleware } from '../../src/middleware/pid-controller.middleware';
 
 describe('PidControllerModule', () => {
     const pidProvider = 'PID_CONTROLLER';
@@ -77,6 +78,12 @@ describe('PidControllerModule', () => {
             const handler = handlerProvider.useFactory(mockController);
 
             expect(handler).toBeInstanceOf(PidControllerMiddlewareHandler);
+        });
+
+        test('when forRoot is called should register the middleware as a provider', () => {
+            const dynamicModule = PidControllerModule.forRoot(mockOptions);
+
+            expect(dynamicModule.providers).toContain(PidControllerMiddleware);
         });
     });
 

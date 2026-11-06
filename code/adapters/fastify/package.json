@@ -1,0 +1,18 @@
+{
+  "name": "@jfrz38/pid-controller-fastify",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fastify integration spike for the adaptive admission controller",
+  "engines": {
+    "node": ">=24"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "packageManager": "pnpm@11.1.3",
+  "devDependencies": {
+    "@jfrz38/adaptive-admission-node": "workspace:*",
+    "fastify": "5.12.8"
+  }
+}

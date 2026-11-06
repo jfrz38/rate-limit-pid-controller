@@ -33,7 +33,8 @@ export class PidControllerModule implements OnModuleDestroy, OnApplicationShutdo
           provide: PidControllerMiddlewareHandler,
           useFactory: (controller: AdaptiveAdmissionController) => new PidControllerMiddlewareHandler(controller, options.pid?.priority),
           inject: ['PID_CONTROLLER']
-        }
+        },
+        PidControllerMiddleware,
       ],
       exports: ['PID_CONTROLLER', 'PID_CONTROLLER_OPTIONS'],
     };
