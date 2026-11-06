@@ -13,6 +13,9 @@ export {
 } from './errors.js';
 export { Priority } from './priority.js';
 export type {
+  AcquireOptions,
+  AdmissionOutcome,
+  AdmissionPermit,
   ControllerDiagnosticEvent,
   ControllerDiagnosticListener,
   ControllerDiagnostics,

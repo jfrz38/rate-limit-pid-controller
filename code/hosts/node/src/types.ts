@@ -32,6 +32,14 @@ export interface RunOptions {
   signal?: AbortSignal;
 }
 
+export type AcquireOptions = RunOptions;
+
+export type AdmissionOutcome = 'success' | 'failure';
+
+export interface AdmissionPermit {
+  complete(outcome: AdmissionOutcome): void;
+}
+
 export interface StatisticsSnapshot {
   id: bigint;
   startedAtMs: bigint;
