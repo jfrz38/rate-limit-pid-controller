@@ -2,7 +2,10 @@ import {
   AdmissionRequestError,
   CancelledRequestError,
 } from '@jfrz38/adaptive-admission-node';
-import { adaptiveAdmissionHttpError, HttpErrorResponse, ResponseError } from '@jfrz38/pid-controller-shared';
+import {
+  admissionHttpErrorDescriptor,
+  type ResponseError,
+} from '@jfrz38/pid-controller-shared';
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { Response } from 'express';
 
@@ -20,10 +23,12 @@ export class PidExceptionFilter implements ExceptionFilter {
     if (exception instanceof CancelledRequestError && response.destroyed) {
       return;
     }
-    if (!adaptiveAdmissionHttpError(exception)) {
+    const descriptor = admissionHttpErrorDescriptor(exception, this.error);
+    if (!descriptor) {
       throw exception;
     }
 
-    return new HttpErrorResponse(exception, this.error).format(response);
+    response.set(descriptor.headers);
+    return response.status(descriptor.statusCode).json(descriptor.body);
   }
 }

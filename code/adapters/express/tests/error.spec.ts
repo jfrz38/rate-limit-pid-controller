@@ -40,6 +40,30 @@ describe('Express adaptive admission error handler', () => {
     expect(ctx.response.status).toHaveBeenCalledWith(499);
   });
 
+  test('writes configured headers from the neutral error descriptor', () => {
+    const ctx = context();
+
+    pidControllerErrorHandler({ retryAfter: 2 })(
+      new QueueFullError(1n),
+      ctx.request as any,
+      ctx.response as any,
+      ctx.next,
+    );
+
+    expect(ctx.response.set).toHaveBeenCalledWith({ 'Retry-After': '2' });
+  });
+
+  test('delegates errors after headers have been sent', () => {
+    const ctx = context();
+    ctx.response.headersSent = true;
+    const error = new QueueFullError(1n);
+
+    pidControllerErrorHandler()(error, ctx.request as any, ctx.response as any, ctx.next);
+
+    expect(ctx.response.status).not.toHaveBeenCalled();
+    expect(ctx.next).toHaveBeenCalledWith(error);
+  });
+
   test('propagates non-cancellation errors even when the request was aborted', () => {
     const ctx = context(true);
     const error = new Error('application failed');

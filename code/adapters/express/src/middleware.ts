@@ -1,6 +1,8 @@
 import { AdaptiveAdmissionController } from '@jfrz38/adaptive-admission-node';
-import { HttpPidControllerOptions, PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
-import { NextFunction, Request, Response } from "express";
+import type { HttpPidControllerOptions } from '@jfrz38/pid-controller-shared';
+import type { NextFunction, Request, Response } from 'express';
+
+import { PidControllerMiddlewareHandler } from './pid-controller-middleware-handler';
 
 
 export const pidControllerMiddleware = (options?: HttpPidControllerOptions) => {
