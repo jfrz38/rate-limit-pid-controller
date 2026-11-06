@@ -50,6 +50,35 @@ try {
 Synchronous return values and promises are supported. If the task throws or rejects, its original
 error is preserved after the component records the failed outcome.
 
+## Separate admission from completion
+
+Framework integrations that begin and finish work in different lifecycle hooks can acquire an
+admission permit directly:
+
+```ts
+const abortController = new AbortController();
+const permit = await controller.acquire(
+  Priority.fromTier(1, 0),
+  { signal: abortController.signal },
+);
+
+try {
+  await performWork();
+} catch (error) {
+  permit.complete('failure');
+  throw error;
+}
+permit.complete('success');
+```
+
+`acquire()` resolves only when the component starts the work. Every acquired permit must be
+completed exactly once with `success` or `failure`; a second completion throws an error. Aborting
+the signal cancels only work that is still queued. Once acquired, a permit remains valid and must
+be completed even if the signal is aborted or the controller begins shutdown.
+
+`run()` is implemented using the same permit lifecycle and remains the simpler API when one
+callback can represent the complete lifetime of the work.
+
 ## Priorities
 
 Priorities range from `0` (most important) to `767` (least important). Work waiting for capacity is
