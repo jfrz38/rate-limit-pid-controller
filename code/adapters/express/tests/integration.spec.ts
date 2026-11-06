@@ -1,8 +1,9 @@
 import { type AddressInfo } from 'node:net';
-import type { Server } from 'node:http';
+import { get, type Server } from 'node:http';
 
+import { AdaptiveAdmissionController } from '@jfrz38/adaptive-admission-node';
 import express, { type Express } from 'express';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { pidControllerMiddleware } from '../src/middleware';
 
@@ -15,6 +16,7 @@ describe('Express adapter integration', () => {
     for (const shutdown of shutdownControllers.splice(0)) {
       shutdown();
     }
+    vi.restoreAllMocks();
   });
 
   test('preserves the response from an admitted handler', async () => {
@@ -97,6 +99,52 @@ describe('Express adapter integration', () => {
     expect(response.status).toBe(502);
     await expect(response.json()).resolves.toEqual({ message: 'application failed' });
   });
+
+  test('marks an aborted streaming response as failure and keeps serving requests', async () => {
+    const outcomes: string[] = [];
+    const firstFailure = deferred<void>();
+    const originalRun = AdaptiveAdmissionController.prototype.run;
+    vi.spyOn(AdaptiveAdmissionController.prototype, 'run').mockImplementation(function (task, priority, options) {
+      return originalRun.call(this, async () => {
+        try {
+          await task();
+          outcomes.push('success');
+        } catch (error) {
+          outcomes.push('failure');
+          firstFailure.resolve();
+          throw error;
+        }
+      }, priority, options);
+    });
+
+    const app = express();
+    const controller = pidControllerMiddleware({
+      pid: {
+        config: {
+          maxConcurrentRequests: 1,
+          queueTimeoutMs: 10_000,
+          pid: { intervalMs: 10_000 },
+          statistics: { minWindowMs: 10_000, maxWindowMs: 20_000 },
+        },
+      },
+    });
+    shutdownControllers.push(controller.shutdown);
+    app.use(controller.middleware);
+    app.get('/stream', (_request, response) => {
+      response.write('started');
+      setTimeout(() => response.end('too-late'), 100);
+    });
+    app.get('/health', (_request, response) => response.json({ status: 'up' }));
+    const url = await listen(app, servers);
+
+    await abortAfterFirstChunk(`${url}/stream`);
+    await firstFailure.promise;
+
+    expect(outcomes[0]).toBe('failure');
+    const health = await fetch(`${url}/health`);
+    expect(health.status).toBe(200);
+    await expect(health.json()).resolves.toEqual({ status: 'up' });
+  });
 });
 
 async function listen(app: Express, servers: Server[]): Promise<string> {
@@ -135,4 +183,21 @@ function deferred<T>() {
     reject = rejectPromise;
   });
   return { promise, resolve, reject };
+}
+
+async function abortAfterFirstChunk(url: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const request = get(url, (response) => {
+      response.once('data', () => {
+        response.destroy();
+        resolve();
+      });
+      response.once('error', (error) => {
+        if ((error as NodeJS.ErrnoException).code !== 'ECONNRESET') {
+          reject(error);
+        }
+      });
+    });
+    request.once('error', reject);
+  });
 }

@@ -1,6 +1,7 @@
-import { PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
 import { Inject, Injectable, NestMiddleware } from '@nestjs/common';
-import { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+
+import { PidControllerMiddlewareHandler } from './pid-controller-middleware-handler';
 
 @Injectable()
 export class PidControllerMiddleware implements NestMiddleware {

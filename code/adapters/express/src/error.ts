@@ -1,5 +1,8 @@
 import { CancelledRequestError } from '@jfrz38/adaptive-admission-node';
-import { adaptiveAdmissionHttpError, HttpErrorResponse, ResponseError } from '@jfrz38/pid-controller-shared';
+import {
+    admissionHttpErrorDescriptor,
+    type ResponseError,
+} from '@jfrz38/pid-controller-shared';
 import type { NextFunction, Request, Response } from 'express';
 
 export const pidControllerErrorHandler = (responseOptions: ResponseError = {}) => {
@@ -12,8 +15,10 @@ export const pidControllerErrorHandler = (responseOptions: ResponseError = {}) =
             return;
         }
 
-        if (adaptiveAdmissionHttpError(error)) {
-            return new HttpErrorResponse(error, responseOptions).format(res);
+        const descriptor = admissionHttpErrorDescriptor(error, responseOptions);
+        if (descriptor) {
+            res.set(descriptor.headers);
+            return res.status(descriptor.statusCode).json(descriptor.body);
         }
 
         next(error);

@@ -1,10 +1,10 @@
 import { AdaptiveAdmissionController } from '@jfrz38/adaptive-admission-node';
-import { PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
 import { DynamicModule, Global, Inject, MiddlewareConsumer, Module, OnApplicationShutdown, OnModuleDestroy, Optional } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { PidRoutes } from '../error/routes/pid-routes';
 import { PidExceptionFilter } from '../filter/pid-exception.filter';
 import { PidControllerMiddleware } from '../middleware/pid-controller.middleware';
+import { PidControllerMiddlewareHandler } from '../middleware/pid-controller-middleware-handler';
 import { NestPidModuleOptions } from '../types/nest-pid-module-options';
 
 @Global()

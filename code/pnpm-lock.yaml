@@ -117,12 +117,6 @@ importers:
         specifier: workspace:*
         version: link:../../hosts/node
     devDependencies:
-      '@types/express':
-        specifier: 5.0.6
-        version: 5.0.6
-      express:
-        specifier: 5.3.0
-        version: 5.3.0
       tsup:
         specifier: 9.0.0
         version: 9.0.0(postcss@8.5.32)(typescript@6.0.3)

@@ -1,6 +1,6 @@
-import { PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { PidControllerMiddleware } from '../../src/middleware/pid-controller.middleware';
+import { PidControllerMiddlewareHandler } from '../../src/middleware/pid-controller-middleware-handler';
 
 describe('NestJS PID Controller Middleware', () => {
     let middleware: PidControllerMiddleware;
@@ -25,7 +25,7 @@ describe('NestJS PID Controller Middleware', () => {
         expect(middleware).toBeDefined();
     });
 
-    test('should delegate the request handling to the shared handler', async () => {
+    test('should delegate the request handling to the package handler', async () => {
         await middleware.use(mockRequest, mockResponse, nextFunction);
 
         expect(mockHandler.use).toHaveBeenCalledTimes(1);
