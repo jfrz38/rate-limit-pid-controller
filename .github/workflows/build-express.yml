@@ -49,11 +49,6 @@ jobs:
           express@${{ matrix.express_version }}
           @types/express@${{ matrix.express_types_version }}
 
-      - name: Install shared Express type compatibility version
-        run: >-
-          pnpm --dir code --filter "@jfrz38/pid-controller-shared" add --save-dev --save-exact
-          @types/express@${{ matrix.express_types_version }}
-
       - name: Build
         run: make build-express
 

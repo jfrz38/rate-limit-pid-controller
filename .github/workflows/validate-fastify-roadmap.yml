@@ -55,10 +55,6 @@ jobs:
           pnpm --dir code --filter "@jfrz38/pid-controller-express" add --save-dev --save-exact
           express@${{ matrix.express_version }}
           @types/express@${{ matrix.express_types_version }}
-      - name: Select shared Express types
-        run: >-
-          pnpm --dir code --filter "@jfrz38/pid-controller-shared" add --save-dev --save-exact
-          @types/express@${{ matrix.express_types_version }}
       - name: Validate Express
         run: make validate-express PNPM_INSTALL_FLAGS="--no-frozen-lockfile --config.confirmModulesPurge=false"
 
