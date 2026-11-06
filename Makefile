@@ -88,7 +88,7 @@ pack-local: build ## build and pack PACKAGE for local installation
 	$(PNPM) --dir "$(PACKAGE_DIR)" pack --pack-destination "$(abspath $(LOCAL_ARTIFACT_DIR))"
 	@printf '\nReinstall it in another project with:\n  pnpm remove "$(PACKAGE_NAME)" && pnpm add --save-exact --force "%s/"*.tgz\n' "$(abspath $(LOCAL_ARTIFACT_DIR))"
 
-.PHONY: test-shared test-express test-nestjs test-node test-node-conformance test-node-package test-consumer-packages
+.PHONY: test-shared test-express test-nestjs test-fastify-spike test-node test-node-conformance test-node-package test-consumer-packages
 test-shared: ## test the shared adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_shared)..." test
 
@@ -97,6 +97,9 @@ test-express: ## test the Express adapter package
 
 test-nestjs: ## test the NestJS adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_nestjs)..." test
+
+test-fastify-spike: ## run the temporary Fastify integration spike
+	cd code && $(PNPM) --filter "@jfrz38/pid-controller-fastify..." test
 
 test-node: ## test the adaptive admission Node host package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." test
