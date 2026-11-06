@@ -4,7 +4,7 @@ import type { PidControllerPriority } from './pid-controller-priority';
 /**
  * Configuration options for PidController.
  */
-export interface PidControllerOptions {
+export interface PidControllerOptions<Request = any> {
   /**
    * Native Rust adaptive admission controller configuration.
    * @example
@@ -17,5 +17,5 @@ export interface PidControllerOptions {
   /**
    * Request priority.
    */
-  priority?: PidControllerPriority;
+  priority?: PidControllerPriority<Request>;
 }
