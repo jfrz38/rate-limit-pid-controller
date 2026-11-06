@@ -98,7 +98,7 @@ test-express: ## test the Express adapter package
 test-nestjs: ## test the NestJS adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_nestjs)..." test
 
-test-fastify-spike: ## run the temporary Fastify integration spike
+test-fastify-spike: build-node ## run the temporary Fastify integration spike
 	cd code && $(PNPM) --filter "@jfrz38/pid-controller-fastify..." test
 
 test-node: ## test the adaptive admission Node host package
