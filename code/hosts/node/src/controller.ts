@@ -17,6 +17,9 @@ import {
 } from './errors.js';
 import { Priority } from './priority.js';
 import type {
+  AcquireOptions,
+  AdmissionOutcome,
+  AdmissionPermit,
   ControllerDiagnosticEvent,
   ControllerDiagnosticListener,
   ControllerDiagnostics,
@@ -26,9 +29,8 @@ import type {
   StatisticsSnapshot,
 } from './types.js';
 
-interface PendingTask<T = unknown> {
-  task: () => T | Promise<T>;
-  resolve: (value: T | PromiseLike<T>) => void;
+interface PendingAdmission {
+  resolve: (permit: AdmissionPermit | PromiseLike<AdmissionPermit>) => void;
   reject: (reason?: unknown) => void;
   state: 'queued' | 'started';
   abort?: { signal: AbortSignal; listener: () => void };
@@ -64,7 +66,7 @@ const MAX_TIMER_DELAY_MS = 2_147_483_647n;
 
 export class AdaptiveAdmissionController {
   private readonly component: ComponentController;
-  private readonly pending = new Map<bigint, PendingTask<any>>();
+  private readonly pending = new Map<bigint, PendingAdmission>();
   private timer: unknown | undefined;
   private timerGeneration = 0;
   private shutdownRequested = false;
@@ -84,6 +86,13 @@ export class AdaptiveAdmissionController {
     priority: Priority = Priority.default(),
     options: RunOptions = {},
   ): Promise<T> {
+    return this.runWithPermit(task, priority, options);
+  }
+
+  acquire(
+    priority: Priority = Priority.default(),
+    options: AcquireOptions = {},
+  ): Promise<AdmissionPermit> {
     if (this.shutdownRequested) {
       return Promise.reject(new ControllerShutdownError());
     }
@@ -91,16 +100,16 @@ export class AdaptiveAdmissionController {
       return Promise.reject(new CancelledRequestError(undefined, 'requested'));
     }
 
-    let resolve!: (value: T | PromiseLike<T>) => void;
+    let resolve!: (permit: AdmissionPermit | PromiseLike<AdmissionPermit>) => void;
     let reject!: (reason?: unknown) => void;
-    const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    const promise = new Promise<AdmissionPermit>((resolvePromise, rejectPromise) => {
       resolve = resolvePromise;
       reject = rejectPromise;
     });
 
     try {
       const submission = this.component.submit(priority.value, this.now());
-      this.pending.set(submission.requestId, { task, resolve, reject, state: 'queued' });
+      this.pending.set(submission.requestId, { resolve, reject, state: 'queued' });
       this.processActions(submission.actions);
       this.observeAbort(submission.requestId, options.signal);
       this.rescheduleDeadline();
@@ -109,6 +118,27 @@ export class AdaptiveAdmissionController {
     }
 
     return promise;
+  }
+
+  private async runWithPermit<T>(
+    task: () => T | Promise<T>,
+    priority: Priority,
+    options: RunOptions,
+  ): Promise<T> {
+    const permit = await this.acquire(priority, options);
+    let value: T;
+    try {
+      value = await task();
+    } catch (taskError) {
+      try {
+        permit.complete('failure');
+      } catch {
+        // Preserve the task's original failure after the work has already run.
+      }
+      throw taskError;
+    }
+    permit.complete('success');
+    return value;
   }
 
   shutdown(): void {
@@ -222,37 +252,34 @@ export class AdaptiveAdmissionController {
     }
     pending.state = 'started';
     this.removeAbortListener(pending);
-    this.dependencies.defer(() => {
-      Promise.resolve()
-        .then(pending.task)
-        .then(
-          (value) => this.completeSuccess(requestId, pending, value),
-          (error: unknown) => this.completeFailure(requestId, pending, error),
-        );
-    });
+    const permit = this.createPermit(requestId);
+    this.dependencies.defer(() => pending.resolve(permit));
   }
 
-  private completeSuccess<T>(requestId: bigint, pending: PendingTask<T>, value: T): void {
-    this.pending.delete(requestId);
-    try {
-      this.processActions(this.component.complete(requestId, 'success', this.now()));
-      pending.resolve(value);
-    } catch (error) {
-      pending.reject(this.translateProtocolError(error));
-    } finally {
-      this.rescheduleDeadline();
+  private createPermit(requestId: bigint): AdmissionPermit {
+    let completed = false;
+    return {
+      complete: (outcome) => {
+        if (completed) {
+          throw new Error('Admission permit has already been completed');
+        }
+        completed = true;
+        this.complete(requestId, outcome);
+      },
+    };
+  }
+
+  private complete(requestId: bigint, outcome: AdmissionOutcome): void {
+    const pending = this.pending.get(requestId);
+    if (!pending || pending.state !== 'started') {
+      throw new Error(`cannot complete unknown or non-started request ${requestId}`);
     }
-  }
-
-  private completeFailure(requestId: bigint, pending: PendingTask, taskError: unknown): void {
     this.pending.delete(requestId);
     try {
-      this.processActions(this.component.complete(requestId, 'failure', this.now()));
-    } catch {
-      // The task's original failure remains the public result. Protocol failures are not allowed to
-      // replace application errors after the task has already run.
+      this.processActions(this.component.complete(requestId, outcome, this.now()));
+    } catch (error) {
+      throw this.translateProtocolError(error);
     } finally {
-      pending.reject(taskError);
       this.rescheduleDeadline();
     }
   }
@@ -316,7 +343,7 @@ export class AdaptiveAdmissionController {
     }
   }
 
-  private removeAbortListener(pending: PendingTask): void {
+  private removeAbortListener(pending: PendingAdmission): void {
     if (pending.abort) {
       pending.abort.signal.removeEventListener('abort', pending.abort.listener);
       pending.abort = undefined;
