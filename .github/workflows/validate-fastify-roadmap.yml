@@ -93,8 +93,8 @@ jobs:
       - name: Validate NestJS on Express
         run: make validate-nestjs PNPM_INSTALL_FLAGS="--no-frozen-lockfile --config.confirmModulesPurge=false"
 
-  fastify-spike:
-    name: Fastify 5 run spike
+  fastify:
+    name: Fastify 5 adapter
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -109,5 +109,5 @@ jobs:
           cache-dependency-path: code/pnpm-lock.yaml
       - name: Install workspace dependencies
         run: make install-code
-      - name: Run Fastify integration spike
-        run: make test-fastify-spike
+      - name: Validate Fastify
+        run: make validate-fastify

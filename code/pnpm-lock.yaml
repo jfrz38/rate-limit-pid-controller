@@ -70,13 +70,23 @@ importers:
         version: 9.0.0(postcss@8.5.32)(typescript@6.0.3)
 
   adapters/fastify:
+    dependencies:
+      fastify-plugin:
+        specifier: 5.1.0
+        version: 5.1.0
     devDependencies:
       '@jfrz38/adaptive-admission-node':
         specifier: workspace:*
         version: link:../../hosts/node
+      '@jfrz38/pid-controller-shared':
+        specifier: workspace:*
+        version: link:../shared
       fastify:
         specifier: 5.12.8
         version: 5.12.8
+      tsup:
+        specifier: 9.0.0
+        version: 9.0.0(postcss@8.5.32)(typescript@6.0.3)
 
   adapters/nestjs:
     devDependencies:
@@ -1271,6 +1281,9 @@ packages:
 
   fast-uri@4.2.3:
     resolution: {integrity: sha512-I1PXwP5eAhlNlcdpjt9CgB59op2ZvZfxw+BkqGFVIUOgNpCVTcTqp3HhTX7brxj5vsip+nSY4nTvff+eIA76hg==}
+
+  fastify-plugin@5.1.0:
+    resolution: {integrity: sha512-FAIDA8eovSt5qcDgcBvDuX/v0Cjz0ohGhENZ/wpc3y+oZCY2afZ9Baqql3g/lC+OHRnciQol4ww7tuthOb9idw==}
 
   fastify@5.12.8:
     resolution: {integrity: sha512-moP8exb2sCHLUbJkwp+I6C0padhy4D8lp0SdmzY7HhSdZuqm7O/u3o2aq7u8okaQ//33QDzj3G/u+FsSdB8Qzw==}
@@ -3113,6 +3126,8 @@ snapshots:
   fast-uri@3.1.9: {}
 
   fast-uri@4.2.3: {}
+
+  fastify-plugin@5.1.0: {}
 
   fastify@5.12.8:
     dependencies:
