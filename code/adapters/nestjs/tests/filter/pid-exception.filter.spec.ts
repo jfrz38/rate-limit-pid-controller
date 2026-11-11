@@ -12,13 +12,18 @@ import { describe, expect, test, vi } from 'vitest';
 import { PidExceptionFilter } from '../../src/filter/pid-exception.filter';
 
 function context(type = 'http') {
-  const json = vi.fn();
-  const response = { destroyed: false, set: vi.fn(), status: vi.fn(() => ({ json })) };
+  const response = { destroyed: false };
+  const adapter = {
+    isHeadersSent: vi.fn(() => false),
+    setHeader: vi.fn(),
+    reply: vi.fn(),
+  };
+  const adapterHost = { httpAdapter: adapter };
   const host = {
     getType: vi.fn(() => type),
     switchToHttp: vi.fn(() => ({ getResponse: () => response })),
   };
-  return { host: host as any, response, json };
+  return { adapter, adapterHost: adapterHost as any, host: host as any, response };
 }
 
 describe('PidExceptionFilter', () => {
@@ -31,31 +36,46 @@ describe('PidExceptionFilter', () => {
   ])('formats operational host errors', (error, status) => {
     expect(error).toBeInstanceOf(AdmissionRequestError);
     const ctx = context();
-    new PidExceptionFilter().catch(error, ctx.host);
-    expect(ctx.response.status).toHaveBeenCalledWith(status);
+    new PidExceptionFilter(ctx.adapterHost).catch(error, ctx.host);
+    expect(ctx.adapter.reply).toHaveBeenCalledWith(
+      ctx.response,
+      expect.any(Object),
+      status,
+    );
   });
 
   test('does not write a cancellation response after the connection is destroyed', () => {
     const ctx = context();
     ctx.response.destroyed = true;
-    new PidExceptionFilter().catch(new CancelledRequestError(1n, 'requested'), ctx.host);
-    expect(ctx.response.status).not.toHaveBeenCalled();
+    new PidExceptionFilter(ctx.adapterHost).catch(
+      new CancelledRequestError(1n, 'requested'),
+      ctx.host,
+    );
+    expect(ctx.adapter.reply).not.toHaveBeenCalled();
   });
 
   test('rethrows errors outside HTTP contexts', () => {
     const error = new QueueFullError(1n);
-    expect(() => new PidExceptionFilter().catch(error, context('rpc').host)).toThrow(error);
+    const ctx = context('rpc');
+    expect(() => new PidExceptionFilter(ctx.adapterHost).catch(error, ctx.host)).toThrow(error);
   });
 
   test('does not convert host configuration failures', () => {
     const error = new ConfigurationError({ tag: 'invalid' });
-    expect(() => new PidExceptionFilter().catch(error, context().host)).toThrow(error);
+    const ctx = context();
+    expect(() => new PidExceptionFilter(ctx.adapterHost).catch(error, ctx.host)).toThrow(error);
   });
 
   test('applies configured response overrides', () => {
     const ctx = context();
-    new PidExceptionFilter({ code: 429, title: 'BUSY' }).catch(new QueueFullError(1n), ctx.host);
-    expect(ctx.response.status).toHaveBeenCalledWith(429);
-    expect(ctx.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'BUSY' }));
+    new PidExceptionFilter(ctx.adapterHost, { code: 429, title: 'BUSY' }).catch(
+      new QueueFullError(1n),
+      ctx.host,
+    );
+    expect(ctx.adapter.reply).toHaveBeenCalledWith(
+      ctx.response,
+      expect.objectContaining({ error: 'BUSY' }),
+      429,
+    );
   });
 });

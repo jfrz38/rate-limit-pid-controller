@@ -1,6 +1,6 @@
 import { AdaptiveAdmissionController } from '@jfrz38/adaptive-admission-node';
 import { DynamicModule, Global, Inject, MiddlewareConsumer, Module, OnApplicationShutdown, OnModuleDestroy, Optional } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, HttpAdapterHost } from '@nestjs/core';
 import { PidRoutes } from '../error/routes/pid-routes';
 import { PidExceptionFilter } from '../filter/pid-exception.filter';
 import { PidControllerMiddleware } from '../middleware/pid-controller.middleware';
@@ -12,7 +12,7 @@ import { NestPidModuleOptions } from '../types/nest-pid-module-options';
 export class PidControllerModule implements OnModuleDestroy, OnApplicationShutdown {
   private options: NestPidModuleOptions;
 
-  static forRoot(options: NestPidModuleOptions): DynamicModule {
+  static forRoot<Request = any>(options: NestPidModuleOptions<Request>): DynamicModule {
     return {
       module: PidControllerModule,
       imports: [],
@@ -27,7 +27,11 @@ export class PidControllerModule implements OnModuleDestroy, OnApplicationShutdo
         },
         {
           provide: APP_FILTER,
-          useFactory: () => new PidExceptionFilter(options?.http?.error),
+          useFactory: (adapterHost: HttpAdapterHost) => new PidExceptionFilter(
+            adapterHost,
+            options?.http?.error,
+          ),
+          inject: [HttpAdapterHost],
         },
         {
           provide: PidControllerMiddlewareHandler,
