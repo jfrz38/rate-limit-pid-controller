@@ -1,7 +1,7 @@
 name: Build NestJS Adapter
 on:
   pull_request:
-    branches: [main, develop, migrate/adaptive-admission]
+    branches: [main, develop, feat/fastify-and-nest-multiplatform]
     paths:
       - "code/hosts/node/**"
       - "code/adapters/shared/**"
@@ -13,10 +13,18 @@ on:
       - ".github/workflows/build-nestjs.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    name: NestJS ${{ matrix.nestjs }} compatibility
-    runs-on: ubuntu-latest
+    name: NestJS ${{ matrix.nestjs }} Express and Fastify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -26,7 +34,7 @@ jobs:
           - nestjs: 11
             nestjs_version: 11.2.3
           - nestjs: 12
-            nestjs_version: 12.0.1
+            nestjs_version: 12.3.2
     steps:
       - uses: actions/checkout@v7
 
@@ -48,12 +56,11 @@ jobs:
           pnpm --dir code --filter "@jfrz38/pid-controller-nestjs" add --save-dev --save-exact
           @nestjs/common@${{ matrix.nestjs_version }}
           @nestjs/core@${{ matrix.nestjs_version }}
+          @nestjs/platform-express@${{ matrix.nestjs_version }}
+          @nestjs/platform-fastify@${{ matrix.nestjs_version }}
 
-      - name: Build
-        run: make build-nestjs
-
-      - name: Run Tests
-        run: make test-nestjs
+      - name: Validate NestJS on Express and Fastify
+        run: make validate-nestjs PNPM_INSTALL_FLAGS="--no-frozen-lockfile --config.confirmModulesPurge=false"
 
       - name: Smoke test installed consumer tarballs
         run: make test-consumer-packages

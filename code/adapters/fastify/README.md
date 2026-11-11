@@ -1,6 +1,7 @@
 # PID Controller - Fastify adapter
 
 [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-fastify)](https://www.npmjs.com/package/@jfrz38/pid-controller-fastify)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jfrz38/rate-limit-pid-controller/build-fastify.yml)](https://github.com/jfrz38/rate-limit-pid-controller/actions/workflows/build-fastify.yml)
 [![types](https://img.shields.io/npm/types/@jfrz38/pid-controller-fastify)](https://www.npmjs.com/package/@jfrz38/pid-controller-fastify)
 [![license](https://img.shields.io/npm/l/@jfrz38/pid-controller-fastify)](https://github.com/jfrz38/rate-limit-pid-controller/blob/main/LICENSE)
 [![NPM Downloads](https://img.shields.io/npm/dm/@jfrz38/pid-controller-fastify)](https://www.npmjs.com/package/@jfrz38/pid-controller-fastify)
