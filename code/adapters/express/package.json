@@ -23,7 +23,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@jfrz38/adaptive-admission-node": "^0.1.0",
+    "@jfrz38/adaptive-admission-node": "^0.2.0",
     "express": "^5.0.0 || ^4.0.0"
   },
   "scripts": {
