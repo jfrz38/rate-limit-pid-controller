@@ -51,8 +51,8 @@ the component source.
 
 ## Retiring the TypeScript package
 
-After Node `0.1.0`, Express `0.2.0`, and NestJS `0.2.0` are published successfully from `main`, the
-old package can be marked deprecated without deleting its existing versions:
+After Node `0.2.0`, Express `0.2.1`, Fastify `0.1.0`, and NestJS `0.3.0` are published successfully
+from `main`, the old package can be marked deprecated without deleting its existing versions:
 
 ```bash
 npm deprecate '@jfrz38/pid-controller-core@*' \

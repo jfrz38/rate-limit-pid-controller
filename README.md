@@ -145,11 +145,12 @@ The command prints a `pnpm remove <package> && pnpm add --force <tarball>` comma
 ## Migrating from the TypeScript core
 
 `@jfrz38/pid-controller-core` is retired. Direct consumers should migrate to
-`@jfrz38/adaptive-admission-node`; Express and NestJS users should upgrade their existing adapters
-to `0.2.x`. Fastify applications can use the new `@jfrz38/pid-controller-fastify` adapter. The
-adapter READMEs document installation, configuration, lifecycle, and error handling. The old npm
-package will be deprecated only after the replacement packages have been published from a
-validated `main` release.
+`@jfrz38/adaptive-admission-node` `0.2.x`. Express users should upgrade to
+`@jfrz38/pid-controller-express` `0.2.1` or newer, NestJS users to
+`@jfrz38/pid-controller-nestjs` `0.3.x`, and Fastify applications can use the new
+`@jfrz38/pid-controller-fastify` `0.1.x` adapter. The adapter READMEs document installation,
+configuration, lifecycle, and error handling. The old npm package will be deprecated only after
+the replacement packages have been published from a validated `main` release.
 
 ## References
 

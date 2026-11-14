@@ -28,6 +28,14 @@ on:
         required: true
         default: develop
         type: string
+      changelog:
+        description: Changelog strategy
+        required: true
+        default: git-cliff
+        type: choice
+        options:
+          - git-cliff
+          - none
 
 permissions:
   contents: write
@@ -85,7 +93,7 @@ jobs:
         uses: jfrz38/auto-version-bump-action@7a76804803c0ae5dc7c5d8d1ac7bfcf4fbbb4d6f # v0.4.0
         with:
           bump: ${{ inputs.bump }}
-          changelog: git-cliff
+          changelog: ${{ inputs.changelog }}
           strategy: npm
           version-file: ${{ steps.package.outputs.version_file }}
           base-branch: ${{ inputs.base_branch }}
