@@ -33,7 +33,7 @@ require_conventional = false
 split_commits = false
 protect_breaking_commits = true
 commit_parsers = [
-    { message = '^Merge (pull request|branch)', skip = true },
+    { message = '^Merge ', skip = true },
     { message = '^\[Dependency Update\]', skip = true },
     { message = '^\[CI Update\]', skip = true },
     { message = '^chore(\([^)]*\))?: (bump version|add git-cliff)', skip = true },

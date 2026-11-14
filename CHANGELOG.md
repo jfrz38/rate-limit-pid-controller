@@ -10,37 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
-- Add Node host for adaptive admission component
-- Simulate adaptive admission wasm host
-- Consume development diagnostics snapshot
-- **node:** Stabilize adaptive admission host
-- **adapters:** Migrate shared and Express to Rust host
-- **nestjs:** Migrate module to Rust host
-- **node:** Group request lifecycle errors
+- **node:** Add admission permit API
+- **shared:** Type framework-specific priority requests
+- **fastify:** Add admission controller plugin
+- **nestjs:** Support Express and Fastify platforms
 
 
 ### Fixed
-- **simulation:** Clarify adaptive controller report
-- **simulation:** Align Rust comparison configuration
-- **test:** Make consumer smoke portable across pnpm versions
-- **adapters:** Preserve request error contracts
-- **node:** Avoid native component linking in CI
-- **node:** Normalize cross-platform component metadata
-- **node:** Ignore host-specific Wasm custom sections
-- **node:** Pin component rebuilds per host
-- **simulation:** Mark incomplete statistics windows
-- **simulation:** Add aggresive peak 10m result
-- **simulation:** Bound simulated request duration
-- **deps:** Update vulnerable dependencies and group Dependabot updates
-
-
-### Changed
-- Merge migration base into Node host branch
-- **core:** Remove TypeScript controller implementation
-- Merge remote-tracking branch 'origin/develop' into migrate/adaptive-admission
-
-# Conflicts:
-#	.github/workflows/release.yml
+- **adapters:** Correct HTTP lifecycle boundaries
+- Fix formatting of Fastify Adapter link in README
+- **adapters:** Require admission permit host version
 
 ## [nestjs-v0.1.0] - 2026-09-15
 
