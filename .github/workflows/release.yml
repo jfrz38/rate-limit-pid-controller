@@ -23,6 +23,12 @@ jobs:
             package_name: "@jfrz38/pid-controller-express"
             package_dir: code/adapters/express
             package_file: code/adapters/express/package.json
+          - release_name: fastify
+            package_key: fastify
+            tag_prefix: fastify-v
+            package_name: "@jfrz38/pid-controller-fastify"
+            package_dir: code/adapters/fastify
+            package_file: code/adapters/fastify/package.json
           - release_name: nestjs
             package_key: nestjs
             tag_prefix: nestjs-v

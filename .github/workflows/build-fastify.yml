@@ -10,6 +10,7 @@ on:
       - "code/package.json"
       - "code/pnpm-lock.yaml"
       - "code/pnpm-workspace.yaml"
+      - "code/scripts/consumer-package-smoke.mjs"
       - "Makefile"
       - ".github/workflows/build-fastify.yml"
   workflow_dispatch:
@@ -38,3 +39,8 @@ jobs:
           cache-dependency-path: code/pnpm-lock.yaml
       - name: Validate Fastify
         run: make validate-fastify
+
+      - name: Smoke test installed consumer tarballs
+        run: make test-consumer-packages
+        env:
+          SMOKE_FASTIFY_VERSION: 5.12.8

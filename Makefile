@@ -118,7 +118,7 @@ test-node-conformance: ## run conformance against the WebAssembly component from
 test-node-package: ## verify the installed Node host tarball and embedded Wasm assets
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." test:package
 
-test-consumer-packages: ## install and smoke test Node, Express, and NestJS tarballs together
+test-consumer-packages: ## install and smoke test Node, Express, Fastify, and NestJS tarballs together
 	cd code && node scripts/consumer-package-smoke.mjs
 
 .PHONY: validate-shared validate-express validate-fastify validate-nestjs validate-node
