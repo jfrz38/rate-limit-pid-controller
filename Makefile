@@ -12,11 +12,13 @@ WASM_TOOLS_VERSION ?= 1.262.0
 
 PACKAGE_NAME_shared := @jfrz38/pid-controller-shared
 PACKAGE_NAME_express := @jfrz38/pid-controller-express
+PACKAGE_NAME_fastify := @jfrz38/pid-controller-fastify
 PACKAGE_NAME_nestjs := @jfrz38/pid-controller-nestjs
 PACKAGE_NAME_node := @jfrz38/adaptive-admission-node
 
 PACKAGE_DIR_shared := code/adapters/shared
 PACKAGE_DIR_express := code/adapters/express
+PACKAGE_DIR_fastify := code/adapters/fastify
 PACKAGE_DIR_nestjs := code/adapters/nestjs
 PACKAGE_DIR_node := code/hosts/node
 
@@ -62,18 +64,24 @@ clean: ## clean all workspace packages
 
 ci: install-code build lint test ## run the local CI pipeline
 
-.PHONY: build-shared build-express build-nestjs build-node lint-node verify-node-component
+.PHONY: build-shared build-express build-fastify build-nestjs build-node lint-fastify lint-node verify-node-component
 build-shared: ## build the shared adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_shared)..." build
 
 build-express: ## build the Express adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_express)..." build
 
+build-fastify: ## build the Fastify adapter package
+	cd code && $(PNPM) --filter "$(PACKAGE_NAME_fastify)..." build
+
 build-nestjs: ## build the NestJS adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_nestjs)..." build
 
 build-node: ## build the adaptive admission Node host package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." build
+
+lint-fastify: ## lint the Fastify adapter package
+	cd code && $(PNPM) --filter "$(PACKAGE_NAME_fastify)" lint
 
 lint-node: ## lint the adaptive admission Node host package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." lint
@@ -88,12 +96,15 @@ pack-local: build ## build and pack PACKAGE for local installation
 	$(PNPM) --dir "$(PACKAGE_DIR)" pack --pack-destination "$(abspath $(LOCAL_ARTIFACT_DIR))"
 	@printf '\nReinstall it in another project with:\n  pnpm remove "$(PACKAGE_NAME)" && pnpm add --save-exact --force "%s/"*.tgz\n' "$(abspath $(LOCAL_ARTIFACT_DIR))"
 
-.PHONY: test-shared test-express test-nestjs test-node test-node-conformance test-node-package test-consumer-packages
+.PHONY: test-shared test-express test-fastify test-nestjs test-node test-node-conformance test-node-package test-consumer-packages
 test-shared: ## test the shared adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_shared)..." test
 
 test-express: ## test the Express adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_express)..." test
+
+test-fastify: ## test the Fastify adapter package
+	cd code && $(PNPM) --filter "$(PACKAGE_NAME_fastify)..." test
 
 test-nestjs: ## test the NestJS adapter package
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_nestjs)..." test
@@ -107,13 +118,15 @@ test-node-conformance: ## run conformance against the WebAssembly component from
 test-node-package: ## verify the installed Node host tarball and embedded Wasm assets
 	cd code && $(PNPM) --filter "$(PACKAGE_NAME_node)..." test:package
 
-test-consumer-packages: ## install and smoke test Node, Express, and NestJS tarballs together
+test-consumer-packages: ## install and smoke test Node, Express, Fastify, and NestJS tarballs together
 	cd code && node scripts/consumer-package-smoke.mjs
 
-.PHONY: validate-shared validate-express validate-nestjs validate-node
+.PHONY: validate-shared validate-express validate-fastify validate-nestjs validate-node
 validate-shared: install-code build-shared test-shared ## install, build, and test shared
 
 validate-express: install-code build-express test-express ## install, build, and test Express
+
+validate-fastify: install-code build-fastify lint-fastify test-fastify ## install, build, lint, and test Fastify
 
 validate-nestjs: install-code build-nestjs test-nestjs ## install, build, and test NestJS
 

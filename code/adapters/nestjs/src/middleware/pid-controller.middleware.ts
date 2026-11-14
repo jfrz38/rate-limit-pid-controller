@@ -1,13 +1,25 @@
-import { PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
-import { Injectable, NestMiddleware } from '@nestjs/common';
-import { NextFunction, Request, Response } from 'express';
+import { Inject, Injectable, NestMiddleware } from '@nestjs/common';
+
+import {
+  PidControllerMiddlewareHandler,
+  type NestMiddlewareNext,
+  type NestMiddlewareRequest,
+  type NestMiddlewareResponse,
+} from './pid-controller-middleware-handler';
 
 @Injectable()
 export class PidControllerMiddleware implements NestMiddleware {
 
-  constructor(private readonly handler: PidControllerMiddlewareHandler) { }
+  constructor(
+    @Inject(PidControllerMiddlewareHandler)
+    private readonly handler: PidControllerMiddlewareHandler,
+  ) { }
 
-  async use(req: Request, res: Response, next: NextFunction) {
+  async use(
+    req: NestMiddlewareRequest,
+    res: NestMiddlewareResponse,
+    next: NestMiddlewareNext,
+  ): Promise<void> {
     await this.handler.use(req, res, next);
   }
 }

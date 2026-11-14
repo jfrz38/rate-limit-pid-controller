@@ -11,12 +11,24 @@ This is the **NestJS** adapter for the Rust/WebAssembly [Adaptive Admission Node
 > [!IMPORTANT]
 > Version `0.2.0` is an ESM-only breaking release, requires Node.js 24 or newer, and uses the host's native `ControllerOptions` configuration.
 
+## Supported platforms
+
+| Requirement | Supported versions |
+|---|---|
+| Node.js | 24 or newer |
+| NestJS | 10, 11, and 12 |
+| HTTP platform | `@nestjs/platform-express` or `@nestjs/platform-fastify` |
+| Module system | ESM |
+
+The same integration suite runs against both HTTP platforms for every supported NestJS major.
+
 ## Features
 
 - **Global Middleware**: Applies adaptive admission to configured HTTP routes.
 - **Exception Filter**: Converts operational request errors into configurable HTTP responses.
 - **Route Selection**: Supports included methods and excluded paths.
 - **Lifecycle Integration**: Shuts the controller down with the NestJS module and application.
+- **Dual HTTP platform support**: Uses Nest and Node HTTP boundaries instead of depending on Express internals.
 
 ## Installation
 
@@ -24,10 +36,26 @@ This is the **NestJS** adapter for the Rust/WebAssembly [Adaptive Admission Node
 npm install @jfrz38/pid-controller-nestjs
 ```
 
-The Node host, NestJS, and Express are peer dependencies. npm 7 and newer install compatible peer dependencies automatically when needed; an existing NestJS application normally provides the framework dependencies already. Install them explicitly only when you want to control their versions:
+The Node host, `@nestjs/common`, and `@nestjs/core` are peer dependencies. The application provides
+one Nest HTTP platform. Express is not required by applications that use Fastify.
+
+For an Express application:
 
 ```bash
 npm install @jfrz38/pid-controller-nestjs @jfrz38/adaptive-admission-node @nestjs/common @nestjs/core express
+```
+
+Install `@nestjs/platform-express` rather than a bare Express dependency when it is not already
+present in the application:
+
+```bash
+npm install @jfrz38/pid-controller-nestjs @jfrz38/adaptive-admission-node @nestjs/common @nestjs/core @nestjs/platform-express
+```
+
+For a Fastify application:
+
+```bash
+npm install @jfrz38/pid-controller-nestjs @jfrz38/adaptive-admission-node @nestjs/common @nestjs/core @nestjs/platform-fastify
 ```
 
 ## Configuration
@@ -37,7 +65,7 @@ The adapter preserves the existing `pid.config` and `pid.priority` wrapper. `pid
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `pid.config` | `ControllerOptions` | Host defaults | Adaptive admission, queue, statistics, and PID configuration. |
-| `pid.priority.getPriority` | `(req: Request) => number \| string \| undefined` | Lowest priority tier | Extracts a tier from `0` (highest) to `5` (lowest). |
+| `pid.priority.getPriority` | `(req) => number \| string \| undefined` | Lowest priority tier | Extracts a tier from the Nest middleware request. Use `headers` for portable access. |
 | `http` | `PidHttpRules` | - | HTTP response policy for operational request errors. |
 | `routes` | `PidRoutesConfig` | All routes | Selects protected and excluded routes. |
 
@@ -79,7 +107,7 @@ import { AppController } from './app.controller.js';
           },
         },
         priority: {
-          getPriority: (req) => req.get('x-priority') ?? 5,
+          getPriority: (req) => req.headers['x-priority'] ?? 5,
         },
       },
       http: {
@@ -97,7 +125,7 @@ import { AppController } from './app.controller.js';
 export class AppModule {}
 ```
 
-Enable shutdown hooks during bootstrap so NestJS invokes application lifecycle handlers:
+Bootstrap with the HTTP platform selected by the application. Express remains Nest's default:
 
 ```ts
 const app = await NestFactory.create(AppModule);
@@ -105,12 +133,39 @@ app.enableShutdownHooks();
 await app.listen(3000);
 ```
 
+Fastify uses the same module configuration:
+
+```ts
+import { NestFactory } from '@nestjs/core';
+import { FastifyAdapter } from '@nestjs/platform-fastify';
+
+const app = await NestFactory.create(AppModule, new FastifyAdapter());
+app.enableShutdownHooks();
+await app.listen(3000, '0.0.0.0');
+```
+
+The priority extractor can be typed explicitly without making the package depend on either
+platform. Nest middleware receives an Express request on Express and a Node `IncomingMessage`
+through Fastify's middleware bridge:
+
+```ts
+import type { IncomingMessage } from 'node:http';
+
+PidControllerModule.forRoot<IncomingMessage>({
+  pid: {
+    priority: {
+      getPriority: (request) => request.headers['x-priority'],
+    },
+  },
+});
+```
+
 ## How it works
 
 The adapter automatically registers global middleware and a filter:
 
-- **Middleware**: Waits for admission before executing the request pipeline and tracks completion through the Express response lifecycle.
-- **Filter**: Catches `AdmissionRequestError` and maps its concrete error to the configured HTTP response.
+- **Middleware**: Waits for admission before executing the request pipeline and tracks completion through Node HTTP response events shared by both Nest platforms.
+- **Filter**: Uses Nest's `HttpAdapterHost` to map `AdmissionRequestError` without platform-specific response calls.
 - **Lifecycle**: `OnModuleDestroy` and `OnApplicationShutdown` call the controller's idempotent `shutdown()` method.
 - **Providers**: Existing `PID_CONTROLLER` and `PID_CONTROLLER_OPTIONS` tokens remain exported.
 
@@ -125,6 +180,11 @@ The adapter automatically registers global middleware and a filter:
 | `CancelledRequestError` | `499` while the connection remains open; no response after disconnect |
 
 All these errors extend `AdmissionRequestError`. `ConfigurationError`, `ControllerProtocolError`, non-HTTP contexts, and application errors are left to NestJS instead of being converted into admission responses.
+
+Queued work is cancelled when the client disconnects. Once admitted, a request retains capacity
+until its response finishes; this includes streaming responses. A premature close or response error
+finishes the admission lifecycle as a failure. One module instance limits only its Node.js process
+or worker.
 
 ## Migrating from `0.1.x`
 
