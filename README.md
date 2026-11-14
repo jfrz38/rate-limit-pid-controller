@@ -18,7 +18,7 @@ Choose the integration boundary that matches the application:
 - **Framework Adapters**  
   Plug the controller into your framework with minimal setup:  
   🔗 [Express Adapter](./code/adapters/express/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)  
-  🔗 [Fastify Adapter](./code/adapters/fastify/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-fastify)](https://www.npmjs.com/package/@jfrz38/pid-controller-fastify)<br>
+  🔗 [Fastify Adapter](./code/adapters/fastify/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-fastify)](https://www.npmjs.com/package/@jfrz38/pid-controller-fastify)  
   🔗 [NestJS Adapter](./code/adapters/nestjs/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
 
 Explore the [simulation examples](./simulation/README.md) to see the controller under different
