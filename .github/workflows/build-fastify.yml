@@ -2,7 +2,7 @@ name: Build Fastify Adapter
 
 on:
   pull_request:
-    branches: [main, develop, feat/fastify-and-nest-multiplatform]
+    branches: [main, develop]
     paths:
       - "code/hosts/node/**"
       - "code/adapters/shared/**"

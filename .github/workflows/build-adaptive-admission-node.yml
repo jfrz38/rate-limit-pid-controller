@@ -2,7 +2,7 @@ name: Build Adaptive Admission Node Host
 
 on:
     pull_request:
-        branches: [main, develop, migrate/adaptive-admission]
+        branches: [main, develop]
         paths:
             - "code/hosts/node/**"
             - "code/package.json"
