@@ -18,10 +18,25 @@ Choose the integration boundary that matches the application:
 - **Framework Adapters**  
   Plug the controller into your framework with minimal setup:  
   🔗 [Express Adapter](./code/adapters/express/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-express)](https://www.npmjs.com/package/@jfrz38/pid-controller-express)  
+  🔗 [Fastify Adapter](./code/adapters/fastify/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-fastify)](https://www.npmjs.com/package/@jfrz38/pid-controller-fastify)<br>
   🔗 [NestJS Adapter](./code/adapters/nestjs/README.md) [![npm](https://img.shields.io/npm/v/@jfrz38/pid-controller-nestjs)](https://www.npmjs.com/package/@jfrz38/pid-controller-nestjs)
 
 Explore the [simulation examples](./simulation/README.md) to see the controller under different
 traffic loads and latency scenarios.
+
+## Compatibility
+
+All packages require Node.js 24 or newer and use ESM.
+
+| Integration | Supported versions |
+|---|---|
+| Express adapter | Express 4 and 5 |
+| Fastify adapter | Fastify 5 |
+| NestJS adapter | NestJS 10, 11, and 12 with `@nestjs/platform-express` or `@nestjs/platform-fastify` |
+
+The compatibility workflows run the framework adapters against every major version listed above.
+Each controller instance limits only its Node.js process or worker; admission state is not
+coordinated across workers, processes, containers, or hosts.
 
 ## Motivation
 
@@ -57,7 +72,7 @@ flowchart LR
 ## Features
 
 - PID-based dynamic rate limiting.
-- Pluggable adapters for different frameworks (e.g., NestJS, Express).
+- Direct adapters for Express and Fastify, plus a NestJS adapter validated with both HTTP platforms.
 - Configurable thresholds, recovery, and overload handling.
 - Designed for **high concurrency** environments.
 - Priority-based shedding dropping background tasks during high-load periods while keeping critical requests alive.
@@ -86,6 +101,7 @@ The latest simulation report shows how the controller responds to the executed t
 This repository contains several npm packages that are versioned and released independently:
 
 - `@jfrz38/pid-controller-express` uses tags like `express-vX.Y.Z`.
+- `@jfrz38/pid-controller-fastify` uses tags like `fastify-vX.Y.Z`.
 - `@jfrz38/pid-controller-nestjs` uses tags like `nestjs-vX.Y.Z`.
 - `@jfrz38/adaptive-admission-node` uses tags like `node-vX.Y.Z` and embeds the validated
   WebAssembly component, so npm consumers do not need Rust or Cargo.
@@ -109,6 +125,7 @@ Package-specific checks are also available:
 ```bash
 make validate-node
 make validate-express
+make validate-fastify
 make validate-nestjs
 ```
 
@@ -116,7 +133,8 @@ Run `make help` to list all available targets.
 
 ### Local package testing
 
-Build a package and create a local tarball with `PACKAGE=node`, `shared`, `express`, or `nestjs`:
+Build a package and create a local tarball with `PACKAGE=node`, `shared`, `express`, `fastify`, or
+`nestjs`:
 
 ```bash
 make pack-local PACKAGE=node
@@ -127,10 +145,11 @@ The command prints a `pnpm remove <package> && pnpm add --force <tarball>` comma
 ## Migrating from the TypeScript core
 
 `@jfrz38/pid-controller-core` is retired. Direct consumers should migrate to
-`@jfrz38/adaptive-admission-node`; Express and NestJS users should upgrade their existing adapter to
-`0.2.x`. The adapter READMEs document configuration and error changes. The old npm package will be
-deprecated only after the replacement packages have been published from a validated `main`
-release.
+`@jfrz38/adaptive-admission-node`; Express and NestJS users should upgrade their existing adapters
+to `0.2.x`. Fastify applications can use the new `@jfrz38/pid-controller-fastify` adapter. The
+adapter READMEs document installation, configuration, lifecycle, and error handling. The old npm
+package will be deprecated only after the replacement packages have been published from a
+validated `main` release.
 
 ## References
 
