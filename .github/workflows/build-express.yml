@@ -1,7 +1,7 @@
 name: Build Express Adapter
 on:
   pull_request:
-    branches: [main, develop, migrate/adaptive-admission]
+    branches: [main, develop, feat/fastify-and-nest-multiplatform]
     paths:
       - "code/hosts/node/**"
       - "code/adapters/shared/**"
@@ -9,6 +9,7 @@ on:
       - "code/package.json"
       - "code/pnpm-lock.yaml"
       - "code/pnpm-workspace.yaml"
+      - "code/scripts/consumer-package-smoke.mjs"
       - "Makefile"
       - ".github/workflows/build-express.yml"
   workflow_dispatch:

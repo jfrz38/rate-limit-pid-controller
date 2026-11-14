@@ -9,6 +9,7 @@ on:
       - "code/package.json"
       - "code/pnpm-lock.yaml"
       - "code/pnpm-workspace.yaml"
+      - "code/scripts/consumer-package-smoke.mjs"
       - "Makefile"
       - ".github/workflows/build-nestjs.yml"
   workflow_dispatch:
