@@ -87,7 +87,7 @@ function stopPipeline(reply: FastifyReply): void {
   }
 }
 
-export const pidControllerPlugin = fastifyPlugin(adaptiveAdmissionPlugin, {
+export const pidControllerPlugin: FastifyPluginAsync<PidControllerPluginOptions> = fastifyPlugin(adaptiveAdmissionPlugin, {
   fastify: '5.x',
   name: '@jfrz38/pid-controller-fastify',
 });

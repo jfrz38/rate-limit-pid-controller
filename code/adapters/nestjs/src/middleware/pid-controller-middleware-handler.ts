@@ -6,7 +6,14 @@ import {
   normalizePriority,
   type PidControllerPriority,
 } from '@jfrz38/pid-controller-shared';
-import type { NextFunction, Request, Response } from 'express';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+
+export type NestMiddlewareRequest = IncomingMessage & {
+  originalUrl?: string;
+};
+
+export type NestMiddlewareResponse = ServerResponse;
+export type NestMiddlewareNext = (error?: unknown) => void;
 
 class PrematureResponseCloseError extends Error {
   constructor() {
@@ -18,10 +25,14 @@ class PrematureResponseCloseError extends Error {
 export class PidControllerMiddlewareHandler {
   constructor(
     private readonly controller: AdaptiveAdmissionController,
-    private readonly priority?: PidControllerPriority<Request>,
+    private readonly priority?: PidControllerPriority<any>,
   ) {}
 
-  async use(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async use(
+    req: NestMiddlewareRequest,
+    res: NestMiddlewareResponse,
+    next: NestMiddlewareNext,
+  ): Promise<void> {
     const abortController = new AbortController();
     const onAborted = () => abortController.abort();
     req.once('aborted', onAborted);
@@ -45,7 +56,10 @@ export class PidControllerMiddlewareHandler {
     }
   }
 
-  private observeResponse(res: Response, next: NextFunction): Promise<void> {
+  private observeResponse(
+    res: NestMiddlewareResponse,
+    next: NestMiddlewareNext,
+  ): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       let terminal = false;
 
@@ -84,8 +98,12 @@ export class PidControllerMiddlewareHandler {
     });
   }
 
-  private isDisconnected(error: unknown, req: Request, res: Response): boolean {
+  private isDisconnected(
+    error: unknown,
+    req: NestMiddlewareRequest,
+    res: NestMiddlewareResponse,
+  ): boolean {
     return (error instanceof CancelledRequestError || error instanceof PrematureResponseCloseError)
-      && (req.aborted || res.destroyed);
+      && (req.aborted || req.destroyed || req.socket?.destroyed || res.destroyed);
   }
 }
