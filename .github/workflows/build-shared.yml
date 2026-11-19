@@ -1,7 +1,7 @@
 name: Build Shared Adapter
 on:
   pull_request:
-    branches: [main, develop, migrate/adaptive-admission]
+    branches: [main, develop]
     paths:
       - "code/adapters/shared/**"
       - "code/hosts/node/**"

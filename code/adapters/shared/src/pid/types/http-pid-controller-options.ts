@@ -6,12 +6,12 @@ import { PidControllerOptions } from "./pid-controller-options";
  * This interface serves as the primary entry point for customizing how the controller 
  * interacts with the HTTP layer.
  */
-export interface HttpPidControllerOptions {
+export interface HttpPidControllerOptions<Request = any> {
     /**
      * Core configuration for the PID algorithm and statistics engine.
      * * @see {@link PidControllerOptions} from the `@core` package for detailed parameter descriptions.
      */
-    pid?: PidControllerOptions;
+    pid?: PidControllerOptions<Request>;
 
     /**
      * Set of HTTP-specific policies that govern the controller's behavior.

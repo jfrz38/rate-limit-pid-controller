@@ -1,10 +1,10 @@
 import type { ControllerOptions } from '@jfrz38/adaptive-admission-node';
-import { PidControllerMiddlewarePriority } from "../../middleware/types/pid-controller-middleware-options";
+import type { PidControllerPriority } from './pid-controller-priority';
 
 /**
  * Configuration options for PidController.
  */
-export interface PidControllerOptions {
+export interface PidControllerOptions<Request = any> {
   /**
    * Native Rust adaptive admission controller configuration.
    * @example
@@ -17,5 +17,5 @@ export interface PidControllerOptions {
   /**
    * Request priority.
    */
-  priority?: PidControllerMiddlewarePriority
+  priority?: PidControllerPriority<Request>;
 }

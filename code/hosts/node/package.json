@@ -1,6 +1,6 @@
 {
   "name": "@jfrz38/adaptive-admission-node",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Node.js host SDK for the Adaptive Admission Controller WebAssembly component",
   "license": "MIT",
   "type": "module",

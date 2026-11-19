@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - express
+          - fastify
           - nestjs
           - shared
           - node
@@ -27,6 +28,14 @@ on:
         required: true
         default: develop
         type: string
+      changelog:
+        description: Changelog strategy
+        required: true
+        default: git-cliff
+        type: choice
+        options:
+          - git-cliff
+          - none
 
 permissions:
   contents: write
@@ -54,6 +63,11 @@ jobs:
               echo "version_file=code/adapters/express/package.json" >> "$GITHUB_OUTPUT"
               echo "tag_prefix=express-v" >> "$GITHUB_OUTPUT"
               ;;
+            fastify)
+              echo "package_name=@jfrz38/pid-controller-fastify" >> "$GITHUB_OUTPUT"
+              echo "version_file=code/adapters/fastify/package.json" >> "$GITHUB_OUTPUT"
+              echo "tag_prefix=fastify-v" >> "$GITHUB_OUTPUT"
+              ;;
             nestjs)
               echo "package_name=@jfrz38/pid-controller-nestjs" >> "$GITHUB_OUTPUT"
               echo "version_file=code/adapters/nestjs/package.json" >> "$GITHUB_OUTPUT"
@@ -76,9 +90,10 @@ jobs:
           esac
 
       - name: Bump version
-        uses: jfrz38/version-bump-action@v0
+        uses: jfrz38/auto-version-bump-action@7a76804803c0ae5dc7c5d8d1ac7bfcf4fbbb4d6f # v0.4.0
         with:
           bump: ${{ inputs.bump }}
+          changelog: ${{ inputs.changelog }}
           strategy: npm
           version-file: ${{ steps.package.outputs.version_file }}
           base-branch: ${{ inputs.base_branch }}

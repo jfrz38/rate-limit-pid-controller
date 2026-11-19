@@ -249,6 +249,128 @@ describe('AdaptiveAdmissionController', () => {
     controller.shutdown();
   });
 
+  test('acquires and completes permits while rejecting double completion', async () => {
+    const controller = controllerWithSlowControlLoops();
+
+    const successful = await controller.acquire(Priority.fromValue(0));
+    successful.complete('success');
+    expect(() => successful.complete('failure')).toThrow('Admission permit has already been completed');
+
+    const failed = await controller.acquire(Priority.fromValue(0));
+    failed.complete('failure');
+    controller.shutdown();
+  });
+
+  test('acquires queued permits in priority order', async () => {
+    const controller = controllerWithSlowControlLoops();
+    const active = await controller.acquire(Priority.fromValue(0));
+    const order: string[] = [];
+
+    const lessImportantPromise = controller.acquire(Priority.fromValue(500)).then((permit) => {
+      order.push('less-important');
+      return permit;
+    });
+    const moreImportantPromise = controller.acquire(Priority.fromValue(10)).then((permit) => {
+      order.push('more-important');
+      return permit;
+    });
+
+    active.complete('success');
+    const moreImportant = await moreImportantPromise;
+    expect(order).toEqual(['more-important']);
+
+    moreImportant.complete('success');
+    const lessImportant = await lessImportantPromise;
+    expect(order).toEqual(['more-important', 'less-important']);
+
+    lessImportant.complete('success');
+    controller.shutdown();
+  });
+
+  test('translates admission rejections when acquiring permits', async () => {
+    const thresholdController = new AdaptiveAdmissionController({ initialThreshold: 1 });
+    await expect(thresholdController.acquire(Priority.fromValue(1)))
+      .rejects.toBeInstanceOf(ThresholdRejectedError);
+    thresholdController.shutdown();
+
+    const queueController = controllerWithSlowControlLoops({ maxQueuedRequests: 0 });
+    const active = await queueController.acquire(Priority.fromValue(0));
+    await expect(queueController.acquire(Priority.fromValue(1)))
+      .rejects.toBeInstanceOf(QueueFullError);
+    active.complete('success');
+    queueController.shutdown();
+  });
+
+  test('evicts a queued permit when its deadline elapses', async () => {
+    const runtime = new FakeRuntime();
+    const controller = new AdaptiveAdmissionController({
+      maxConcurrentRequests: 1,
+      queueTimeoutMs: 10,
+      pid: { intervalMs: 10_000 },
+    }, runtime.dependencies);
+
+    const activePromise = controller.acquire(Priority.fromValue(0));
+    runtime.flushDeferred();
+    const active = await activePromise;
+    const queued = controller.acquire(Priority.fromValue(1));
+
+    runtime.advanceTo(10n);
+
+    await expect(queued).rejects.toBeInstanceOf(EvictedRequestError);
+    active.complete('success');
+    controller.shutdown();
+  });
+
+  test('observes abort only while a permit remains queued', async () => {
+    const controller = controllerWithSlowControlLoops();
+    const alreadyAborted = new AbortController();
+    alreadyAborted.abort();
+
+    await expect(controller.acquire(Priority.fromValue(0), { signal: alreadyAborted.signal }))
+      .rejects.toBeInstanceOf(CancelledRequestError);
+
+    const active = await controller.acquire(Priority.fromValue(0));
+    const queuedAbort = new AbortController();
+    const queued = controller.acquire(Priority.fromValue(1), { signal: queuedAbort.signal });
+    queuedAbort.abort();
+    await expect(queued).rejects.toBeInstanceOf(CancelledRequestError);
+
+    const acquiredAbort = new AbortController();
+    active.complete('success');
+    const acquired = await controller.acquire(Priority.fromValue(0), { signal: acquiredAbort.signal });
+    acquiredAbort.abort();
+    expect(() => acquired.complete('success')).not.toThrow();
+    controller.shutdown();
+  });
+
+  test('removes a queued abort listener when the permit starts', async () => {
+    const controller = controllerWithSlowControlLoops();
+    const active = await controller.acquire(Priority.fromValue(0));
+    const abortController = new AbortController();
+    const removeEventListener = vi.spyOn(abortController.signal, 'removeEventListener');
+    const queued = controller.acquire(Priority.fromValue(1), { signal: abortController.signal });
+
+    active.complete('success');
+    const permit = await queued;
+
+    expect(removeEventListener).toHaveBeenCalledOnce();
+    abortController.abort();
+    permit.complete('success');
+    controller.shutdown();
+  });
+
+  test('shutdown cancels queued acquisitions and allows acquired permits to complete', async () => {
+    const controller = controllerWithSlowControlLoops();
+    const active = await controller.acquire(Priority.fromValue(0));
+    const queued = controller.acquire(Priority.fromValue(1));
+
+    controller.shutdown();
+
+    await expect(queued).rejects.toBeInstanceOf(ControllerShutdownError);
+    await expect(controller.acquire()).rejects.toBeInstanceOf(ControllerShutdownError);
+    expect(() => active.complete('success')).not.toThrow();
+  });
+
   test('publishes threshold changes to diagnostic listeners', async () => {
     const runtime = new FakeRuntime();
     const controller = new AdaptiveAdmissionController({

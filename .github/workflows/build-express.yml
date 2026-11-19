@@ -1,7 +1,7 @@
 name: Build Express Adapter
 on:
   pull_request:
-    branches: [main, develop, migrate/adaptive-admission]
+    branches: [main, develop]
     paths:
       - "code/hosts/node/**"
       - "code/adapters/shared/**"
@@ -9,6 +9,7 @@ on:
       - "code/package.json"
       - "code/pnpm-lock.yaml"
       - "code/pnpm-workspace.yaml"
+      - "code/scripts/consumer-package-smoke.mjs"
       - "Makefile"
       - ".github/workflows/build-express.yml"
   workflow_dispatch:
@@ -47,11 +48,6 @@ jobs:
         run: >-
           pnpm --dir code --filter "@jfrz38/pid-controller-express" add --save-dev --save-exact
           express@${{ matrix.express_version }}
-          @types/express@${{ matrix.express_types_version }}
-
-      - name: Install shared Express type compatibility version
-        run: >-
-          pnpm --dir code --filter "@jfrz38/pid-controller-shared" add --save-dev --save-exact
           @types/express@${{ matrix.express_types_version }}
 
       - name: Build

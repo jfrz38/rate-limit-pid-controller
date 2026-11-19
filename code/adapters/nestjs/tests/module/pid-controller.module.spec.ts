@@ -2,9 +2,10 @@ import { RequestMethod } from '@nestjs/common';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { PidRoutes } from '../../src/error/routes/pid-routes';
 import { PidControllerModule } from '../../src/module/pid-controller.module';
-import { PidControllerMiddlewareHandler } from '@jfrz38/pid-controller-shared';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, HttpAdapterHost } from '@nestjs/core';
 import { PidExceptionFilter } from '../../src/filter/pid-exception.filter';
+import { PidControllerMiddleware } from '../../src/middleware/pid-controller.middleware';
+import { PidControllerMiddlewareHandler } from '../../src/middleware/pid-controller-middleware-handler';
 
 describe('PidControllerModule', () => {
     const pidProvider = 'PID_CONTROLLER';
@@ -58,7 +59,8 @@ describe('PidControllerModule', () => {
 
             expect(filterProvider.useFactory).toBeDefined();
 
-            const filter = filterProvider.useFactory();
+            expect(filterProvider.inject).toContain(HttpAdapterHost);
+            const filter = filterProvider.useFactory({ httpAdapter: {} });
 
             expect(filter).toBeInstanceOf(PidExceptionFilter);
         });
@@ -77,6 +79,12 @@ describe('PidControllerModule', () => {
             const handler = handlerProvider.useFactory(mockController);
 
             expect(handler).toBeInstanceOf(PidControllerMiddlewareHandler);
+        });
+
+        test('when forRoot is called should register the middleware as a provider', () => {
+            const dynamicModule = PidControllerModule.forRoot(mockOptions);
+
+            expect(dynamicModule.providers).toContain(PidControllerMiddleware);
         });
     });
 
